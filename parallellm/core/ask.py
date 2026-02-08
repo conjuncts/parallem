@@ -1,7 +1,13 @@
 from abc import ABC
 from typing import TYPE_CHECKING, List, Literal, Optional, Union
 
-from parallellm.types import LLMDocument, LLMIdentity, LLMResponse, ServerTool
+from parallellm.types import (
+    HashByOptions,
+    LLMDocument,
+    LLMIdentity,
+    LLMResponse,
+    ServerTool,
+)
 
 if TYPE_CHECKING:
     from parallellm.core.msg.state import MessageState
@@ -24,11 +30,11 @@ class Askable(ABC):
         instructions: Optional[str] = None,
         llm: Union[LLMIdentity, str, None] = None,
         salt: Optional[str] = None,
-        hash_by: Optional[List[Literal["llm"]]] = None,
+        hash_by: HashByOptions = None,
         text_format: Optional[str] = None,
         tools: Optional[list[Union[dict, ServerTool]]] = None,
         tag: Optional[str] = None,
-        save_input: bool = False,
+        save_input: Optional[bool] = None,
         **kwargs,
     ) -> LLMResponse:
         """
@@ -50,7 +56,7 @@ class Askable(ABC):
             Both user-defined tools (function tools) and server-defined tools
             (ie. web search, code interpreter) are supported.
         :param tag: An optional tag to associate with the request.
-        :param save_input: Whether to save input documents. Default False.
+        :param save_input: Whether to save input documents. Default None: no saving.
         :returns: A LLMResponse. The value is **lazy loaded**: for best efficiency,
             it should not be resolved until you actually need it.
         """

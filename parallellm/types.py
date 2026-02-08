@@ -83,10 +83,14 @@ class CohortIdentifier:
     """Numeric ID of session. Here, it also serves as a cohort ID."""
 
 
+HashByOptions = Optional[list[Literal["llm"]]]
+
+
 class AskParameters(TypedDict):
     """Parameters for ask_llm()."""
 
-    hash_by: Optional[List[Literal["llm"]]]
+    hash_by: HashByOptions
+    save_input: bool
 
 
 BatchStatus = Literal["ready", "error"]

@@ -1,6 +1,6 @@
 from logging import Logger
 from typing import List, Literal, Optional, Union
-from parallellm.core.agent.agent import AgentContext, AgentDashboardContext
+from parallellm.core.agent.agent import AgentContext
 from parallellm.core.backend import BaseBackend
 from parallellm.core.msg.state import MessageState
 from parallellm.core.hydrate import hydrate_llm_response, hydrate_msg_state
@@ -70,20 +70,18 @@ class AgentOrchestrator:
         *,
         ask_params: Optional[AskParameters] = None,
     ):
+        """
+        Delineates an agent.
+        """
         if ask_params is None:
             ask_params = self.ask_params
 
-        # if dashboard:
-        return AgentDashboardContext(
+        return AgentContext(
             name,
             self,
-            log_k=10,
             ask_params=ask_params,
             ignore_cache=self.ignore_cache,
         )
-        # return AgentContext(
-        #     name, self, ask_params=ask_params, ignore_cache=self.ignore_cache
-        # )
 
     def get_msg_state(self, agent: AgentContext) -> MessageState:
         """

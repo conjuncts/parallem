@@ -1,12 +1,12 @@
 import logging
-from typing import Literal
+from typing import Literal, Optional
 
 from parallellm.core.agent.orchestrator import AgentOrchestrator
 from parallellm.file_io.file_manager import FileManager
 from parallellm.logging.dash_logger import DashboardLogger
 from parallellm.logging.fancy import get_parallellm_log_handler
 from parallellm.provider.openai.sdk import BatchOpenAIProvider
-from parallellm.types import MinorTweaks, ProviderType
+from parallellm.types import HashByOptions, MinorTweaks, ProviderType
 
 
 class ParalleLLMGateway:
@@ -24,6 +24,8 @@ class ParalleLLMGateway:
         throttler=None,
         tweaks: MinorTweaks = MinorTweaks(),
         dashboard: bool = False,
+        hash_by: HashByOptions = None,
+        save_input: bool = None,
     ) -> AgentOrchestrator:
         """
         Resume an AgentOrchestrator from a previously saved directory.
@@ -40,6 +42,12 @@ class ParalleLLMGateway:
         :param throttler: Throttler instance for rate limiting (default: None, no throttling)
         :param tweaks: MinorTweaks instance for fine-tuning behavior
         :param dashboard: If True, pretty prints sent requests in real time
+
+        :param hash_by: By default, responses with identical content but different configs
+            are considered equivalent. Specify additional parameters (like "llm")
+            to differentiate.
+        :param save_input: By default, input documents are not saved. Set to True to save them.
+
         :return: Configured AgentOrchestrator instance
         :raises ValueError: If strategy is not supported
         :raises NotImplementedError: If dry_run is True or strategy is not implemented
@@ -167,6 +175,12 @@ class ParalleLLMGateway:
 
         logger.debug("Creating AgentOrchestrator")
         special_dl = DashboardLogger(k=10, display=False)
+
+        ask_params = {}
+        if hash_by is not None:
+            ask_params["hash_by"] = hash_by
+        if save_input is not None:
+            ask_params["save_input"] = save_input
         bm = AgentOrchestrator(
             file_manager=fm,
             backend=backend,
@@ -176,6 +190,7 @@ class ParalleLLMGateway:
             special_dashlog=special_dl,
             ignore_cache=ignore_cache,
             strategy=strategy,
+            ask_params=ask_params,
         )
 
         logger.info(f"Resuming with session_id={bm.get_session_counter()}")

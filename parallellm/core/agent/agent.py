@@ -12,6 +12,7 @@ from parallellm.types import (
     AskParameters,
     CallIdentifier,
     CommonQueryParameters,
+    HashByOptions,
     LLMDocument,
     LLMIdentity,
     LLMResponse,
@@ -66,7 +67,7 @@ class AgentContext(Askable):
         Print to console above the dashboard output.
         This ensures proper display ordering when the dashboard is active.
         """
-        print(*args, **kwargs)
+        self._bm._dashlog.print(*args, **kwargs)
 
     @property
     def my_metadata(self) -> dict:
@@ -92,17 +93,19 @@ class AgentContext(Askable):
         instructions: Optional[str] = None,
         llm: Union[LLMIdentity, str, None] = None,
         salt: Optional[str] = None,
-        hash_by: Optional[List[Literal["llm"]]] = None,
+        hash_by: HashByOptions = None,
         text_format: Optional[str] = None,
         tools: Optional[list[Union[dict, ServerTool]]] = None,
         tag: Optional[str] = None,
-        save_input: bool = False,
+        save_input: Optional[bool] = None,
         **kwargs,
     ) -> LLMResponse:
         # load ask_params defaults
         for k, v in self.ask_params.items():
             if k == "hash_by" and hash_by is None:
                 hash_by = v
+            elif k == "save_input" and save_input is None:
+                save_input = v
 
         if llm is None:
             llm = self._bm._provider.get_default_llm_identity()
@@ -183,10 +186,6 @@ class AgentContext(Askable):
             **kwargs,
         )
 
-    def update_hash_status(self, hash_value: str, status: HashStatus):
-        # No-op
-        pass
-
     def get_msg_state(self, continuation=False) -> MessageState:
         """
         Get the current MessageState for this agent.
@@ -210,49 +209,6 @@ class AgentContext(Askable):
             msg_state,
         )
 
-
-class AgentDashboardContext(AgentContext):
-    """Context manager for the hash status dashboard"""
-
-    def __init__(
-        self,
-        agent_name: str,
-        batch_manager: "AgentOrchestrator",
-        *,
-        log_k: int = 10,
-        ask_params: Optional[AskParameters] = None,
-        ignore_cache: bool = False,
-    ):
-        super().__init__(
-            agent_name, batch_manager, ask_params=ask_params, ignore_cache=ignore_cache
-        )
-        self._was_displaying = False
-        self._bm._dashlog.k = log_k
-
-    @property
-    def _dashlog(self):
-        return self._bm._dashlog
-
-    def __enter__(self):
-        # Store current display state and enable display
-        # self._was_displaying = self._dashlog.display
-        # self._dashlog.set_display(True)
-        return super().__enter__()
-
-    def __exit__(self, exc_type, exc_val, exc_tb):
-        # self._dashlog._update_console()
-
-        # self._dashlog.finalize_line()
-        # self._dashlog.set_display(self._was_displaying)
-        return super().__exit__(exc_type, exc_val, exc_tb)
-
-    def print(self, *args, **kwargs):
-        """
-        Print to console above the dashboard output.
-        This ensures proper display ordering when the dashboard is active.
-        """
-        self._dashlog.print(*args, **kwargs)
-
     def update_hash_status(self, hash_value: str, status: HashStatus):
         """
         Update the status of a hash in the logger
@@ -262,5 +218,5 @@ class AgentDashboardContext(AgentContext):
             status: New status - one of 'C' (cached), '↗' (sent), '↘' (received), '✓' (stored)
         """
         # only track if asked
-        if self._dashlog.display:
-            self._dashlog.update_hash(hash_value, status)
+        if self._bm._dashlog.display:
+            self._bm._dashlog.update_hash(hash_value, status)

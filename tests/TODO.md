@@ -13,3 +13,4 @@ msg_state.ask_functions()
 - [ ] msg_state.resolve()
 - [ ] msg_state.ask_human()
 - [ ] tools.auto_schema
+- [ ] ask_params

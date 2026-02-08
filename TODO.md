@@ -46,9 +46,10 @@ Input storage:
 - [ ] export_all
 - [ ] import batch.zip
 
-- [ ] make arguments that work on all ask_llm calls (ie. save_input)
+- [x] make arguments that work on all ask_llm calls (ie. save_input)
     - save_input
     - hash_by
+    - already exists: ask_params
 - [ ] a ParquetWriter that is backed by a temp SQLite table
 - [ ] in MessageState, is there some more elegant way to only keep track of the deltas to the conversation?
     - YES. Implies keeping track of msg_hashes alongside true messages. When Then, pass "False" to the agent's ask_llm method. Use a special class to keep track of this shenanigan which only contains 
@@ -80,9 +81,9 @@ Read
 - [ ] fix that ReadyLLMResponse don't have the original sess_id. pertinent: ParsedResponse should be modified to contain (seq_id, sess_id).
 - [ ] need to hash based on available tools??? (TODO: issue a warning)
 - [ ] material docs
-- [ ] restore resolve_json()
+- [x] restore resolve_json()
 - [ ] continuable errors (ie. JSON)
-- [ ] dashboard should be placed at the 'pllm' level, not the agent level, to avoid spam
+- [x] dashboard should be placed at the 'pllm' level, not the agent level, to avoid spam
 
 
 ```python
