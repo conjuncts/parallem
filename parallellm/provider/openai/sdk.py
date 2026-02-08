@@ -113,6 +113,20 @@ class OpenAIProvider(BaseProvider):
                     openai_tools.append({"type": "web_search", **tool.kwargs})
                 elif tool.server_tool_type == "code_interpreter":
                     openai_tools.append({"type": "code_interpreter", **tool.kwargs})
+                elif tool.server_tool_type == "mcp":
+                    openai_tools.append(
+                        {
+                            "type": "mcp",
+                            "server_label": tool.server_label,
+                            "server_description": tool.server_description,
+                            "server_url": tool.server_url,
+                            "require_approval": tool.require_approval,
+                        }
+                    )
+                else:
+                    raise ValueError(
+                        f"Unsupported ServerTool type for OpenAI: {tool.server_tool_type}"
+                    )
             else:
                 openai_tools.append(tool)
         return openai_tools

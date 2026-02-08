@@ -146,6 +146,21 @@ def _prepare_tool_schema(
                 google_tools.append({"google_search": extra_params})
             elif sch.server_tool_type == "code_interpreter":
                 google_tools.append({"code_execution": extra_params})
+            elif sch.server_tool_type == "mcp":
+                # https://ai.google.dev/gemini-api/docs/interactions#remote-mcp-model-context-protocol
+                # No type hint (?) for mcp tool
+                obj = {
+                    "type": "mcp_server",
+                    "name": sch.server_label,
+                    # "server_description": sch.server_description,
+                    "url": sch.server_url,
+                    # "require_approval": sch.require_approval,
+                }
+                google_tools.append(obj)
+            else:
+                raise ValueError(
+                    f"Unsupported ServerTool type for Google Gemini: {sch.server_tool_type}"
+                )
             continue
         if isinstance(sch, types.Tool):
             google_tools.append(sch)

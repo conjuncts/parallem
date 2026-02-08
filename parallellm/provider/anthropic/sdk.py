@@ -155,6 +155,14 @@ def _prepare_tool_schema(func_schemas: List[Union[dict, ServerTool]]) -> List[di
             elif sch.server_tool_type == "code_interpreter":
                 # TODO: support this (it is in beta)
                 raise NotImplementedError
+            elif sch.server_tool_type == "mcp":
+                # TODO: support this (it is in beta)
+                # https://platform.claude.com/docs/en/agents-and-tools/mcp-connector
+                raise NotImplementedError
+            else:
+                raise ValueError(
+                    f"Unsupported ServerTool type for Anthropic: {sch.server_tool_type}"
+                )
             continue
 
         sch2 = None

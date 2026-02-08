@@ -1,0 +1,32 @@
+from dotenv import load_dotenv
+from parallellm import resume_directory
+from parallellm.tools.mcp import MCPTool
+
+
+load_dotenv()
+
+with resume_directory(
+    ".pllm/simple/mcp",
+    strategy="sync",
+    provider="openai",
+    # ignore_cache=True,
+    # rewrite_cache=True,
+    dashboard=True,
+) as pllm:
+    with pllm.agent() as agt:
+        # https://platform.openai.com/docs/guides/tools-connectors-mcp
+        # openai - SSE is ok
+        # google - HTTP only (not SSE)
+        resp = agt.ask_llm(
+            "Roll 2d4+1.",
+            tools=[
+                MCPTool(
+                    server_label="dmcp",
+                    server_description="A Dungeons and Dragons MCP server to assist with dice rolling.",
+                    server_url="https://dmcp-server.deno.dev/sse",
+                    require_approval="never",
+                )
+            ],
+        )
+
+        agt.print(resp.resolve())
