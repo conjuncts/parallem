@@ -235,15 +235,15 @@ class AgentDashboardContext(AgentContext):
 
     def __enter__(self):
         # Store current display state and enable display
-        self._was_displaying = self._dashlog.display
-        self._dashlog.set_display(True)
+        # self._was_displaying = self._dashlog.display
+        # self._dashlog.set_display(True)
         return super().__enter__()
 
     def __exit__(self, exc_type, exc_val, exc_tb):
-        self._dashlog._update_console()
+        # self._dashlog._update_console()
 
-        self._dashlog.finalize_line()
-        self._dashlog.set_display(self._was_displaying)
+        # self._dashlog.finalize_line()
+        # self._dashlog.set_display(self._was_displaying)
         return super().__exit__(exc_type, exc_val, exc_tb)
 
     def print(self, *args, **kwargs):
@@ -261,4 +261,6 @@ class AgentDashboardContext(AgentContext):
             hash_value: The hash value to update
             status: New status - one of 'C' (cached), '↗' (sent), '↘' (received), '✓' (stored)
         """
-        self._dashlog.update_hash(hash_value, status)
+        # only track if asked
+        if self._dashlog.display:
+            self._dashlog.update_hash(hash_value, status)

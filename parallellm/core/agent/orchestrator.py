@@ -57,6 +57,10 @@ class AgentOrchestrator:
 
     def __exit__(self, exc_type, exc_value, traceback):
         """Exit the context manager, automatically calling persist()."""
+        if self._dashlog.display:
+            self._dashlog._update_console()
+
+            self._dashlog.finalize_line()
         self.persist()
         return False
 
@@ -64,23 +68,22 @@ class AgentOrchestrator:
         self,
         name: str = "",
         *,
-        dashboard=False,
         ask_params: Optional[AskParameters] = None,
     ):
         if ask_params is None:
             ask_params = self.ask_params
 
-        if dashboard:
-            return AgentDashboardContext(
-                name,
-                self,
-                log_k=10,
-                ask_params=ask_params,
-                ignore_cache=self.ignore_cache,
-            )
-        return AgentContext(
-            name, self, ask_params=ask_params, ignore_cache=self.ignore_cache
+        # if dashboard:
+        return AgentDashboardContext(
+            name,
+            self,
+            log_k=10,
+            ask_params=ask_params,
+            ignore_cache=self.ignore_cache,
         )
+        # return AgentContext(
+        #     name, self, ask_params=ask_params, ignore_cache=self.ignore_cache
+        # )
 
     def get_msg_state(self, agent: AgentContext) -> MessageState:
         """

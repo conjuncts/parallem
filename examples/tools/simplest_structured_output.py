@@ -1,9 +1,8 @@
 import logging
 
 from pydantic import BaseModel
-from parallellm.core.gateway import ParalleLLM
-from parallellm.types import FunctionCallOutput
 from dotenv import load_dotenv
+from parallellm.core.gateway import ParalleLLM
 
 load_dotenv()
 
@@ -17,12 +16,13 @@ with ParalleLLM.resume_directory(
     provider="google",
     strategy="batch",
     log_level=logging.DEBUG,
+    dashboard=True,
     # ignore_cache=True,
 ) as pllm:
-    with pllm.agent(dashboard=True) as dash:
+    with pllm.agent() as agt:
         # Structured output
-        resp = dash.ask_llm(
+        resp = agt.ask_llm(
             "Please name a power of 3.", hash_by=["llm"], text_format=MyModel
         )
 
-        dash.print(resp.resolve())
+        agt.print(resp.resolve())

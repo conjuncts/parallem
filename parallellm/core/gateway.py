@@ -23,6 +23,7 @@ class ParalleLLMGateway:
         rewrite_cache=False,
         throttler=None,
         tweaks: MinorTweaks = MinorTweaks(),
+        dashboard: bool = False,
     ) -> AgentOrchestrator:
         """
         Resume an AgentOrchestrator from a previously saved directory.
@@ -37,6 +38,8 @@ class ParalleLLMGateway:
         :param ignore_cache: If True, always submit to API instead of using cached responses
         :param rewrite_cache: If True, overwrite cached responses with new ones (uses upsert)
         :param throttler: Throttler instance for rate limiting (default: None, no throttling)
+        :param tweaks: MinorTweaks instance for fine-tuning behavior
+        :param dashboard: If True, pretty prints sent requests in real time
         :return: Configured AgentOrchestrator instance
         :raises ValueError: If strategy is not supported
         :raises NotImplementedError: If dry_run is True or strategy is not implemented
@@ -50,7 +53,7 @@ class ParalleLLMGateway:
             raise NotImplementedError("Dry run is not implemented yet")
 
         # 2. Setup logger
-        dashlog = DashboardLogger(k=10, display=False)
+        dashlog = DashboardLogger(k=10, display=dashboard)
         parallellm_log_handler = get_parallellm_log_handler(dashlog)
 
         logger = logging.getLogger("parallellm")

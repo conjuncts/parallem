@@ -1,6 +1,6 @@
 import logging
-from parallellm.core.gateway import ParalleLLM
 from dotenv import load_dotenv
+from parallellm.core.gateway import ParalleLLM
 
 load_dotenv()
 
@@ -9,15 +9,16 @@ with ParalleLLM.resume_directory(
     provider="openai",
     strategy="sync",
     log_level=logging.DEBUG,
+    dashboard=True,
     # ignore_cache=True,
 ) as pllm:
-    with pllm.agent(dashboard=True) as dash:
-        msgs = dash.get_msg_state(continuation=True)
+    with pllm.agent() as agt:
+        msgs = agt.get_msg_state(continuation=True)
 
-        print("Current messages:", msgs)
+        agt.print("Current messages:", msgs)
         out = input("Send a message: ")
         while out:
             msgs.append(out)
             msgs.ask_llm()
-            print("Response:", msgs[-1].resolve())
+            agt.print("Response:", msgs[-1].resolve())
             out = input("Send a message: ")

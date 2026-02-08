@@ -1,6 +1,6 @@
 import logging
-from parallellm.core.gateway import ParalleLLM
 from dotenv import load_dotenv
+from parallellm.core.gateway import ParalleLLM
 
 load_dotenv()
 
@@ -9,9 +9,10 @@ with ParalleLLM.resume_directory(
     provider="google",
     strategy="batch",
     log_level=logging.DEBUG,
+    dashboard=True,
     # ignore_cache=True,
 ) as pllm:
-    with pllm.agent(dashboard=True) as dash:
-        resp = dash.ask_llm("Please name a power of 3.", hash_by=["llm"])
+    with pllm.agent() as agt:
+        resp = agt.ask_llm("Please name a power of 3.", hash_by=["llm"])
 
-        dash.print(resp.resolve())
+        agt.print(resp.resolve())

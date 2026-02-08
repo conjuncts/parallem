@@ -1,7 +1,7 @@
 import logging
 import random
-from parallellm.core.gateway import ParalleLLM
 from dotenv import load_dotenv
+from parallellm.core.gateway import ParalleLLM
 
 load_dotenv()
 
@@ -18,7 +18,7 @@ pllm = ParalleLLM.resume_directory(
 # or might take a really long time, leading to different outcomes.
 
 # In such a case, ParalleLLM introduces "message state"
-agent = pllm.agent(dashboard=True)
+agent = pllm.agent()
 
 with agent:
     convo = agent.get_msg_state()
@@ -38,8 +38,7 @@ with agent:
         )
         agent.print(convo)
 
-        # IMPORTANT:
-        # need to checkpoint here, because "num-steps" is non-deterministic!
+        # IMPORTANT: need to checkpoint here, because "num-steps" is non-deterministic!
         convo.persist()
     else:
         # Allow user questions, which are not saved along with the conversation

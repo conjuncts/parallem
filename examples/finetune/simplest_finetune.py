@@ -1,6 +1,6 @@
 import logging
-from parallellm.core.gateway import ParalleLLM
 from dotenv import load_dotenv
+from parallellm.core.gateway import ParalleLLM
 
 load_dotenv()
 
@@ -9,14 +9,15 @@ with ParalleLLM.resume_directory(
     provider="openai",
     strategy="sync",
     log_level=logging.DEBUG,
+    dashboard=True,
     # ignore_cache=True,
 ) as pllm:
     # with pllm.default():
-    with pllm.agent(dashboard=True) as dash:
-        resp = dash.ask_llm(
+    with pllm.agent() as agt:
+        resp = agt.ask_llm(
             "Please name a power of 19.",
             tag="power-of-n",
             save_input=True,
         )
 
-        dash.print(resp.resolve())
+        agt.print(resp.resolve())

@@ -1,7 +1,6 @@
 import logging
 import os
 from parallellm.core.gateway import ParalleLLM
-from dotenv import load_dotenv
 
 # load_dotenv()
 
@@ -13,8 +12,9 @@ with ParalleLLM.resume_directory(
     provider="google",
     strategy="sync",
     log_level=logging.DEBUG,
+    dashboard=True,
 ) as pllm:
-    with pllm.agent(dashboard=True) as dash:
-        resp = dash.ask_llm("What is 3 cubed?", hash_by=["llm"])
+    with pllm.agent() as agt:
+        resp = agt.ask_llm("What is 3 cubed?", hash_by=["llm"])
 
-        dash.print(resp.resolve())
+        agt.print(resp.resolve())

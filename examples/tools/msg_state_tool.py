@@ -6,15 +6,11 @@ to conveniently store conversation history.
 import logging
 
 from pydantic import BaseModel
+from dotenv import load_dotenv
 from parallellm.core.gateway import ParalleLLM
 from parallellm.types import FunctionCallOutput
-from dotenv import load_dotenv
 
 load_dotenv()
-
-
-class MyModel(BaseModel):
-    final_answer: str
 
 
 tools = [
@@ -45,11 +41,12 @@ with ParalleLLM.resume_directory(
     provider="openai",
     strategy="sync",
     log_level=logging.DEBUG,
+    dashboard=True,
     # ignore_cache=True,
 ) as pllm:
-    with pllm.agent(dashboard=True) as dash:
+    with pllm.agent() as agt:
         # Tools
-        convo = dash.get_msg_state()
+        convo = agt.get_msg_state()
         resp = convo.ask_llm(
             "How many files are in '~/examples'? Give the final answer in words.",
             hash_by=["llm"],
@@ -62,4 +59,4 @@ with ParalleLLM.resume_directory(
         assert tool_calls[0].name == "count_files"
         convo.ask_functions(count_files=ls_tool)
         convo.ask_llm(hash_by=["llm"])
-        dash.print(convo.resolve())
+        agt.print(convo.resolve())

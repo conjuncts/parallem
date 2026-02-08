@@ -11,10 +11,11 @@ with ParalleLLM.resume_directory(
     provider="google",
     strategy="sync",
     log_level=logging.DEBUG,
+    dashboard=True,
     # ignore_cache=True,
 ) as pllm:
-    with pllm.agent(dashboard=True) as dash:
+    with pllm.agent() as agt:
         img = Image.open("tests/data/images/Nokota_Horses_cropped.jpg")
-        resp = dash.ask_llm("What animal is this?", img, hash_by=["llm"])
+        resp = agt.ask_llm("What animal is this?", img, hash_by=["llm"])
 
-        dash.print(resp.resolve())
+        agt.print(resp.resolve())

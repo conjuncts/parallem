@@ -27,11 +27,12 @@ with ParalleLLM.resume_directory(
     provider="google",
     strategy="sync",
     log_level=logging.DEBUG,
+    dashboard=True,
     # ignore_cache=True,
 ) as pllm:
-    with pllm.agent(dashboard=True) as dash:
+    with pllm.agent() as agt:
         # See docs on the MessageState abstraction.
-        convo = dash.get_msg_state()
+        convo = agt.get_msg_state()
         convo.ask_llm(
             "Add 3 and 4.",
             hash_by=["llm"],
@@ -40,6 +41,6 @@ with ParalleLLM.resume_directory(
 
         convo.ask_functions(multiply=multiply, add=add, divide=divide)
         convo.ask_llm(hash_by=["llm"])
-        dash.print(convo.resolve())
+        agt.print(convo.resolve())
 
         # ['Add 3 and 4.', '', FunctionCallOutput(name=add, call_id=, content=7...), '3 + 4 = 7']

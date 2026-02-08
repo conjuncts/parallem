@@ -1,9 +1,8 @@
 import logging
 
-from pydantic import BaseModel
+from dotenv import load_dotenv
 from parallellm.core.gateway import ParalleLLM
 from parallellm.types import FunctionCallOutput
-from dotenv import load_dotenv
 
 load_dotenv()
 
@@ -36,21 +35,22 @@ with ParalleLLM.resume_directory(
     provider="openai",
     strategy="sync",
     log_level=logging.DEBUG,
+    dashboard=True,
     # ignore_cache=True,
 ) as pllm:
-    with pllm.agent(dashboard=True) as dash:
+    with pllm.agent() as agt:
         # Tools
         msgs = ["How many files are in '~/examples'? Give the final answer in words."]
-        resp = dash.ask_llm(
+        resp = agt.ask_llm(
             msgs,
             hash_by=["llm"],
             tools=tools,
         )
 
-        dash.print(resp.resolve())
+        agt.print(resp.resolve())
         tool_calls = resp.resolve_function_calls()
         for call in tool_calls:
-            dash.print(
+            agt.print(
                 f"Tool call: `{call.name}` with args {call.args} call_id {call.call_id}"
             )
 
@@ -64,5 +64,5 @@ with ParalleLLM.resume_directory(
             call_id=tool_calls[0].call_id,
         )
 
-        resp = dash.ask_llm(msgs + [computed_tool_output], hash_by=["llm"])
-        dash.print(resp.resolve())
+        resp = agt.ask_llm(msgs + [computed_tool_output], hash_by=["llm"])
+        agt.print(resp.resolve())
