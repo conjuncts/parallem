@@ -12,7 +12,7 @@ with ParalleLLM.resume_directory(
     # ignore_cache=True,
 ) as pllm:
     with pllm.agent(dashboard=True) as dash:
-        msgs = dash.get_msg_state(persist=True)
+        msgs = dash.get_msg_state(continuation=True)
 
         print("Current messages:", msgs)
         out = input("Send a message: ")

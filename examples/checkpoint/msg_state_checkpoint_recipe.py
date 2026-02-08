@@ -21,7 +21,7 @@ pllm = ParalleLLM.resume_directory(
 agent = pllm.agent(dashboard=True)
 
 with agent:
-    convo = agent.get_msg_state(persist=False)
+    convo = agent.get_msg_state()
     # convo.clear()
     if len(convo) == 0:
         best_vegetable = (

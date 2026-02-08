@@ -49,7 +49,7 @@ with ParalleLLM.resume_directory(
 ) as pllm:
     with pllm.agent(dashboard=True) as dash:
         # Tools
-        convo = dash.get_msg_state(persist=False)
+        convo = dash.get_msg_state()
         resp = convo.ask_llm(
             "How many files are in '~/examples'? Give the final answer in words.",
             hash_by=["llm"],

@@ -346,6 +346,19 @@ class LLMResponse:
         """
         return self.value
 
+    def resolve_json(self) -> Optional[dict]:
+        """
+        Resolve the response and automatically convert it to JSON. Returns None if invalid.
+
+        :param self: Description
+        :return: Description
+        :rtype: dict
+        """
+        try:
+            return json.loads(self.value)
+        except json.JSONDecodeError:
+            return None
+
     def resolve_function_calls(self) -> list[FunctionCall]:
         """
         Resolve function calls (tool calls to user-defined functions) associated with this response.

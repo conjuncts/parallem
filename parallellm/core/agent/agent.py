@@ -187,11 +187,11 @@ class AgentContext(Askable):
         # No-op
         pass
 
-    def get_msg_state(self, persist=False) -> MessageState:
+    def get_msg_state(self, continuation=False) -> MessageState:
         """
         Get the current MessageState for this agent.
 
-        :param persist: Whether to persist the MessageState upon exit.
+        :param continuation: Whether the MessageState should be continued upon exit.
             This lets you save and resume conversations.
             If True, the conversation will always resume where it left off.
             If False, the conversation will be fresh every time. Either way,
@@ -200,7 +200,7 @@ class AgentContext(Askable):
         """
         if self._msg_state is None:
             self._msg_state = self._bm.get_msg_state(self)
-            self._persist_msg_state = persist
+            self._persist_msg_state = continuation
 
         return self._msg_state
 
@@ -244,7 +244,6 @@ class AgentDashboardContext(AgentContext):
 
         self._dashlog.finalize_line()
         self._dashlog.set_display(self._was_displaying)
-        print()
         return super().__exit__(exc_type, exc_val, exc_tb)
 
     def print(self, *args, **kwargs):
