@@ -377,20 +377,24 @@ class SQLiteDatastore(Datastore):
         full_params = params + [seq_id]
 
         cursor = conn.execute(
-            f"SELECT response, response_id, tool_calls FROM {table_name} WHERE {full_where} ORDER BY id ASC LIMIT 1",
+            f"SELECT response, session_id, tool_calls FROM {table_name} WHERE {full_where} ORDER BY id ASC LIMIT 1",
             full_params,
         )
+        old_seq_id = seq_id
         row = cursor.fetchone()
         if not row:
             # Fallback: allow seq_id to differ. Get oldest entry
             cursor = conn.execute(
-                f"SELECT response, response_id, tool_calls FROM {table_name} WHERE {where_conditions} ORDER BY id ASC LIMIT 1",
+                f"SELECT response, seq_id, session_id, tool_calls FROM {table_name} WHERE {where_conditions} ORDER BY id ASC LIMIT 1",
                 params,
             )
             row = cursor.fetchone()
 
-        if row is None:
-            return None
+            if row is None:
+                return None
+
+            old_seq_id = row["seq_id"]
+        old_session_id = row["session_id"]
 
         # Parse tool_calls from JSON if present
         tool_calls = None
@@ -402,23 +406,21 @@ class SQLiteDatastore(Datastore):
 
         if metadata:
             # Retrieve metadata
-            if row["response_id"]:
-                # If not null - legacy method
-                metadata_value = self.retrieve_metadata_legacy(row["response_id"])
-            else:
-                metadata_value = self.retrieve_metadata(
-                    call_id["agent_name"],
-                    call_id["seq_id"],
-                    call_id["session_id"],
-                )
+            metadata_value = self.retrieve_metadata(
+                call_id["agent_name"],
+                old_seq_id,
+                old_session_id,
+            )
         else:
             metadata_value = None
 
         return ParsedResponse(
             text=row["response"],
-            response_id=row["response_id"],
+            response_id=None,
             metadata=metadata_value,
             function_calls=tool_calls,
+            old_session_id=old_session_id,
+            old_seq_id=old_seq_id,
         )
 
     def retrieve_metadata_legacy(self, response_id: str) -> Optional[dict]:

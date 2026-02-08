@@ -78,7 +78,7 @@ Read
 
 - what if a function call also involves a LLM? well then the function will need to take in an agent object. Then you will need to do `functools.partial(my_func, agent)`. TODO: Consider then doing some hacking where ask_functions() automatically injects the *first* argument of type AgentContext (dependency inejction) (syntactic sugar)
 
-- [ ] fix that ReadyLLMResponse don't have the original sess_id. pertinent: ParsedResponse should be modified to contain (seq_id, sess_id).
+- [x] fix that ReadyLLMResponse don't have the original sess_id. pertinent: ParsedResponse should be modified to contain (seq_id, sess_id).
 - [ ] need to hash based on available tools??? (TODO: issue a warning)
 - [ ] material docs
 - [x] restore resolve_json()
@@ -86,6 +86,5 @@ Read
 - [x] dashboard should be placed at the 'pllm' level, not the agent level, to avoid spam
 
 
-```python
-with pllm.conversation(name=...) as conv:
-```
+- output_text, 
+- rename async to sync_deferred?

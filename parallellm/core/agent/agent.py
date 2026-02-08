@@ -158,8 +158,12 @@ class AgentContext(Askable):
         # Cache using datastore
         cached = None if self.ignore_cache else self._bm._backend.retrieve(call_id)
         if cached is not None:
-            # if self._bm.strategy != "batch":
             self.update_hash_status(hashed, HashStatus.CACHED)
+
+            # populate the old session_id. This helps make to_serial_id deterministic
+            if cached.old_session_id is not None:
+                call_id["session_id"] = cached.old_session_id
+                call_id["seq_id"] = cached.old_seq_id
             return ReadyLLMResponse(
                 call_id=call_id,
                 pr=cached,

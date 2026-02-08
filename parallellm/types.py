@@ -241,7 +241,10 @@ class ParsedResponse:
     """The main text content of the response."""
 
     response_id: Optional[str]
-    """The unique identifier for this response from the provider."""
+    """
+    The unique identifier for this response from the provider.
+    Only populated for fresh responses; will be None for cached response.
+    """
 
     metadata: Optional[dict]
     """Additional metadata from the provider (usage stats, model info, etc.)."""
@@ -250,6 +253,18 @@ class ParsedResponse:
 
     custom_id: Optional[str] = None
     """The unique identifier for this response, only populated in batch requests."""
+
+    old_session_id: Optional[int] = None
+    """
+    The session_id during which this response was originally generated.
+    Only populated for cached responses; will be None for fresh responses.
+    """
+
+    old_seq_id: Optional[int] = None
+    """
+    The seq_id during which this response was originally generated.
+    Only populated for cached responses; will be None for fresh responses.
+    """
 
 
 class LLMIdentity:

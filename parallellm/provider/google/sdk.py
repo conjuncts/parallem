@@ -467,7 +467,6 @@ class BatchGoogleProvider(BatchProvider, GoogleProvider):
             response_id=response_id,
             custom_id=custom_id,
             metadata=error_info,
-            function_calls=[],
         )
 
     def get_batch_custom_ids(self, stuff):

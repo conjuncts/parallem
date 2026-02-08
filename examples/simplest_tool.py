@@ -33,7 +33,7 @@ with ParalleLLM.resume_directory(
     with pllm.agent() as agt:
         # See docs on the MessageState abstraction.
         convo = agt.get_msg_state()
-        convo.ask_llm(
+        resp = convo.ask_llm(
             "Add 3 and 4.",
             hash_by=["llm"],
             tools=to_tool_schema([multiply, add, divide]),
