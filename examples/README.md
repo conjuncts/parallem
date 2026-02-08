@@ -65,3 +65,37 @@ tools_anthropic = [
 tools_google = [x.copy() for x in tools_openai]
 [x.pop("type") for x in tools_google]
 ```
+
+# Batch
+
+
+(parallellm) ~/llmlib$ ~/llmlib/.venv/bin/python ~/llmlib/examples/simplest_batch.py
+[DEBUG] Resuming directory
+[DEBUG] Creating backend
+[DEBUG] Creating provider
+[DEBUG] Creating AgentOrchestrator
+[INFO] Resuming with session_id=0
+Submit 1 batch (1 calls)? (y/n/preview): y
+Sent batch: a919pfuvvd9iq9bsq0z4nnwxam0b9hau9zwu
+[DASH] ⇈ a919pfuv
+
+(parallellm) ~/llmlib$ ~/llmlib/.venv/bin/python ~/llmlib/examples/simplest_batch.py
+[DEBUG] Resuming directory
+[DEBUG] Creating backend
+[DEBUG] Creating provider
+[DEBUG] Creating AgentOrchestrator
+[INFO] Resuming with session_id=1
+Batch a919pfuvvd9iq9bsq0z4nnwxam0b9hau9zwu is still pending.
+Cannot proceed until all batches are complete.
+
+(parallellm) ~/llmlib$ ~/llmlib/.venv/bin/python ~/llmlib/examples/simplest_batch.py
+[DEBUG] Resuming directory
+[DEBUG] Creating backend
+[DEBUG] Creating provider
+[DEBUG] Creating AgentOrchestrator
+[INFO] Resuming with session_id=3
+Batch a919pfuvvd9iq9bsq0z4nnwxam0b9hau9zwu completed and stored.
+Nine (which is $3^2$).
+[DASH] C 5efbcfdc
+
+

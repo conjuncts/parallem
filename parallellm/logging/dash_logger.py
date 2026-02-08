@@ -85,6 +85,8 @@ class DashboardLogger:
             full_hash: The full hash string or batch UUID
             status: The status of the hash/batch
         """
+        if not self.display:
+            return
         with self._lock:
             # Strip "batch_" prefix if present
             if full_hash.startswith("batch_"):
@@ -132,6 +134,9 @@ class DashboardLogger:
 
         # Limit the number of hashes to display
         hashes_to_show = list(self._hashes.values())[-max_displayable_hashes:]
+        if not hashes_to_show:
+            # nothing to do
+            return
 
         status_parts = []
         for entry in hashes_to_show:
@@ -167,9 +172,8 @@ class DashboardLogger:
         """Enable or disable console display"""
         with self._lock:
             self.display = display
-            if display:
-                self._update_console()
-            elif self._console_written:
+            # do not show it if we are turning it on, until the next update_hash call
+            if self._console_written:
                 if clear_console:
                     sys.stdout.write(f"\r\033[K")
                     sys.stdout.flush()
@@ -203,15 +207,6 @@ class DashboardLogger:
             # Print the user's content
             print(*args, **kwargs)
 
-    def cprint(self, *args, **kwargs):
-        """
-        Print to console while properly coordinating with dashboard display.
-        This clears the dashboard line, prints the content, then redraws the dashboard.
-        """
-        self.print(*args, **kwargs)
-        # Redraw the dashboard line
-        self._update_console()
-
     def finalize_line(self):
         """
         Finalize the current console line by moving to the next line.
@@ -234,7 +229,7 @@ class DashboardLogger:
         :param valid_responses: Optional set of valid responses (e.g., {'y', 'n'})
         :return: What the user responded
         """
-        self.cprint("")
+        self.print(end="")
         response = input(prompt).strip().lower()
         while valid_responses is not None and response not in valid_responses:
             print(
@@ -304,9 +299,6 @@ class PrimitiveDashboardLogger(DashboardLogger):
 
     def clear(self):
         pass
-
-    def cprint(self, *args, **kwargs):
-        print(*args, **kwargs)
 
     def finalize_line(self):
         pass

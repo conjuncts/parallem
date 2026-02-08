@@ -9,12 +9,12 @@ from parallellm.provider.openai.sdk import BatchOpenAIProvider
 from parallellm.types import HashByOptions, MinorTweaks, ProviderType
 
 
-class ParalleLLMGateway:
+class ParalleLLM:
+    @staticmethod
     def resume_directory(
-        self,
         directory,
         *,
-        strategy: Literal["sync", "async", "batch", "hybrid"] = "async",
+        strategy: Literal["sync", "async", "batch", "hybrid"] = "sync",
         provider: ProviderType = "openai",
         datastore: Literal["sqlite", "sqlite_parquet"] = "sqlite",
         dry_run=False,
@@ -174,7 +174,6 @@ class ParalleLLMGateway:
             raise NotImplementedError(f"Provider '{provider}' not implemented yet")
 
         logger.debug("Creating AgentOrchestrator")
-        special_dl = DashboardLogger(k=10, display=False)
 
         ask_params = {}
         if hash_by is not None:
@@ -187,7 +186,6 @@ class ParalleLLMGateway:
             provider=provider,
             logger=logger,
             dashlog=dashlog,
-            special_dashlog=special_dl,
             ignore_cache=ignore_cache,
             strategy=strategy,
             ask_params=ask_params,
@@ -197,16 +195,18 @@ class ParalleLLMGateway:
 
         # try downloading previous batches if any
         if strategy == "batch":
-            special_dl.set_display(True)
-            statuses = backend.try_download_all_batches(provider, special_dl)
-            special_dl.finalize_line()
-            special_dl.set_display(False)
-            special_dl.clear(clear_console=False)
+            with bm.dashboard() as d:
+                statuses = backend.try_download_all_batches(provider, d)
+                # Don't store these statuses: batch_hash != msg_hash
+                d.clear(clear_console=False)
+            d.finalize_line()
+
             if statuses["pending"] > 0 and tweaks.batch_wait_until_complete:
                 # TODO: handle this better
+                print("Cannot proceed until all batches are complete.")
                 exit(0)
 
         return bm
 
 
-ParalleLLM = ParalleLLMGateway()
+resume_directory = ParalleLLM.resume_directory

@@ -4,6 +4,7 @@ from parallellm.core.agent.agent import AgentContext
 from parallellm.core.backend import BaseBackend
 from parallellm.core.msg.state import MessageState
 from parallellm.core.hydrate import hydrate_llm_response, hydrate_msg_state
+from parallellm.logging.dashlog_context import DashboardLoggerContext
 from parallellm.provider.base import BaseProvider
 from parallellm.file_io.file_manager import FileManager
 from parallellm.logging.dash_logger import DashboardLogger
@@ -19,7 +20,6 @@ class AgentOrchestrator:
         *,
         logger: Logger,
         dashlog: DashboardLogger,
-        special_dashlog: DashboardLogger = None,
         ask_params: Optional[AskParameters] = None,
         ignore_cache: bool = False,
         strategy: Optional[Literal["sync", "async", "batch"]] = None,
@@ -32,7 +32,6 @@ class AgentOrchestrator:
         :param provider: Provider for submitting queries to LLM APIs
         :param logger: Logger instance
         :param dashlog: Dashboard logger for pretty printing hash status
-        :param special_dashlog: Dashboard logger for the beginning/end of lifecycle.
         :param ask_params: Default parameters for ask_llm() calls
         :param ignore_cache: If True, always submit to the API instead of using cached responses
         """
@@ -43,9 +42,6 @@ class AgentOrchestrator:
 
         # dashlog's display is disabled by default
         self._dashlog: DashboardLogger = dashlog
-        if special_dashlog is None:
-            special_dashlog = dashlog
-        self.special_dashlog: DashboardLogger = special_dashlog
 
         self.ask_params = ask_params or {}
         self.ignore_cache = ignore_cache
@@ -57,10 +53,6 @@ class AgentOrchestrator:
 
     def __exit__(self, exc_type, exc_value, traceback):
         """Exit the context manager, automatically calling persist()."""
-        if self._dashlog.display:
-            self._dashlog._update_console()
-
-            self._dashlog.finalize_line()
         self.persist()
         return False
 
@@ -71,7 +63,12 @@ class AgentOrchestrator:
         ask_params: Optional[AskParameters] = None,
     ):
         """
-        Delineates an agent.
+        Parallellm does things a bit differently.
+
+        While usually the agent is identified with an LLM,
+        Parallellm identifies an agent with a process, program, or algorithm
+        which itself can ask LLMs questions, but also functions, MCP servers, and humans.
+        It just so happens that the agent uses LLM(s) to automate much of its decision making.
         """
         if ask_params is None:
             ask_params = self.ask_params
@@ -122,11 +119,14 @@ class AgentOrchestrator:
         self._backend.persist()
 
         if getattr(self._backend, "execute_batch", None):
-            special_dl = self.special_dashlog
-            special_dl.set_display(True)
-            self._backend.execute_batch(self._provider, special_dl=special_dl)
-            special_dl._update_console()
-            special_dl.set_display(False, clear_console=False)
+            with self.dashboard():
+                # Must print this one
+                self._backend.execute_batch(self._provider, dl=self._dashlog)
+                self._dashlog._update_console()
+                self._dashlog.finalize_line()
+        elif self._dashlog.display:
+            self._dashlog._update_console()
+            self._dashlog.finalize_line()
 
         self._fm.persist()
 
@@ -147,3 +147,9 @@ class AgentOrchestrator:
         """
         Get session counter, aka session ID."""
         return self._fm._get_session_counter()
+
+    def dashboard(self, *, keep_when_done=True):
+        """
+        Context manager for activating a dashlog only for a specific block of code.
+        """
+        return DashboardLoggerContext(self._dashlog, keep_when_done=keep_when_done)

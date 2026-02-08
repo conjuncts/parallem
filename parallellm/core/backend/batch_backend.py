@@ -157,7 +157,7 @@ class BatchBackend(BaseBackend):
     def execute_batch(
         self,
         provider: "BatchProvider",
-        special_dl: DashboardLogger,
+        dl: DashboardLogger,
         *,
         max_batch_size=1000,
         partition_by_model_name=True,
@@ -210,7 +210,7 @@ class BatchBackend(BaseBackend):
             total_calls = sum(len(batch) for batch in index_groups)
             num_batches = len(index_groups)
 
-            confirmed = special_dl.confirm_batch_submission(num_batches, total_calls)
+            confirmed = dl.confirm_batch_submission(num_batches, total_calls)
 
             if confirmed == "p":
                 # Preview: write them to file, but do not yet submit
@@ -218,13 +218,13 @@ class BatchBackend(BaseBackend):
                 for record in batches:
                     fpath = self._fm.save_batch_in(record.data)
                     pending_fpaths.append(fpath)
-                special_dl.cprint(f"Batch preview files written to {pending_fpaths[0]}")
-                confirmed = special_dl.confirm_batch_submission(
+                dl.print(f"Batch preview files written to {pending_fpaths[0]}")
+                confirmed = dl.confirm_batch_submission(
                     num_batches, total_calls, allow_preview=False
                 )
 
             if confirmed == "n":
-                special_dl.cprint("Batch submission cancelled by user.")
+                dl.print("Batch submission cancelled by user.")
                 # Don't clear the buffer - allow the user to try again later
                 return CohortIdentifier(batch_ids=[], session_id=self.session_id)
             # else, proceed
@@ -246,8 +246,9 @@ class BatchBackend(BaseBackend):
             batch_ids.append(ident)
 
             # Log batch submission to dashboard
-            special_dl.update_hash(batch_uuid, HashStatus.SENT_BATCH)
-            special_dl.cprint("Sent batch:", ident.batch_uuid)
+            dl.update_hash(batch_uuid, HashStatus.SENT_BATCH)
+            dl.print("Sent batch:", ident.batch_uuid)
+            dl._update_console()
 
         cohort_id = CohortIdentifier(batch_ids=batch_ids, session_id=self.session_id)
         # Clear the batch buffer after execution
@@ -338,7 +339,7 @@ class BatchBackend(BaseBackend):
     def try_download_all_batches(
         self,
         provider: "BatchProvider",
-        special_dl: DashboardLogger,
+        dl: DashboardLogger,
     ):
         """
         Try to download all batches and clean up completed ones
@@ -356,23 +357,21 @@ class BatchBackend(BaseBackend):
             )
             for batch_result in batch_results:
                 if batch_result.status == "ready":
-                    special_dl.update_hash(batch_uuid, HashStatus.STORED_BATCH)
-                    special_dl.cprint(f"Batch {batch_uuid} completed and stored.")
+                    dl.update_hash(batch_uuid, HashStatus.STORED_BATCH)
+                    dl.print(f"Batch {batch_uuid} completed and stored.")
                     # Clean up the pending batch record
                     self._ds.clear_batch_pending(batch_uuid)
                     statuses["ready"] += 1
                 elif batch_result.status == "error":
-                    special_dl.update_hash(batch_uuid, HashStatus.STORED_ERROR_BATCH)
-                    special_dl.cprint(
-                        f"Batch {batch_uuid} completed with errors and stored."
-                    )
+                    dl.update_hash(batch_uuid, HashStatus.STORED_ERROR_BATCH)
+                    dl.print(f"Batch {batch_uuid} completed with errors and stored.")
                     # Clean up the pending batch record even for errors
                     self._ds.clear_batch_pending(batch_uuid)
                     statuses["error"] += 1
 
             if not batch_results:
-                special_dl.update_hash(batch_uuid, HashStatus.SENT_BATCH)
-                special_dl.cprint(f"Batch {batch_uuid} is still pending.")
+                dl.update_hash(batch_uuid, HashStatus.SENT_BATCH)
+                dl.print(f"Batch {batch_uuid} is still pending.")
                 statuses["pending"] += 1
         return statuses
 
