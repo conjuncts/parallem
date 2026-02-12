@@ -74,7 +74,7 @@ class AgentOrchestrator:
             ask_params = self.ask_params
 
         return AgentContext(
-            name,
+            str(name),
             self,
             ask_params=ask_params,
             ignore_cache=self.ignore_cache,

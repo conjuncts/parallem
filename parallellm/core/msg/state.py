@@ -25,7 +25,9 @@ if TYPE_CHECKING:
 
 
 class MessageState(UserList[Union[LLMDocument, LLMResponse]], Askable):
-    """ """
+    """
+    Simply a list of messages.
+    """
 
     def __init__(
         self,

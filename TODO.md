@@ -84,7 +84,7 @@ Read
 - [x] restore resolve_json()
 - [ ] continuable errors (ie. JSON)
 - [x] dashboard should be placed at the 'pllm' level, not the agent level, to avoid spam
-
+- cancel batch
 
 - output_text, 
 - rename async to sync_deferred?

@@ -59,7 +59,8 @@ class ParalleLLM:
             raise ValueError(f"Unknown strategy '{strategy}'")
         if dry_run:
             raise NotImplementedError("Dry run is not implemented yet")
-
+        if isinstance(tweaks, dict):
+            tweaks = MinorTweaks(**tweaks)
         # 2. Setup logger
         dashlog = DashboardLogger(k=10, display=dashboard)
         parallellm_log_handler = get_parallellm_log_handler(dashlog)

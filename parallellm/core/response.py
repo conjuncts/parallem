@@ -91,6 +91,12 @@ class BatchLLMResponse(LLMResponse):
     def resolve(self):
         raise NotAvailable()
 
+    def resolve_json(self):
+        raise NotAvailable()
+
+    def resolve_function_calls(self):
+        raise NotAvailable()
+
     def __getstate__(self):
         """
         Support for pickling. Only store the call_id since that uniquely identifies the response.
