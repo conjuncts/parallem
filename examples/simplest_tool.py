@@ -29,8 +29,8 @@ with ParalleLLM.resume_directory(
     log_level=logging.DEBUG,
     dashboard=True,
     # ignore_cache=True,
-) as pllm:
-    with pllm.agent() as agt:
+) as orch:
+    with orch.agent() as agt:
         # See docs on the MessageState abstraction.
         convo = agt.get_msg_state()
         resp = convo.ask_llm(

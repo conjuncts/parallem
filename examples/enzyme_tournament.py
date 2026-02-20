@@ -15,8 +15,8 @@ with ParalleLLM.resume_directory(
     log_level=logging.DEBUG,
     dashboard=True,
     # ignore_cache=True,
-) as pllm:
-    with pllm.agent() as agt:
+) as orch:
+    with orch.agent() as agt:
         agt.print("===Starting Tournament===")
         resp = agt.ask_llm(
             "Please name 8 enzymes. Place your final answer in a code block, separated by newlines.",

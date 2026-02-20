@@ -37,8 +37,8 @@ with ParalleLLM.resume_directory(
     log_level=logging.DEBUG,
     dashboard=True,
     # ignore_cache=True,
-) as pllm:
-    with pllm.agent() as agt:
+) as orch:
+    with orch.agent() as agt:
         # Tools
         msgs = ["How many files are in '~/examples'? Give the final answer in words."]
         resp = agt.ask_llm(

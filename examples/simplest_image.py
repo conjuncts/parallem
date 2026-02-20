@@ -13,8 +13,8 @@ with ParalleLLM.resume_directory(
     log_level=logging.DEBUG,
     dashboard=True,
     # ignore_cache=True,
-) as pllm:
-    with pllm.agent() as agt:
+) as orch:
+    with orch.agent() as agt:
         img = Image.open("tests/data/images/Nokota_Horses_cropped.jpg")
         resp = agt.ask_llm("What animal is this?", img, hash_by=["llm"])
 

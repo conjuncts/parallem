@@ -88,3 +88,6 @@ Read
 
 - output_text, 
 - rename async to sync_deferred?
+
+- Manual MCP server
+    - ping get tool calls 

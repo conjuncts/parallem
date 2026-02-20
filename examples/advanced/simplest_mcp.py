@@ -12,8 +12,8 @@ with resume_directory(
     # ignore_cache=True,
     # rewrite_cache=True,
     dashboard=True,
-) as pllm:
-    with pllm.agent() as agt:
+) as orch:
+    with orch.agent() as agt:
         # https://platform.openai.com/docs/guides/tools-connectors-mcp
         # openai - SSE is ok
         # google - HTTP only (not SSE)

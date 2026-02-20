@@ -11,9 +11,8 @@ with ParalleLLM.resume_directory(
     log_level=logging.DEBUG,
     dashboard=True,
     # ignore_cache=True,
-) as pllm:
-    # with pllm.default():
-    with pllm.agent() as agt:
+) as orch:
+    with orch.agent() as agt:
         resp = agt.ask_llm(
             "Please name a power of 19.",
             tag="power-of-n",

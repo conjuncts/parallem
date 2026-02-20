@@ -4,7 +4,7 @@ from parallellm.core.gateway import ParalleLLM
 
 load_dotenv()
 
-pllm = ParalleLLM.resume_directory(
+orch = ParalleLLM.resume_directory(
     ".pllm/example/nfl",
     provider="openai",
     strategy="sync",
@@ -12,7 +12,7 @@ pllm = ParalleLLM.resume_directory(
     dashboard=True,
 )
 
-with pllm.agent() as agt:
+with orch.agent() as agt:
     agt.print("This will always be executed")
 
     resp = agt.ask_llm(

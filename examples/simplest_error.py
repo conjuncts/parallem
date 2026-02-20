@@ -13,8 +13,8 @@ with ParalleLLM.resume_directory(
     strategy="sync",
     log_level=logging.DEBUG,
     dashboard=True,
-) as pllm:
-    with pllm.agent() as agt:
+) as orch:
+    with orch.agent() as agt:
         resp = agt.ask_llm("What is 3 cubed?", hash_by=["llm"])
 
         agt.print(resp.resolve())
