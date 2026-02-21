@@ -1,8 +1,7 @@
 import logging
 from dotenv import load_dotenv
 
-from parallellm.core.gateway import ParalleLLM
-from parallellm.tools.auto_schema import to_tool_schema
+import parallellm as pllm
 
 load_dotenv()
 
@@ -22,7 +21,7 @@ def divide(a: int, b: int) -> float:
     return str(a / b)
 
 
-with ParalleLLM.resume_directory(
+with pllm.resume_directory(
     ".pllm/simplest-tool",
     provider="google",
     strategy="sync",
@@ -36,7 +35,7 @@ with ParalleLLM.resume_directory(
         resp = convo.ask_llm(
             "Add 3 and 4.",
             hash_by=["llm"],
-            tools=to_tool_schema([multiply, add, divide]),
+            tools=pllm.to_tool_schema([multiply, add, divide]),
         )
 
         convo.ask_functions(multiply=multiply, add=add, divide=divide)

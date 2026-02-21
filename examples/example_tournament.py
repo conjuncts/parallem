@@ -1,10 +1,10 @@
 import logging
 from dotenv import load_dotenv
-from parallellm.core.gateway import ParalleLLM
+import parallellm as pllm
 
 load_dotenv()
 
-orch = ParalleLLM.resume_directory(
+orch = pllm.resume_directory(
     ".pllm/example/nfl",
     provider="openai",
     strategy="sync",

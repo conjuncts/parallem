@@ -12,7 +12,7 @@ import pytest
 import shutil
 import tempfile
 import os
-from parallellm.core.gateway import ParalleLLM
+from parallellm.core.gateway import resume_directory
 from parallellm.testing.simple_mock import mock_openai_calls
 
 
@@ -39,13 +39,13 @@ Steelers
         "Ravens defeat Steelers 24-10",
     ]
 
-    pllm = ParalleLLM.resume_directory(
+    orch = resume_directory(
         temp_integration_dir / "tour-nfl", provider="openai", strategy="sync"
     )
 
-    mock_client = mock_openai_calls(pllm, responses=responses)
+    mock_client = mock_openai_calls(orch, responses=responses)
 
-    with pllm.agent() as dash:
+    with orch.agent() as dash:
         # Get teams
         resp = dash.ask_llm(
             "Please name 8 NFL teams. Place your final answer in a code block, separated by newlines."
@@ -79,7 +79,7 @@ Steelers
     assert len(mock_client.calls) == 5  # 1 for teams + 4 for games
 
     # Persist and verify directory structure
-    pllm.persist()
+    orch.persist()
     assert (temp_integration_dir / "tour-nfl").exists()
 
 
@@ -111,13 +111,13 @@ Chymotrypsin
         "Amylase",  # Amylase vs Catalase
     ]
 
-    pllm = ParalleLLM.resume_directory(
+    orch = resume_directory(
         temp_integration_dir / "tour-enzyme", provider="openai", strategy="sync"
     )
 
-    mock_client = mock_openai_calls(pllm, responses=responses)
+    mock_client = mock_openai_calls(orch, responses=responses)
 
-    with pllm.agent() as d:
+    with orch.agent() as d:
         # Get initial enzymes
         resp = d.ask_llm(
             "Please name 8 enzymes. Place your final answer in a code block, separated by newlines."
@@ -154,7 +154,7 @@ Chymotrypsin
     # 1 initial + 4 round1 + 2 round2 + 1 final = 8 calls
     assert len(mock_client.calls) == 8
 
-    pllm.persist()
+    orch.persist()
 
 
 def test_tournament_persistence_and_caching(temp_integration_dir):
@@ -175,9 +175,7 @@ Team D
     ]
 
     # First run - should make API calls
-    pllm1 = ParalleLLM.resume_directory(
-        tournament_dir, provider="openai", strategy="sync"
-    )
+    pllm1 = resume_directory(tournament_dir, provider="openai", strategy="sync")
 
     mock_client1 = mock_openai_calls(pllm1, responses=responses)
 
@@ -199,9 +197,7 @@ Team D
     assert "Team C wins" in game2
 
     # Second run - should use cache (no API calls)
-    pllm2 = ParalleLLM.resume_directory(
-        tournament_dir, provider="openai", strategy="sync"
-    )
+    pllm2 = resume_directory(tournament_dir, provider="openai", strategy="sync")
 
     mock_client2 = mock_openai_calls(pllm2, responses=["Should not be called"])
 
@@ -240,15 +236,15 @@ Delta
         "Gamma beats Delta",
     ]
 
-    pllm = ParalleLLM.resume_directory(
+    orch = resume_directory(
         temp_integration_dir / "tour-async-test",
         provider="openai",
         strategy="async",  # Test async strategy
     )
 
-    mock_client = mock_openai_calls(pllm, responses=responses)
+    mock_client = mock_openai_calls(orch, responses=responses)
 
-    with pllm.agent() as agent:
+    with orch.agent() as agent:
         teams_resp = agent.ask_llm("Get teams")
 
         # Submit multiple requests concurrently
@@ -265,7 +261,7 @@ Delta
     assert "Gamma beats Delta" in games[1]
     assert len(mock_client.calls) == 3
 
-    pllm.persist()
+    orch.persist()
 
 
 if __name__ == "__main__":

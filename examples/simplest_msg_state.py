@@ -1,10 +1,10 @@
 import logging
 from dotenv import load_dotenv
-from parallellm.core.gateway import ParalleLLM
+import parallellm as pllm
 
 load_dotenv()
 
-with ParalleLLM.resume_directory(
+with pllm.resume_directory(
     ".pllm/state/msg-state",
     provider="openai",
     strategy="sync",

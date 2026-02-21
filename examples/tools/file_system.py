@@ -1,8 +1,7 @@
 import logging
 
 from dotenv import load_dotenv
-from parallellm.core.gateway import ParalleLLM
-from parallellm.types import FunctionCallOutput
+import parallellm as pllm
 
 load_dotenv()
 
@@ -30,7 +29,7 @@ def ls_tool(directory) -> str:
     return f"There are 4 files in {directory}."
 
 
-with ParalleLLM.resume_directory(
+with pllm.resume_directory(
     ".pllm/simplest-tool",
     provider="openai",
     strategy="sync",
@@ -58,7 +57,7 @@ with ParalleLLM.resume_directory(
         assert tool_calls[0].name == "count_files"
         msgs.append(resp)
 
-        computed_tool_output = FunctionCallOutput(
+        computed_tool_output = pllm.FunctionCallOutput(
             name=tool_calls[0].name,
             content=ls_tool(tool_calls[0].args),
             call_id=tool_calls[0].call_id,

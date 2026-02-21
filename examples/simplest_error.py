@@ -1,13 +1,13 @@
 import logging
 import os
-from parallellm.core.gateway import ParalleLLM
+import parallellm as pllm
 
 # load_dotenv()
 
 # Mess up the API key
 os.environ["GEMINI_API_KEY"] = "invalid_key"
 
-with ParalleLLM.resume_directory(
+with pllm.resume_directory(
     ".pllm/simple/error",
     provider="google",
     strategy="sync",

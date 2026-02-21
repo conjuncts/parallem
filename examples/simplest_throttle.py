@@ -2,23 +2,21 @@ import logging
 import time
 from dotenv import load_dotenv
 
-from parallellm.core.gateway import ParalleLLM
-from parallellm.core.throttler import Throttler
-from parallellm.types import MinorTweaks
+import parallellm as pllm
 
 load_dotenv()
 
-with ParalleLLM.resume_directory(
+with pllm.resume_directory(
     ".pllm/simple/throttle",
     provider="openai",
     strategy="async",
     log_level=logging.DEBUG,
     ignore_cache=True,
-    throttler=Throttler(
+    throttler=pllm.Throttler(
         max_requests_per_window=4,
         window_seconds=10,
     ),
-    tweaks=MinorTweaks(
+    tweaks=pllm.MinorTweaks(
         async_max_concurrent=2,
     ),
     dashboard=True,

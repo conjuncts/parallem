@@ -1,5 +1,5 @@
 """
-Integration tests combining multiple ParalleLLM features
+Integration tests combining multiple pllm features
 
 These tests validate complex scenarios that combine:
 - Tournaments
@@ -8,7 +8,7 @@ These tests validate complex scenarios that combine:
 """
 
 import pytest
-from parallellm.core.gateway import ParalleLLM
+from parallellm.core.gateway import resume_directory
 from parallellm.testing.simple_mock import mock_openai_calls
 
 
@@ -30,24 +30,24 @@ Diana
         "Alice",  # Alice vs Diana
     ]
 
-    pllm = ParalleLLM.resume_directory(
+    orch = resume_directory(
         temp_integration_dir / "checkpoint_tournament",
         provider="openai",
         strategy="sync",
     )
 
-    mock_client = mock_openai_calls(pllm, responses=responses)
-    agent = pllm.agent()
+    mock_client = mock_openai_calls(orch, responses=responses)
+    agent = orch.agent()
 
     # Phase 1: Get contestants (always runs)
     with agent:
         contestants_resp = agent.ask_llm("Get 4 contestants for the tournament")
         contestants = contestants_resp.resolve().split("```")[1].split("\n")[1:5]
-        pllm.save_userdata("contestants", contestants)
+        orch.save_userdata("contestants", contestants)
 
     # Phase 2: Semi-finals
     with agent:
-        contestants = pllm.load_userdata("contestants")
+        contestants = orch.load_userdata("contestants")
         semifinal_winners = []
 
         # Run semifinals
@@ -55,21 +55,21 @@ Diana
             resp = agent.ask_llm(f"Who wins: {contestants[i]} vs {contestants[i + 1]}?")
             semifinal_winners.append(resp.resolve())
 
-        pllm.save_userdata("semifinal_winners", semifinal_winners)
+        orch.save_userdata("semifinal_winners", semifinal_winners)
 
     # Phase 3: Finals
     with agent:
-        finalists = pllm.load_userdata("semifinal_winners")
+        finalists = orch.load_userdata("semifinal_winners")
         final_resp = agent.ask_llm(f"Final match: {finalists[0]} vs {finalists[1]}?")
         winner = final_resp.resolve()
 
-        pllm.save_userdata("tournament_winner", winner)
+        orch.save_userdata("tournament_winner", winner)
 
     # Verify results
-    assert pllm.load_userdata("tournament_winner") == "Alice"
+    assert orch.load_userdata("tournament_winner") == "Alice"
     assert len(mock_client.calls) == 4  # 1 contestants + 2 semifinals + 1 final
 
-    pllm.persist()
+    orch.persist()
 
 
 def test_strategy_switching_persistence(temp_integration_dir):
@@ -77,9 +77,7 @@ def test_strategy_switching_persistence(temp_integration_dir):
     test_dir = temp_integration_dir / "strategy_switch"
 
     # Run 1: Use sync strategy
-    pllm_sync = ParalleLLM.resume_directory(
-        test_dir, provider="openai", strategy="sync"
-    )
+    pllm_sync = resume_directory(test_dir, provider="openai", strategy="sync")
 
     mock_client_sync = mock_openai_calls(pllm_sync, responses=["Sync response"])
 
@@ -92,7 +90,7 @@ def test_strategy_switching_persistence(temp_integration_dir):
     assert len(mock_client_sync.calls) == 1
 
     # Run 2: Switch to async strategy, load same data
-    pllm_async = ParalleLLM.resume_directory(
+    pllm_async = resume_directory(
         test_dir,
         provider="openai",
         strategy="async",  # Different strategy
@@ -127,31 +125,31 @@ def test_complex_userdata_workflow(temp_integration_dir):
         "Final implementation plan ready",
     ]
 
-    pllm = ParalleLLM.resume_directory(
+    orch = resume_directory(
         temp_integration_dir / "complex_userdata",
         provider="openai",
         strategy="sync",
     )
 
-    mock_client = mock_openai_calls(pllm, responses=responses)
+    mock_client = mock_openai_calls(orch, responses=responses)
 
     # Agent 1: Project selection
-    agent1 = pllm.agent()
+    agent1 = orch.agent()
     with agent1:
         project = agent1.ask_llm("Choose the best project")
-        pllm.save_userdata("selected_project", project.resolve())
+        orch.save_userdata("selected_project", project.resolve())
 
     # Agent 2: Technical planning
-    agent2 = pllm.agent()
+    agent2 = orch.agent()
     with agent2:
         schema = agent2.ask_llm("Design database schema")
-        pllm.save_userdata("technical/database_schema", schema.resolve())
+        orch.save_userdata("technical/database_schema", schema.resolve())
 
     # Agent 3: Final planning (uses data from both previous agents)
-    agent3 = pllm.agent()
+    agent3 = orch.agent()
     with agent3:
-        project_name = pllm.load_userdata("selected_project")
-        db_schema = pllm.load_userdata("technical/database_schema")
+        project_name = orch.load_userdata("selected_project")
+        db_schema = orch.load_userdata("technical/database_schema")
 
         plan = agent3.ask_llm(
             f"Create implementation plan for {project_name} with {db_schema}"
@@ -159,17 +157,17 @@ def test_complex_userdata_workflow(temp_integration_dir):
         final_plan = plan.resolve()
 
         # Store hierarchical userdata
-        pllm.save_userdata("final/plan", final_plan)
-        pllm.save_userdata("final/project", project_name)
-        pllm.save_userdata("final/schema", db_schema)
+        orch.save_userdata("final/plan", final_plan)
+        orch.save_userdata("final/project", project_name)
+        orch.save_userdata("final/schema", db_schema)
 
     # Verify all userdata can be retrieved
-    assert "Alpha" in pllm.load_userdata("selected_project")
-    assert "v2.1" in pllm.load_userdata("technical/database_schema")
-    assert "implementation plan" in pllm.load_userdata("final/plan")
+    assert "Alpha" in orch.load_userdata("selected_project")
+    assert "v2.1" in orch.load_userdata("technical/database_schema")
+    assert "implementation plan" in orch.load_userdata("final/plan")
 
     assert len(mock_client.calls) == 3
-    pllm.persist()
+    orch.persist()
 
 
 def test_mixed_checkpoint_and_caching(temp_integration_dir):
@@ -177,7 +175,7 @@ def test_mixed_checkpoint_and_caching(temp_integration_dir):
     test_dir = temp_integration_dir / "checkpoint_cache"
 
     # First run: Create checkpoints and cache
-    pllm1 = ParalleLLM.resume_directory(test_dir, provider="openai", strategy="sync")
+    pllm1 = resume_directory(test_dir, provider="openai", strategy="sync")
 
     mock_client1 = mock_openai_calls(
         pllm1, responses=["Initial data", "Checkpoint A result", "Checkpoint B result"]
@@ -204,7 +202,7 @@ def test_mixed_checkpoint_and_caching(temp_integration_dir):
     assert len(mock_client1.calls) == 3
 
     # Second run: Should use cache for non-checkpoint calls
-    pllm2 = ParalleLLM.resume_directory(test_dir, provider="openai", strategy="sync")
+    pllm2 = resume_directory(test_dir, provider="openai", strategy="sync")
 
     mock_client2 = mock_openai_calls(pllm2, responses=["Should not be called"])
 

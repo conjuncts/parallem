@@ -1,4 +1,4 @@
-"""Simple testing utilities for mocking OpenAI calls in ParalleLLM"""
+"""Simple testing utilities for mocking OpenAI calls"""
 
 from dataclasses import asdict
 from typing import List, Union, Optional, Dict, Any

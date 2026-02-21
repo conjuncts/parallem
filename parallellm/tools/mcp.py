@@ -2,7 +2,9 @@ from parallellm.types import ServerTool
 
 
 class MCPTool(ServerTool):
-    """Let LLMs use Remote MCP (Model Context Protocol) as a server tool."""
+    """Let LLMs use Remote MCP (Model Context Protocol) as a server tool.
+
+    :warning: Experimental."""
 
     server_tool_type = "mcp"
 

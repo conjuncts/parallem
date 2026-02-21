@@ -300,7 +300,7 @@ class LLMIdentity:
 
 class CommonQueryParameters(TypedDict):
     """
-    Common parameters for LLM calls across providers.
+    Common parameters for LLM calls across providers. For internal use.
     """
 
     instructions: Optional[str]
@@ -408,5 +408,5 @@ class HumanResponse(LLMResponse):
     """
     A response provided by a human. Useful for human-in-the-loop.
 
-    Like LLMResponse, you must call resolve() to obtain the final value.
+    Like LLMResponse, you must call resolve() to obtain the final value. TODO.
     """

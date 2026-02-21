@@ -1,11 +1,11 @@
 import logging
 import random
 from dotenv import load_dotenv
-from parallellm.core.gateway import ParalleLLM
+import parallellm as pllm
 
 load_dotenv()
 
-pllm = ParalleLLM.resume_directory(
+orch = pllm.resume_directory(
     ".pllm/state/recipe",
     provider="openai",
     strategy="sync",
@@ -18,7 +18,7 @@ pllm = ParalleLLM.resume_directory(
 # or might take a really long time, leading to different outcomes.
 
 # In such a case, ParalleLLM introduces "message state"
-agent = pllm.agent()
+agent = orch.agent()
 
 with agent:
     convo = agent.get_msg_state()

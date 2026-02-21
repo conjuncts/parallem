@@ -11,7 +11,7 @@ For more comprehensive examples testing real ParalleLLM functionality:
 import shutil
 import tempfile
 import pytest
-from parallellm.core.gateway import ParalleLLM
+from parallellm.core.gateway import resume_directory
 from parallellm.testing.simple_mock import (
     mock_openai_calls,
     assert_call_made,
@@ -19,32 +19,28 @@ from parallellm.testing.simple_mock import (
 
 
 @pytest.fixture
-def temp_pllm():
+def temp_orch():
     """Pytest fixture that provides a temporary ParalleLLM instance"""
     shutil.rmtree(".pllm/test/sync", ignore_errors=True)
-    pllm = ParalleLLM.resume_directory(
-        ".pllm/test/sync", provider="openai", strategy="sync"
-    )
-    yield pllm
+    orch = resume_directory(".pllm/test/sync", provider="openai", strategy="sync")
+    yield orch
 
 
 @pytest.fixture
-def async_temp_pllm():
+def async_temp_orch():
     """Pytest fixture that provides a temporary async ParalleLLM instance"""
     shutil.rmtree(".pllm/test/async", ignore_errors=True)
-    pllm = ParalleLLM.resume_directory(
-        ".pllm/test/async", provider="openai", strategy="async"
-    )
-    yield pllm
+    orch = resume_directory(".pllm/test/async", provider="openai", strategy="async")
+    yield orch
 
 
-def test_simple_mock_responses(temp_pllm):
+def test_simple_mock_responses(temp_orch):
     """Test with a simple list of mock responses"""
     responses = ["First response", "Second response", "Third response"]
 
-    mock_client = mock_openai_calls(temp_pllm, responses=responses)
+    mock_client = mock_openai_calls(temp_orch, responses=responses)
 
-    with temp_pllm.agent() as a:
+    with temp_orch.agent() as a:
         resp1 = a.ask_llm("First question")
         resp2 = a.ask_llm("Second question")
         resp3 = a.ask_llm("Third question")
@@ -61,9 +57,9 @@ def test_simple_mock_responses(temp_pllm):
     assert_call_made(mock_client, "Third question")
 
 
-def test_pattern_based_responses(temp_pllm):
+def test_pattern_based_responses(temp_orch):
     """Test with pattern-based response mapping"""
-    mock_client = mock_openai_calls(temp_pllm)
+    mock_client = mock_openai_calls(temp_orch)
 
     # Add patterns using the convenient dict method
     mock_client.add_patterns(
@@ -75,7 +71,7 @@ def test_pattern_based_responses(temp_pllm):
     )
     mock_client.set_default("Mock response for unknown question")
 
-    with temp_pllm.agent() as a:
+    with temp_orch.agent() as a:
         # These should match patterns
         calc_resp = a.ask_llm("Please calculate 2 + 2")
         weather_resp = a.ask_llm("What's the weather like?")
@@ -92,9 +88,9 @@ def test_pattern_based_responses(temp_pllm):
     assert len(mock_client.calls) == 4
 
 
-def test_exact_instruction_matching(temp_pllm):
+def test_exact_instruction_matching(temp_orch):
     """Test with exact instruction matching"""
-    mock_client = mock_openai_calls(temp_pllm)
+    mock_client = mock_openai_calls(temp_orch)
 
     # Add exact matches using the dict method with literal=True
     mock_client.add_patterns(
@@ -106,7 +102,7 @@ def test_exact_instruction_matching(temp_pllm):
     )
     mock_client.set_default("I don't know that.")
 
-    with temp_pllm.agent() as a:
+    with temp_orch.agent() as a:
         resp1 = a.ask_llm("What is the capital of France?")
         resp2 = a.ask_llm("What is 2 + 2?")
         resp3 = a.ask_llm("What is the meaning of life?")
@@ -116,9 +112,9 @@ def test_exact_instruction_matching(temp_pllm):
     assert "don't know" in resp3.resolve()
 
 
-def test_mixed_pattern_methods(temp_pllm):
+def test_mixed_pattern_methods(temp_orch):
     """Test mixing individual add_pattern and batch add_patterns"""
-    mock_client = mock_openai_calls(temp_pllm)
+    mock_client = mock_openai_calls(temp_orch)
 
     # Add batch patterns first
     mock_client.add_patterns(
@@ -131,7 +127,7 @@ def test_mixed_pattern_methods(temp_pllm):
     # Set default
     mock_client.set_default("Default response")
 
-    with temp_pllm.agent() as a:
+    with temp_orch.agent() as a:
         math_resp = a.ask_llm("Calculate 2+2")
         weather_resp = a.ask_llm("What's the weather?")
         greeting_resp = a.ask_llm("Hello world")
@@ -145,13 +141,13 @@ def test_mixed_pattern_methods(temp_pllm):
     assert len(mock_client.calls) == 4
 
 
-def test_async_provider(async_temp_pllm):
+def test_async_provider(async_temp_orch):
     """Test with async provider"""
     responses = ["Async response 1", "Async response 2"]
 
-    mock_client = mock_openai_calls(async_temp_pllm, responses=responses)
+    mock_client = mock_openai_calls(async_temp_orch, responses=responses)
 
-    with async_temp_pllm.agent() as a:
+    with async_temp_orch.agent() as a:
         resp1 = a.ask_llm("First async question")
         resp2 = a.ask_llm("Second async question")
 
@@ -187,10 +183,10 @@ Steelers
     ]
 
     with tempfile.TemporaryDirectory() as temp_dir:
-        pllm = ParalleLLM.resume_directory(temp_dir, provider="openai", strategy="sync")
-        mock_client = mock_openai_calls(pllm, responses=responses)
+        orch = resume_directory(temp_dir, provider="openai", strategy="sync")
+        mock_client = mock_openai_calls(orch, responses=responses)
 
-        with pllm.agent() as a:
+        with orch.agent() as a:
             # Get teams
             resp = a.ask_llm(
                 "Please name 8 NFL teams. Place your final answer in a code block, separated by newlines."
