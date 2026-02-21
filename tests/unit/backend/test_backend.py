@@ -14,7 +14,7 @@ import pytest
 import tempfile
 import asyncio
 from pathlib import Path
-from parallellm.core.backend.async_backend import AsyncBackend
+from parallellm.core.backend.concurrent_backend import ConcurrentBackend
 from parallellm.core.backend.sync_backend import SyncBackend
 from parallellm.file_io.file_manager import FileManager
 from parallellm.types import ParsedResponse, to_serial_id
@@ -48,12 +48,12 @@ def sample_call_id():
     }
 
 
-class TestAsyncBackend:
-    """Test AsyncBackend functionality"""
+class TestConcurrentBackend:
+    """Test ConcurrentBackend functionality"""
 
-    def test_async_backend_submit_coro(self, file_manager, sample_call_id):
-        """Test submitting coroutines to AsyncBackend"""
-        backend = AsyncBackend(file_manager)
+    def test_concurrent_backend_submit_coro(self, file_manager, sample_call_id):
+        """Test submitting coroutines to ConcurrentBackend"""
+        backend = ConcurrentBackend(file_manager)
 
         async def sample_coro():
             await asyncio.sleep(0.01)
@@ -75,9 +75,9 @@ class TestAsyncBackend:
         # Clean up
         backend.shutdown()
 
-    def test_async_backend_shutdown(self, file_manager):
-        """Test AsyncBackend shutdown functionality"""
-        backend = AsyncBackend(file_manager)
+    def test_concurrent_backend_shutdown(self, file_manager):
+        """Test ConcurrentBackend shutdown functionality"""
+        backend = ConcurrentBackend(file_manager)
 
         assert backend._loop is not None
         assert backend._loop_thread.is_alive()
@@ -91,9 +91,9 @@ class TestAsyncBackend:
         backend._loop_thread.join(timeout=5.0)
         assert not backend._loop_thread.is_alive()
 
-    def test_async_backend_persist(self, file_manager, sample_call_id):
-        """Test AsyncBackend persist functionality"""
-        backend = AsyncBackend(file_manager)
+    def test_concurrent_backend_persist(self, file_manager, sample_call_id):
+        """Test ConcurrentBackend persist functionality"""
+        backend = ConcurrentBackend(file_manager)
 
         async def sample_coro():
             return {"role": "assistant", "content": "persist test"}
@@ -111,11 +111,11 @@ class TestAsyncBackend:
         # Clean up
         backend.shutdown()
 
-    def test_async_backend_functionality_after_persist(
+    def test_concurrent_backend_functionality_after_persist(
         self, file_manager, sample_call_id
     ):
-        """Test that AsyncBackend remains functional after calling persist()"""
-        backend = AsyncBackend(file_manager)
+        """Test that ConcurrentBackend remains functional after calling persist()"""
+        backend = ConcurrentBackend(file_manager)
 
         # Submit initial task
         async def first_coro():
@@ -158,11 +158,11 @@ class TestAsyncBackend:
         # Clean up
         backend.shutdown()
 
-    def test_async_backend_does_not_wait_for_unrelated_tasks(
+    def test_concurrent_backend_does_not_wait_for_unrelated_tasks(
         self, file_manager, sample_call_id
     ):
         """Test that retrieve() for one task doesn't wait for unrelated slow tasks"""
-        backend = AsyncBackend(file_manager)
+        backend = ConcurrentBackend(file_manager)
 
         # Submit a very slow task first
         slow_call_id = sample_call_id.copy()

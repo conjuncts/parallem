@@ -222,10 +222,10 @@ Team D
     assert game2 == game2_2
 
 
-def test_tournament_with_async_strategy(temp_integration_dir):
-    """Test tournament works with async strategy"""
+def test_tournament_with_concurrent_strategy(temp_integration_dir):
+    """Test tournament works with concurrent strategy"""
     responses = [
-        """Async teams:
+        """Concurrent teams:
 ```
 Alpha
 Beta
@@ -237,9 +237,9 @@ Delta
     ]
 
     orch = resume_directory(
-        temp_integration_dir / "tour-async-test",
+        temp_integration_dir / "tour-concurrent-test",
         provider="openai",
-        strategy="async",  # Test async strategy
+        strategy="concurrent",  # Test concurrent strategy
     )
 
     mock_client = mock_openai_calls(orch, responses=responses)

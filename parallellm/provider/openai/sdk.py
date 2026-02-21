@@ -3,7 +3,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING, List, Optional, Union
 from pydantic import BaseModel
 from parallellm.provider.base import (
-    AsyncProvider,
+    ConcurrentProvider,
     BaseProvider,
     BatchProvider,
     SyncProvider,
@@ -253,16 +253,16 @@ class SyncOpenAIProvider(SyncProvider, OpenAIProvider):
         )
 
 
-class AsyncOpenAIProvider(AsyncProvider, OpenAIProvider):
+class ConcurrentOpenAIProvider(ConcurrentProvider, OpenAIProvider):
     def __init__(self, client: "AsyncOpenAI"):
         self.client = client
 
-    def prepare_async_call(
+    def prepare_concurrent_call(
         self,
         params: CommonQueryParameters,
         **kwargs,
     ):
-        """Prepare an async coroutine for OpenAI API"""
+        """Prepare a concurrent coroutine for OpenAI API"""
         instructions = params["instructions"]
         fixed_documents = self._fix_docs_for_openai(params["strict_documents"])
         llm = params["llm"]

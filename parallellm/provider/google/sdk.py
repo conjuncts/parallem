@@ -3,7 +3,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING, List, Optional, Union
 from pydantic import BaseModel
 from parallellm.provider.base import (
-    AsyncProvider,
+    ConcurrentProvider,
     BaseProvider,
     BatchProvider,
     SyncProvider,
@@ -351,16 +351,16 @@ class SyncGoogleProvider(SyncProvider, GoogleProvider):
         )
 
 
-class AsyncGoogleProvider(AsyncProvider, GoogleProvider):
+class ConcurrentGoogleProvider(ConcurrentProvider, GoogleProvider):
     def __init__(self, client: "genai.Client"):
         self.client = client
 
-    def prepare_async_call(
+    def prepare_concurrent_call(
         self,
         params: CommonQueryParameters,
         **kwargs,
     ):
-        """Prepare an async coroutine for Gemini API"""
+        """Prepare a concurrent coroutine for Gemini API"""
         model_name, contents, config = _prepare_google_config(params, **kwargs)
 
         coro = self.client.aio.models.generate_content(

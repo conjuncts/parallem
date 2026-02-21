@@ -106,33 +106,33 @@ class MockOpenAIClient:
         )
 
 
-class MockAsyncOpenAIClient(MockOpenAIClient):
-    """Async version of mock OpenAI client"""
+class MockConcurrentOpenAIClient(MockOpenAIClient):
+    """Concurrent version of mock OpenAI client"""
 
     def __init__(self):
         super().__init__()
-        self.responses.create = self._async_create_response
+        self.responses.create = self._concurrent_create_response
 
-    async def _async_create_response(
+    async def _concurrent_create_response(
         self, model=None, instructions=None, input=None, **kwargs
     ):
-        """Mock async responses.create"""
+        """Mock concurrent responses.create"""
         result = self._create_response(model, instructions, input, **kwargs)
-        await asyncio.sleep(0.01)  # Simulate async delay
+        await asyncio.sleep(0.01)  # Simulate concurrent delay
         return result
 
 
 def mock_openai_calls(
     batch_manager: AgentOrchestrator,
     responses: Optional[List[Union[str, MockResponse]]] = None,
-) -> Union[MockOpenAIClient, MockAsyncOpenAIClient]:
+) -> Union[MockOpenAIClient, MockConcurrentOpenAIClient]:
     """Replace OpenAI client in BatchManager with mock"""
     provider = batch_manager._provider
 
-    from parallellm.provider.openai.sdk import AsyncOpenAIProvider
+    from parallellm.provider.openai.sdk import ConcurrentOpenAIProvider
 
-    if isinstance(provider, AsyncOpenAIProvider):
-        mock_client = MockAsyncOpenAIClient()
+    if isinstance(provider, ConcurrentOpenAIProvider):
+        mock_client = MockConcurrentOpenAIClient()
     else:
         mock_client = MockOpenAIClient()
 

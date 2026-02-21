@@ -9,7 +9,7 @@ load_dotenv()
 with plm.resume_directory(
     ".pllm/simple/throttle",
     provider="openai",
-    strategy="async",
+    strategy="concurrent",
     log_level=logging.DEBUG,
     ignore_cache=True,
     throttler=plm.Throttler(
@@ -17,7 +17,7 @@ with plm.resume_directory(
         window_seconds=10,
     ),
     tweaks=plm.MinorTweaks(
-        async_max_concurrent=2,
+        max_concurrent=2,
     ),
     dashboard=True,
 ) as orch:

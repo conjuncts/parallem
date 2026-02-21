@@ -27,10 +27,12 @@ def temp_orch():
 
 
 @pytest.fixture
-def async_temp_orch():
-    """Pytest fixture that provides a temporary async ParalleLLM instance"""
-    shutil.rmtree(".pllm/test/async", ignore_errors=True)
-    orch = resume_directory(".pllm/test/async", provider="openai", strategy="async")
+def concurrent_temp_orch():
+    """Pytest fixture that provides a temporary concurrent ParalleLLM instance"""
+    shutil.rmtree(".pllm/test/concurrent", ignore_errors=True)
+    orch = resume_directory(
+        ".pllm/test/concurrent", provider="openai", strategy="concurrent"
+    )
     yield orch
 
 
@@ -141,13 +143,13 @@ def test_mixed_pattern_methods(temp_orch):
     assert len(mock_client.calls) == 4
 
 
-def test_async_provider(async_temp_orch):
-    """Test with async provider"""
+def test_concurrent_provider(concurrent_temp_orch):
+    """Test with concurrent provider"""
     responses = ["Async response 1", "Async response 2"]
 
-    mock_client = mock_openai_calls(async_temp_orch, responses=responses)
+    mock_client = mock_openai_calls(concurrent_temp_orch, responses=responses)
 
-    with async_temp_orch.agent() as a:
+    with concurrent_temp_orch.agent() as a:
         resp1 = a.ask_llm("First async question")
         resp2 = a.ask_llm("Second async question")
 

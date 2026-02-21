@@ -317,8 +317,8 @@ class MinorTweaks:
     Holds configs not significant enough to warrant a full keyword argument.
     """
 
-    async_max_concurrent: Optional[int] = 20
-    "Maximum number of concurrent tasks in AsyncBackend."
+    max_concurrent: Optional[int] = 20
+    "Maximum number of concurrent tasks in ConcurrentBackend."
 
     batch_user_confirmation: bool = True
     "Whether to ask for user confirmation before submitting a batch."

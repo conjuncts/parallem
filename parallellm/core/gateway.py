@@ -12,7 +12,7 @@ from parallellm.types import HashByOptions, MinorTweaks, ProviderType
 def resume_directory(
     directory,
     *,
-    strategy: Literal["sync", "async", "batch", "hybrid"] = "sync",
+    strategy: Literal["sync", "concurrent", "batch", "hybrid"] = "sync",
     provider: ProviderType = "openai",
     datastore: Literal["sqlite", "sqlite_parquet"] = "sqlite",
     dry_run=False,
@@ -53,7 +53,7 @@ def resume_directory(
 
     # Logic to resume from the specified directory
     # 1. Validation
-    if strategy not in ["sync", "async", "batch", "hybrid"]:
+    if strategy not in ["sync", "concurrent", "batch", "hybrid"]:
         raise ValueError(f"Unknown strategy '{strategy}'")
     if dry_run:
         raise NotImplementedError("Dry run is not implemented yet")
@@ -78,15 +78,15 @@ def resume_directory(
     if datastore == "sqlite":
         datastore_cls = None  # default
 
-    if strategy == "async":
-        from parallellm.core.backend.async_backend import AsyncBackend
+    if strategy == "concurrent":
+        from parallellm.core.backend.concurrent_backend import ConcurrentBackend
 
-        backend = AsyncBackend(
+        backend = ConcurrentBackend(
             fm,
             dashlog=dashlog,
             datastore_cls=datastore_cls,
             rewrite_cache=rewrite_cache,
-            max_concurrent=tweaks.async_max_concurrent,
+            max_concurrent=tweaks.max_concurrent,
             throttler=throttler,
         )
     elif strategy == "sync":
@@ -116,15 +116,15 @@ def resume_directory(
     logger.debug("Creating provider")
     if provider == "openai":
         from parallellm.provider.openai.sdk import (
-            AsyncOpenAIProvider,
+            ConcurrentOpenAIProvider,
             SyncOpenAIProvider,
         )
 
-        if strategy == "async":
+        if strategy == "concurrent":
             from openai import AsyncOpenAI
 
             client = AsyncOpenAI()
-            provider = AsyncOpenAIProvider(client=client)
+            provider = ConcurrentOpenAIProvider(client=client)
         elif strategy == "batch":
             from openai import OpenAI
 
@@ -138,15 +138,15 @@ def resume_directory(
             provider = SyncOpenAIProvider(client=client)
     elif provider == "google":
         from parallellm.provider.google.sdk import (
-            AsyncGoogleProvider,
+            ConcurrentGoogleProvider,
             BatchGoogleProvider,
             SyncGoogleProvider,
         )
         from google import genai
 
-        if strategy == "async":
+        if strategy == "concurrent":
             client = genai.Client()
-            provider = AsyncGoogleProvider(client=client)
+            provider = ConcurrentGoogleProvider(client=client)
         elif strategy == "batch":
             client = genai.Client()
             provider = BatchGoogleProvider(client=client)
@@ -155,15 +155,15 @@ def resume_directory(
             provider = SyncGoogleProvider(client=client)
     elif provider == "anthropic":
         from parallellm.provider.anthropic.sdk import (
-            AsyncAnthropicProvider,
+            ConcurrentAnthropicProvider,
             SyncAnthropicProvider,
         )
 
-        if strategy == "async":
+        if strategy == "concurrent":
             from anthropic import AsyncAnthropic
 
             client = AsyncAnthropic()
-            provider = AsyncAnthropicProvider(client=client)
+            provider = ConcurrentAnthropicProvider(client=client)
         else:
             from anthropic import Anthropic
 

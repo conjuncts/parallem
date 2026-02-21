@@ -10,7 +10,7 @@ load_dotenv()
 with plm.resume_directory(
     ".pllm/example/tournament-enzy",
     provider="openai",
-    strategy="async",
+    strategy="concurrent",
     log_level=logging.DEBUG,
     dashboard=True,
     # ignore_cache=True,

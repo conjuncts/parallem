@@ -22,10 +22,10 @@ from parallellm.types import (
 )
 
 if TYPE_CHECKING:
-    from parallellm.provider.base import AsyncProvider
+    from parallellm.provider.base import ConcurrentProvider
 
 
-class AsyncBackend(BaseBackend):
+class ConcurrentBackend(BaseBackend):
     """
     A backend is a data store, but also a way to poll.
     This backend owns its own event loop running in a separate thread.
@@ -44,7 +44,7 @@ class AsyncBackend(BaseBackend):
         throttler=None,
     ):
         """
-        Initialize the AsyncBackend.
+        Initialize the ConcurrentBackend.
 
         :param fm: FileManager for data persistence
         :param dashlog: Optional dashboard logger for monitoring
@@ -77,14 +77,14 @@ class AsyncBackend(BaseBackend):
 
         # Start the event loop in a separate thread
         self.datastore_cls = datastore_cls
-        self._async_ds: Optional[SQLiteDatastore] = None
+        self._concurrent_ds: Optional[SQLiteDatastore] = None
         self._start_event_loop()
 
         # Register cleanup to run on program exit
         atexit.register(self.shutdown)
 
     def _get_datastore(self):
-        return self._async_ds
+        return self._concurrent_ds
 
     def _start_event_loop(self):
         """Start the event loop in a separate thread"""
@@ -95,9 +95,9 @@ class AsyncBackend(BaseBackend):
 
             # Initialize the datastore now that the loop is running
             if self.datastore_cls is None:
-                self._async_ds = SQLiteDatastore(self._fm)
+                self._concurrent_ds = SQLiteDatastore(self._fm)
             else:
-                self._async_ds = self.datastore_cls(self._fm)
+                self._concurrent_ds = self.datastore_cls(self._fm)
 
             # Signal that the loop is ready
             self._loop_ready_event.set()
@@ -128,14 +128,14 @@ class AsyncBackend(BaseBackend):
             await asyncio.sleep(0.1)
 
         # Clean up the datastore from the same thread that created it
-        if hasattr(self, "_async_ds"):
-            self._async_ds.close()
-            del self._async_ds
+        if hasattr(self, "_concurrent_ds"):
+            self._concurrent_ds.close()
+            del self._concurrent_ds
 
     def _run_coroutine(self, coro):
         """Run a coroutine in the backend's event loop and return the result"""
         if self._loop is None or self._loop.is_closed():
-            raise RuntimeError("AsyncBackend event loop is not running")
+            raise RuntimeError("ConcurrentBackend event loop is not running")
 
         future = asyncio.run_coroutine_threadsafe(coro, self._loop)
         res = future.result()
@@ -152,7 +152,7 @@ class AsyncBackend(BaseBackend):
 
     def submit_query(
         self,
-        provider: "AsyncProvider",
+        provider: "ConcurrentProvider",
         params: CommonQueryParameters,
         *,
         call_id: CallIdentifier,
@@ -163,12 +163,12 @@ class AsyncBackend(BaseBackend):
         This inverts control from provider calling backend.
         """
 
-        coro = provider.prepare_async_call(
+        coro = provider.prepare_concurrent_call(
             params,
             **kwargs,
         )
 
-        # Submit for async execution
+        # Submit for concurrent execution
         self.submit_coro(call_id=call_id, coro=coro, provider=provider)
 
         return PendingLLMResponse(
@@ -184,13 +184,13 @@ class AsyncBackend(BaseBackend):
             self._loop_thread.join(timeout=5.0)
 
     async def _cleanup_datastore(self):
-        """Clean up the datastore from the async thread"""
-        if hasattr(self, "_async_ds"):
-            self._async_ds.close()
-            # del self._async_ds
+        """Clean up the datastore from the concurrent thread"""
+        if hasattr(self, "_concurrent_ds"):
+            self._concurrent_ds.close()
+            # del self._concurrent_ds
 
     def cleanup_datastore_sync(self):
-        """Synchronously trigger datastore cleanup in the async thread"""
+        """Synchronously trigger datastore cleanup in the concurrent thread"""
         if self._loop is not None and not self._loop.is_closed():
             future = asyncio.run_coroutine_threadsafe(
                 self._cleanup_datastore(), self._loop
@@ -205,7 +205,7 @@ class AsyncBackend(BaseBackend):
     ):
         """Submit a coroutine to be executed in the backend's event loop"""
         if self._loop is None or self._loop.is_closed():
-            raise RuntimeError("AsyncBackend event loop is not running")
+            raise RuntimeError("ConcurrentBackend event loop is not running")
 
         # Need to poll.
         # NOTE: modifying self.tasks in general is NOT thread-safe,
@@ -258,7 +258,7 @@ class AsyncBackend(BaseBackend):
 
             call_id: CallIdentifier = metadata.copy()
 
-            self._async_ds.store(call_id, parsed, upsert=self._rewrite_cache)
+            self._concurrent_ds.store(call_id, parsed, upsert=self._rewrite_cache)
             done_tasks.append(metadata)
 
             self.dashlog.update_hash(call_id["doc_hash"], HashStatus.RECEIVED)
@@ -281,7 +281,7 @@ class AsyncBackend(BaseBackend):
         # only poll for changes if we have a matching task
         if any(_call_matches(m, call_id) for m in self.task_metas):
             await self._poll_changes(call_id)
-        return self._async_ds.retrieve(call_id, metadata=metadata)
+        return self._concurrent_ds.retrieve(call_id, metadata=metadata)
 
     def persist(self, timeout=30.0):
         """
@@ -301,7 +301,7 @@ class AsyncBackend(BaseBackend):
                 print(f"Warning: Failed to wait for pending tasks: {e}")
 
         # Let datastore cleanup
-        self._async_ds.persist()
+        self._concurrent_ds.persist()
 
         # Close datastore connections to ensure proper cleanup, especially important on Windows
         self.cleanup_datastore_sync()
@@ -313,9 +313,9 @@ class AsyncBackend(BaseBackend):
         return self._run_coroutine(self.aretrieve(call_id, metadata=metadata))
 
     def __del__(self):
-        """Clean up resources when the AsyncBackend is destroyed"""
+        """Clean up resources when the ConcurrentBackend is destroyed"""
         try:
-            # Try to clean up the datastore from the async thread first
+            # Try to clean up the datastore from the concurrent thread first
             self.cleanup_datastore_sync()
             # Then shutdown the event loop
             self.shutdown()

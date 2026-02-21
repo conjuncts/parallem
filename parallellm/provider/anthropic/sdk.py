@@ -1,6 +1,6 @@
 from typing import TYPE_CHECKING, List, Optional, Union
 from pydantic import BaseModel
-from parallellm.provider.base import AsyncProvider, BaseProvider, SyncProvider
+from parallellm.provider.base import ConcurrentProvider, BaseProvider, SyncProvider
 from parallellm.types import (
     ParsedResponse,
     CommonQueryParameters,
@@ -279,16 +279,16 @@ class SyncAnthropicProvider(SyncProvider, AnthropicProvider):
         )
 
 
-class AsyncAnthropicProvider(AsyncProvider, AnthropicProvider):
+class ConcurrentAnthropicProvider(ConcurrentProvider, AnthropicProvider):
     def __init__(self, client: "AsyncAnthropic"):
         self.client = client
 
-    def prepare_async_call(
+    def prepare_concurrent_call(
         self,
         params: CommonQueryParameters,
         **kwargs,
     ):
-        """Prepare an async coroutine for Anthropic API"""
+        """Prepare a concurrent coroutine for Anthropic API"""
         model_name, messages, config = _prepare_anthropic_config(params, **kwargs)
 
         coro = self.client.messages.create(

@@ -93,7 +93,7 @@ def test_strategy_switching_persistence(temp_integration_dir):
     pllm_async = resume_directory(
         test_dir,
         provider="openai",
-        strategy="async",  # Different strategy
+        strategy="concurrent",  # Different strategy
     )
 
     mock_client_async = mock_openai_calls(
@@ -109,7 +109,7 @@ def test_strategy_switching_persistence(temp_integration_dir):
         new_resp = agent.ask_llm("Test question")  # Should hit cache
         assert new_resp.resolve() == "Sync response"  # Cached from sync run
 
-        pllm_async.save_userdata("async_addition", "async_data")
+        pllm_async.save_userdata("concurrent_addition", "concurrent_data")
 
     # Verify no new API calls (cache hit)
     assert len(mock_client_async.calls) == 0

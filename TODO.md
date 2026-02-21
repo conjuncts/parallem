@@ -24,7 +24,7 @@ explicitly not-agentic philosophy (more of an input/output machine) although age
 
 - [ ] Error handling: 
     - sync: ask_llm raises an error OR ask_llm produces an error object (ErrorResponse), which is raised when resolve() is called
-    - async: ask_llm is fine, but resolve() raises an error
+    - Concurrent: ask_llm is fine, but resolve() raises an error
     - mode 1: exceptions are fatal
     - mode 2: log exceptions and continue
     - three error handling modes: None, skip, retry (exponential backoff)
@@ -87,7 +87,7 @@ Read
 - cancel batch
 
 - output_text, 
-- rename async to sync_deferred?
+- [x] rename async to concurrent
 
 - Manual MCP server
     - ping get tool calls 

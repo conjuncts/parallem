@@ -2,7 +2,7 @@
 Unit tests for OpenAI provider classes
 
 Tests the OpenAI provider functionality including:
-- SyncOpenAIProvider and AsyncOpenAIProvider
+- SyncOpenAIProvider and ConcurrentOpenAIProvider
 - Document formatting for OpenAI API
 - Provider type handling
 - Integration with backends
@@ -15,14 +15,13 @@ import asyncio
 from typing import Callable, Any, Tuple, Dict
 from parallellm.provider.openai.sdk import (
     SyncOpenAIProvider,
-    AsyncOpenAIProvider,
+    ConcurrentOpenAIProvider,
 )
 from parallellm.core.backend.sync_backend import SyncBackend
-from parallellm.testing.simple_backend import MockSyncBackend, MockAsyncBackend
-from parallellm.core.backend.async_backend import AsyncBackend
+from parallellm.testing.simple_backend import MockSyncBackend, MockConcurrentBackend
 from parallellm.core.response import PendingLLMResponse, ReadyLLMResponse
 from parallellm.types import CallIdentifier, LLMDocument, LLMIdentity, ParsedResponse
-from parallellm.testing.simple_mock import MockOpenAIClient, MockAsyncOpenAIClient
+from parallellm.testing.simple_mock import MockOpenAIClient, MockConcurrentOpenAIClient
 from PIL import Image
 
 
@@ -251,17 +250,17 @@ class TestSyncOpenAIProvider:
             )
 
 
-class TestAsyncOpenAIProvider:
-    """Test AsyncOpenAIProvider functionality with realistic async scenarios"""
+class TestConcurrentOpenAIProvider:
+    """Test ConcurrentOpenAIProvider functionality with realistic concurrent scenarios"""
 
     @pytest.mark.asyncio
-    async def test_successful_async_query_execution(self, generic_call_id):
-        """Test that an async query is properly executed and can be resolved"""
-        mock_client = MockAsyncOpenAIClient()
-        mock_client.set_default("Async response: The capital of Italy is Rome.")
-        mock_backend = MockAsyncBackend()
+    async def test_successful_concurrent_query_execution(self, generic_call_id):
+        """Test that a concurrent query is properly executed and can be resolved"""
+        mock_client = MockConcurrentOpenAIClient()
+        mock_client.set_default("Concurrent response: The capital of Italy is Rome.")
+        mock_backend = MockConcurrentBackend()
 
-        provider = AsyncOpenAIProvider(client=mock_client, backend=mock_backend)
+        provider = ConcurrentOpenAIProvider(client=mock_client, backend=mock_backend)
 
         result = provider.submit_query_to_provider(
             instructions="Answer the geographical question.",
@@ -276,21 +275,21 @@ class TestAsyncOpenAIProvider:
 
         # Resolve the pending response
         resolved_value = await mock_backend.resolve_call(generic_call_id)
-        assert resolved_value == "Async response: The capital of Italy is Rome."
+        assert resolved_value == "Concurrent response: The capital of Italy is Rome."
 
     @pytest.mark.asyncio
-    async def test_async_llm_identity_usage(self, generic_call_id):
-        """Test that LLM identity is properly used in async calls"""
-        mock_client = MockAsyncOpenAIClient()
+    async def test_concurrent_llm_identity_usage(self, generic_call_id):
+        """Test that LLM identity is properly used in concurrent calls"""
+        mock_client = MockConcurrentOpenAIClient()
         mock_client.set_default("GPT-3.5 specific response")
-        mock_backend = MockAsyncBackend()
+        mock_backend = MockConcurrentBackend()
 
-        provider = AsyncOpenAIProvider(client=mock_client, backend=mock_backend)
+        provider = ConcurrentOpenAIProvider(client=mock_client, backend=mock_backend)
         llm_identity = LLMIdentity("gpt-3.5-turbo")
 
         result = provider.submit_query_to_provider(
             instructions="Use GPT-3.5 for this task",
-            documents=["Test async input"],
+            documents=["Test concurrent input"],
             call_id=generic_call_id,
             llm=llm_identity,
         )
@@ -306,24 +305,24 @@ class TestProviderIntegration:
     """Test provider integration and cross-cutting concerns"""
 
     @pytest.mark.asyncio
-    async def test_sync_vs_async_behavior(self, generic_call_id):
-        """Test that sync and async providers produce equivalent results"""
+    async def test_sync_vs_concurrent_behavior(self, generic_call_id):
+        """Test that sync and concurrent providers produce equivalent results"""
         mock_sync_client = MockOpenAIClient()
-        mock_async_client = MockAsyncOpenAIClient()
+        mock_concurrent_client = MockConcurrentOpenAIClient()
 
         # Set same response for both
         response_text = "Both providers should return this"
         mock_sync_client.set_default(response_text)
-        mock_async_client.set_default(response_text)
+        mock_concurrent_client.set_default(response_text)
 
         sync_backend = MockSyncBackend()
-        async_backend = MockAsyncBackend()
+        concurrent_backend = MockConcurrentBackend()
 
         sync_provider = SyncOpenAIProvider(
             client=mock_sync_client, backend=sync_backend
         )
-        async_provider = AsyncOpenAIProvider(
-            client=mock_async_client, backend=async_backend
+        concurrent_provider = ConcurrentOpenAIProvider(
+            client=mock_concurrent_client, backend=concurrent_backend
         )
 
         # Same input for both
@@ -335,22 +334,24 @@ class TestProviderIntegration:
             instructions=instructions, documents=documents, call_id=generic_call_id
         )
 
-        # Test async provider
-        async_call_id = generic_call_id.copy()
-        async_call_id["seq_id"] = 2  # Different seq_id to avoid cache collision
+        # Test concurrent provider
+        concurrent_call_id = generic_call_id.copy()
+        concurrent_call_id["seq_id"] = 2  # Different seq_id to avoid cache collision
 
-        async_result = async_provider.submit_query_to_provider(
-            instructions=instructions, documents=documents, call_id=async_call_id
+        concurrent_result = concurrent_provider.submit_query_to_provider(
+            instructions=instructions, documents=documents, call_id=concurrent_call_id
         )
 
         # Sync should return ReadyLLMResponse
         assert isinstance(sync_result, ReadyLLMResponse)
         assert sync_result.value == response_text
 
-        # Async should return PendingLLMResponse that resolves to same value
-        assert isinstance(async_result, PendingLLMResponse)
-        resolved_async_value = await async_backend.resolve_call(async_call_id)
-        assert resolved_async_value == response_text
+        # Concurrent should return PendingLLMResponse that resolves to same value
+        assert isinstance(concurrent_result, PendingLLMResponse)
+        resolved_concurrent_value = await concurrent_backend.resolve_call(
+            concurrent_call_id
+        )
+        assert resolved_concurrent_value == response_text
 
 
 class TestProviderErrorScenarios:
@@ -396,20 +397,20 @@ class TestProviderErrorScenarios:
             )
 
     @pytest.mark.asyncio
-    async def test_async_client_error_propagation(self, generic_call_id):
-        """Test that async API errors are properly propagated"""
-        mock_client = MockAsyncOpenAIClient()
-        mock_backend = MockAsyncBackend()
+    async def test_concurrent_client_error_propagation(self, generic_call_id):
+        """Test that concurrent API errors are properly propagated"""
+        mock_client = MockConcurrentOpenAIClient()
+        mock_backend = MockConcurrentBackend()
 
-        # Configure async client to raise an exception
-        async def failing_async_create(*args, **kwargs):
-            raise Exception("Async API timeout")
+        # Configure concurrent client to raise an exception
+        async def failing_concurrent_create(*args, **kwargs):
+            raise Exception("Concurrent API timeout")
 
-        mock_client.responses.create = failing_async_create
-        provider = AsyncOpenAIProvider(client=mock_client, backend=mock_backend)
+        mock_client.responses.create = failing_concurrent_create
+        provider = ConcurrentOpenAIProvider(client=mock_client, backend=mock_backend)
 
         result = provider.submit_query_to_provider(
-            instructions="This will fail async",
+            instructions="This will fail concurrent",
             documents=["Test document"],
             call_id=generic_call_id,
         )
@@ -417,7 +418,7 @@ class TestProviderErrorScenarios:
         assert isinstance(result, PendingLLMResponse)
 
         # The error should be raised when we try to resolve
-        with pytest.raises(Exception, match="Async API timeout"):
+        with pytest.raises(Exception, match="Concurrent API timeout"):
             await mock_backend.resolve_call(generic_call_id)
 
 
