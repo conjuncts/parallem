@@ -12,6 +12,8 @@ from parallellm.types import AskParameters, LLMResponse
 
 
 class AgentOrchestrator:
+    """The AgentOrchestrator manages and creates agents. It's how you begin using parallellm."""
+
     def __init__(
         self,
         file_manager: FileManager,
@@ -61,11 +63,12 @@ class AgentOrchestrator:
         name: str = "",
         *,
         ask_params: Optional[AskParameters] = None,
-    ):
+    ) -> AgentContext:
         """
-        Parallellm does things a bit differently.
+        Constructs an agent.
 
-        While usually the agent is identified with an LLM,
+        Parallellm does things a bit differently.
+        While typically an agent is associated with a single LLM,
         Parallellm identifies an agent with a process, program, or algorithm
         which itself can ask LLMs questions, but also functions, MCP servers, and humans.
         It just so happens that the agent uses LLM(s) to automate much of its decision making.

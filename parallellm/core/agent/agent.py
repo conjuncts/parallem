@@ -24,7 +24,13 @@ if TYPE_CHECKING:
 
 
 class AgentContext(Askable):
-    """Context manager for Agent lifecycle (default context)"""
+    """Context manager for one "agent", which in parallellm is one single autonomous process.
+
+    Parallellm does things a bit differently.
+    While typically an agent is associated with a single LLM,
+    Parallellm identifies an agent with a process, program, or algorithm
+    which itself can ask LLMs questions, but also functions, MCP servers, and humans.
+    It just so happens that the agent uses LLM(s) to automate much of its decision making."""
 
     def __init__(
         self,

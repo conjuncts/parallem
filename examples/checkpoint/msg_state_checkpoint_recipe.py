@@ -1,11 +1,11 @@
 import logging
 import random
 from dotenv import load_dotenv
-import parallellm as pllm
+import parallellm as plm
 
 load_dotenv()
 
-orch = pllm.resume_directory(
+orch = plm.resume_directory(
     ".pllm/state/recipe",
     provider="openai",
     strategy="sync",
@@ -50,4 +50,4 @@ with agent:
             resp = convo.ask_llm(user_input)
             agent.print("Response:", resp.resolve())
 
-pllm.persist()
+plm.persist()

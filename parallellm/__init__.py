@@ -18,6 +18,8 @@ from parallellm.types import (
 )
 from parallellm.tools.auto_schema import to_tool_schema
 from parallellm.core.throttler import Throttler
+from parallellm.core.agent.orchestrator import AgentOrchestrator
+from parallellm.core.agent.agent import AgentContext
 
 import parallellm.tools as tools
 
@@ -59,4 +61,7 @@ __all__ = [
     "to_tool_schema",
     ### parallellm.core.throttler
     "Throttler",
+    ### parallellm.core.agent
+    "AgentOrchestrator",
+    "AgentContext",
 ]

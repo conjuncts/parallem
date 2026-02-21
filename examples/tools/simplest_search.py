@@ -1,11 +1,11 @@
 import logging
 from dotenv import load_dotenv
 
-import parallellm as pllm
+import parallellm as plm
 
 load_dotenv()
 
-with pllm.resume_directory(
+with plm.resume_directory(
     ".pllm/simplest",
     provider="google",
     strategy="sync",
@@ -17,7 +17,7 @@ with pllm.resume_directory(
         resp = agt.ask_llm(
             "In 1 sentence, what is AAPL's current price?",
             # llm="claude-haiku-4-5-20251001",
-            tools=[pllm.tools.WebSearchTool()],
+            tools=[plm.tools.WebSearchTool()],
             hash_by=["llm"],
         )
 

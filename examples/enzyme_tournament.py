@@ -2,12 +2,12 @@ import logging
 import time
 from dotenv import load_dotenv
 
-import parallellm as pllm
+import parallellm as plm
 
 start = time.time()
 load_dotenv()
 
-with pllm.resume_directory(
+with plm.resume_directory(
     ".pllm/example/tournament-enzy",
     provider="openai",
     strategy="async",
@@ -40,7 +40,7 @@ with pllm.resume_directory(
                     responses.append(resp)
                 else:
                     # they win by default
-                    responses.append(pllm.LLMResponse(teams[i]))
+                    responses.append(plm.LLMResponse(teams[i]))
 
             # Resolve only once everything is submitted
             teams = []

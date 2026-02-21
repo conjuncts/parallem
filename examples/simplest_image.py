@@ -1,12 +1,12 @@
 import logging
-import parallellm as pllm
+import parallellm as plm
 from dotenv import load_dotenv
 
 from PIL import Image
 
 load_dotenv()
 
-with pllm.resume_directory(
+with plm.resume_directory(
     ".pllm/simplest",
     provider="google",
     strategy="sync",

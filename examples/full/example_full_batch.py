@@ -4,7 +4,7 @@ from pydantic import BaseModel
 from dotenv import load_dotenv
 from PIL import Image
 
-import parallellm as pllm
+import parallellm as plm
 
 load_dotenv()
 
@@ -31,7 +31,7 @@ tools = [
     }
 ]
 
-with pllm.resume_directory(
+with plm.resume_directory(
     ".pllm/example/batch",
     provider="google",
     strategy="batch",
@@ -44,7 +44,7 @@ with pllm.resume_directory(
         resp2 = agt.ask_llm(
             "In 1 sentence, what is AAPL's current price?",
             # llm="claude-haiku-4-5-20251001",
-            tools=[pllm.tools.WebSearchTool()],
+            tools=[plm.tools.WebSearchTool()],
             hash_by=["llm"],
         )
         resp3 = agt.ask_llm(

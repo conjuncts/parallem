@@ -2,7 +2,7 @@ import logging
 
 from pydantic import BaseModel
 from dotenv import load_dotenv
-import parallellm as pllm
+import parallellm as plm
 
 load_dotenv()
 
@@ -11,7 +11,7 @@ class MyModel(BaseModel):
     final_answer: str
 
 
-with pllm.resume_directory(
+with plm.resume_directory(
     ".pllm/simplest-tool",
     provider="google",
     strategy="batch",
