@@ -845,19 +845,24 @@ class SQLiteDatastore(Datastore):
 
         return call_ids
 
-    def get_all_pending_batch_uuids(self) -> list[str]:
+    def get_all_pending_batch_uuids(self) -> list[tuple[str, str]]:
+        """
+        Get tuples of (batch_uuid, provider_type) for all active pending batches.
+        """
         conn = self._get_connection(None)
 
         # Get all unique batch_uuids that are still active
         cursor = conn.execute(
             """
-            SELECT DISTINCT batch_uuid
+            SELECT DISTINCT batch_uuid, provider_type
             FROM batch_pending
             WHERE is_pending = 1
             ORDER BY batch_uuid
             """
         )
-        batch_uuids = [row["batch_uuid"] for row in cursor.fetchall()]
+        batch_uuids = [
+            (row["batch_uuid"], row["provider_type"]) for row in cursor.fetchall()
+        ]
 
         return batch_uuids
 

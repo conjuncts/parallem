@@ -97,3 +97,4 @@ High priority:
 - [ ] df export to parquet
 - [ ] add `llm` as a top-level optoin
 - [ ] clienet as a way to delegate
+- [ ] function calls can only return str

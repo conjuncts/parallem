@@ -351,7 +351,9 @@ class BatchBackend(BaseBackend):
             "ready": 0,
             "error": 0,
         }
-        for batch_uuid in pending_batches:
+        for batch_uuid, batch_provider in pending_batches:
+            if not provider.is_compatible(batch_provider):
+                continue
             batch_results = self.download_batch_from_provider(
                 provider, batch_uuid, save_to_disk="zip"
             )

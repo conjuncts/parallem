@@ -133,11 +133,11 @@ class Datastore(ABC):
         """
         raise NotImplementedError
 
-    def get_all_pending_batch_uuids(self) -> list[str]:
+    def get_all_pending_batch_uuids(self) -> list[tuple[str, str]]:
         """
         Retrieve all active pending batches from the datastore.
 
-        :returns: List of BatchIdentifiers, one for each unique batch_uuid
+        :returns: List of tuples (batch_uuid, provider_type), one for each unique active pending batch
         """
         raise NotImplementedError
 
