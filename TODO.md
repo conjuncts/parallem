@@ -84,10 +84,16 @@ Read
 - [x] restore resolve_json()
 - [ ] continuable errors (ie. JSON)
 - [x] dashboard should be placed at the 'pllm' level, not the agent level, to avoid spam
-- cancel batch
+- cancel (forget about) batch
 
 - output_text, 
 - [x] rename async to concurrent
 
 - Manual MCP server
     - ping get tool calls 
+
+High priority:
+- [ ] batch bulk import/export
+- [ ] df export to parquet
+- [ ] add `llm` as a top-level optoin
+- [ ] clienet as a way to delegate

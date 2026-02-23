@@ -15,3 +15,5 @@ msg_state.ask_functions()
 - [ ] tools.auto_schema
 - [ ] ask_params
 - [ ] mcp server
+
+- [ ] error example: image/ppm type

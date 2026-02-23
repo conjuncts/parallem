@@ -8,7 +8,7 @@ def is_image(obj):
     return isinstance(obj, Image.Image)
 
 
-def get_image_type(obj: Image.Image):
+def _get_image_type(obj: Image.Image):
     """Get preferred file type for this PIL Image"""
     out = obj.format
     if out is None:
@@ -16,10 +16,28 @@ def get_image_type(obj: Image.Image):
     return f"image/{out.lower()}"
 
 
-def image_to_b64(obj: Image.Image, format=None):
+def _image_to_b64(obj: Image.Image, format=None):
     """Convert a PIL Image to a base64-encoded string."""
     if format is None:
         format = obj.format
     buffered = BytesIO()
     obj.save(buffered, format=format)
     return base64.b64encode(buffered.getvalue()).decode("utf-8")
+
+
+def get_type_and_b64(obj: Image.Image, *, allowed=None):
+    """Get the preferred file type and base64-encoded string for a PIL Image.
+
+    :param allowed: A list of allowed image types. If the image's preferred type is not in this list,
+        it will be converted to the first type in the list. If None, all types are allowed.
+    """
+    image_type = _get_image_type(obj)
+    if not allowed:
+        # No whitelist = allow all types
+        return image_type, _image_to_b64(obj)
+    if image_type not in allowed:
+        # then we have to convert
+        convert_to = allowed[0]
+        # obj = obj.convert("RGB")  # Convert to RGB if needed
+        return convert_to, _image_to_b64(obj, format=convert_to.removeprefix("image/"))
+    return image_type, _image_to_b64(obj)

@@ -11,7 +11,12 @@ from parallellm.types import (
     LLMIdentity,
     ServerTool,
 )
-from parallellm.utils.image import get_image_type, image_to_b64, is_image
+from parallellm.utils.image import (
+    _get_image_type,
+    _image_to_b64,
+    get_type_and_b64,
+    is_image,
+)
 
 if TYPE_CHECKING:
     from anthropic import Anthropic, AsyncAnthropic
@@ -92,6 +97,10 @@ def _fix_docs_for_anthropic(
                 formatted_docs.append(doc)
                 continue
         elif is_image(doc):
+            # https://platform.claude.com/docs/en/build-with-claude/vision
+            img_type, img_b64 = get_type_and_b64(
+                doc, allowed=["image/jpeg", "image/png", "image/gif", "image/webp"]
+            )
             formatted_docs.append(
                 {
                     "role": "user",
@@ -100,8 +109,8 @@ def _fix_docs_for_anthropic(
                             "type": "image",
                             "source": {
                                 "type": "base64",
-                                "media_type": get_image_type(doc),
-                                "data": image_to_b64(doc),
+                                "media_type": img_type,
+                                "data": img_b64,
                             },
                         },
                     ],

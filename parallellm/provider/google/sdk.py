@@ -23,7 +23,7 @@ from parallellm.types import (
 from google import genai
 from google.genai import types
 
-from parallellm.utils.image import get_image_type, image_to_b64, is_image
+from parallellm.utils.image import get_type_and_b64, is_image
 from parallellm.utils.manip import maybe_snake_to_camel
 
 
@@ -109,14 +109,25 @@ def _fix_docs_for_google(
             else:
                 raise ValueError(f"Invalid document dict format for Google: {doc}")
         elif is_image(doc):
+            # https://ai.google.dev/gemini-api/docs/image-understanding
+            img_type, img_b64 = get_type_and_b64(
+                doc,
+                allowed=[
+                    "image/png",
+                    "image/jpeg",
+                    "image/webp",
+                    "image/heic",
+                    "image/heif",
+                ],
+            )
             formatted_docs.append(
                 {
                     "role": "user",
                     "parts": [
                         {
                             "inline_data": {
-                                "mime_type": get_image_type(doc),
-                                "data": image_to_b64(doc),
+                                "mime_type": img_type,
+                                "data": img_b64,
                             }
                         }
                     ],

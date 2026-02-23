@@ -20,7 +20,7 @@ from parallellm.types import (
     ServerTool,
     FunctionCall,
 )
-from parallellm.utils.image import get_image_type, image_to_b64, is_image
+from parallellm.utils.image import get_type_and_b64, is_image
 
 if TYPE_CHECKING:
     from openai import OpenAI, AsyncOpenAI
@@ -84,13 +84,16 @@ class OpenAIProvider(BaseProvider):
                 }
                 formatted_docs.append(msg)
             elif is_image(doc):
+                img_type, img_b64 = get_type_and_b64(
+                    doc, allowed=["image/jpeg", "image/png", "image/gif", "image/webp"]
+                )
                 formatted_docs.append(
                     {
                         "role": "user",
                         "content": [
                             {
                                 "type": "input_image",
-                                "image_url": f"data:{get_image_type(doc)};base64,{image_to_b64(doc)}",
+                                "image_url": f"data:{img_type};base64,{img_b64}",
                             },
                         ],
                     }
@@ -105,7 +108,7 @@ class OpenAIProvider(BaseProvider):
     ):
         """Translate ServerTool into OpenAI API format"""
         if tools is None:
-            return None
+            return []
         openai_tools = []
         for tool in tools:
             if isinstance(tool, ServerTool):
