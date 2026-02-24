@@ -202,7 +202,7 @@ class MessageState(UserList[Union[LLMDocument, LLMResponse]], Askable):
         *,
         if_func_not_exist: Union[str, Exception] = ValueError,
         **kwargs,
-    ):
+    ) -> None:
         """
         If the agent requested any function calls, then this
 

@@ -2,6 +2,7 @@ from logging import Logger
 from typing import List, Literal, Optional, Union
 from parallellm.core.agent.agent import AgentContext
 from parallellm.core.backend import BaseBackend
+from parallellm.core.batch_namespace import BatchNamespace
 from parallellm.core.msg.state import MessageState
 from parallellm.core.hydrate import hydrate_llm_response, hydrate_msg_state
 from parallellm.logging.dashlog_context import DashboardLoggerContext
@@ -41,6 +42,7 @@ class AgentOrchestrator:
         self._fm = file_manager
         self._provider = provider
         self._logger = logger
+        self._batch = BatchNamespace(self)
 
         # dashlog's display is disabled by default
         self._dashlog: DashboardLogger = dashlog
@@ -156,3 +158,8 @@ class AgentOrchestrator:
         Context manager for activating a dashlog only for a specific block of code.
         """
         return DashboardLoggerContext(self._dashlog, keep_when_done=keep_when_done)
+
+    @property
+    def batch(self) -> BatchNamespace:
+        """Namespace for batch operations."""
+        return self._batch
