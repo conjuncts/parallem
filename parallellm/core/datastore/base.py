@@ -11,9 +11,6 @@ from parallellm.types import (
     ParsedResponse,
 )
 
-if TYPE_CHECKING:
-    from parallellm.core.state.msg_state import MessageState
-
 
 class Datastore(ABC):
     """

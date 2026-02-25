@@ -424,6 +424,9 @@ class BatchOpenAIProvider(BatchProvider, OpenAIProvider):
 
         return batch_obj.id
 
+    def decode_batch_content(self, content: str) -> List[BatchResult]:
+        raise NotImplementedError()  # TODO
+
     def download_batch(
         self,
         batch_uuid: str,

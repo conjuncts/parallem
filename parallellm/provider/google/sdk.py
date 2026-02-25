@@ -16,6 +16,7 @@ from parallellm.types import (
     FunctionCallRequest,
     LLMDocument,
     LLMIdentity,
+    ParsedError,
     ParsedResponse,
     ServerTool,
 )
@@ -493,6 +494,7 @@ class BatchGoogleProvider(BatchProvider, GoogleProvider):
             response_id=response_id,
             custom_id=custom_id,
             metadata=error_info,
+            error_code=1,  # TODO: figure out exact format of gemini
         )
 
     def get_batch_custom_ids(self, stuff):
@@ -536,6 +538,82 @@ class BatchGoogleProvider(BatchProvider, GoogleProvider):
 
         # TODO: consider: a try/finally block option to clean up the temp files?
 
+    def decode_batch_content(
+        self,
+        content: str,
+    ) -> List[BatchResult]:
+        """Decode content_str into dictionaries, with some error handling"""
+        parsed_responses = []
+        parsed_errors = []
+        not_ok_i = []
+        for line_i, line in enumerate(content.strip().split("\n")):
+            if line:
+                try:
+                    line_data = json.loads(line)
+                    custom_id = line_data.get("key", "unknown")
+
+                    if "response" in line_data:
+                        parsed_responses.append(
+                            self._decode_gemini_batch_result(line_data, custom_id)
+                        )
+                    else:
+                        parsed_errors.append(
+                            self._decode_gemini_batch_error(line_data, custom_id)
+                        )
+                        not_ok_i.append(line_i)
+
+                except json.JSONDecodeError as e:
+                    # TODO: Handle malformed JSON lines
+                    parsed_errors.append(
+                        ParsedError(
+                            text=f"JSON decode error: {str(e)}",
+                            response_id=None,
+                            custom_id="unknown",
+                            metadata={},
+                            error_code=1,
+                        )
+                    )
+                    not_ok_i.append(line_i)
+
+        if not parsed_errors:
+            # Perfect result
+            return [
+                BatchResult(
+                    status="ready",
+                    raw_output=content,
+                    parsed_responses=parsed_responses,
+                )
+            ]
+        elif not parsed_responses:
+            return [
+                BatchResult(
+                    status="error",
+                    raw_output=content,
+                    parsed_responses=parsed_errors,
+                )
+            ]
+        else:
+            ok_str = ""
+            err_str = ""
+            for i, line in enumerate(content.strip().split("\n")):
+                if i in not_ok_i:
+                    err_str += line + "\n"
+                else:
+                    ok_str += line + "\n"
+
+            return [
+                BatchResult(
+                    status="ready",
+                    raw_output=ok_str,
+                    parsed_responses=parsed_responses,
+                ),
+                BatchResult(
+                    status="error",
+                    raw_output=err_str,
+                    parsed_responses=parsed_errors,
+                ),
+            ]
+
     def download_batch(
         self,
         batch_uuid: str,
@@ -573,34 +651,7 @@ class BatchGoogleProvider(BatchProvider, GoogleProvider):
                     )
                     content_str = file_content.decode("utf-8")
 
-                    parsed_responses = []
-                    for line in content_str.strip().split("\n"):
-                        if line:
-                            try:
-                                line_data = json.loads(line)
-                                custom_id = line_data.get("key", "unknown")
-
-                                if "response" in line_data:
-                                    parsed_response = self._decode_gemini_batch_result(
-                                        line_data, custom_id
-                                    )
-                                else:
-                                    parsed_response = self._decode_gemini_batch_error(
-                                        line_data, custom_id
-                                    )
-
-                                parsed_responses.append(parsed_response)
-                            except json.JSONDecodeError:
-                                # Handle malformed JSON lines
-                                continue
-
-                    results.append(
-                        BatchResult(
-                            status="ready",
-                            raw_output=content_str,
-                            parsed_responses=parsed_responses,
-                        )
-                    )
+                    results.extend(self.decode_batch_content(content_str))
                 except Exception as e:
                     results.append(
                         BatchResult(

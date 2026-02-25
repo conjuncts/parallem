@@ -3,17 +3,12 @@ from typing import TYPE_CHECKING, Any, List, Optional, Union
 from pydantic import BaseModel
 
 from parallellm.types import (
-    BatchIdentifier,
     BatchResult,
-    CallIdentifier,
     CommonQueryParameters,
     LLMIdentity,
     ProviderType,
     ParsedResponse,
 )
-
-if TYPE_CHECKING:
-    from parallellm.file_io.file_manager import FileManager
 
 
 class BaseProvider:
@@ -98,4 +93,8 @@ class BatchProvider(BaseProvider):
         Empty list = still pending.
         - batch_status is one of "pending", "ready", or "error".
         """
+        raise NotImplementedError
+
+    def decode_batch_content(self, content: str) -> List[BatchResult]:
+        """Decode raw batch content from the provider into a list of BatchResults."""
         raise NotImplementedError

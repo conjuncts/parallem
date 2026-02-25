@@ -643,7 +643,7 @@ class SQLiteDatastore(Datastore):
                     call_id["session_id"],
                     call_id["doc_hash"],
                     err.msg,
-                    err.err_code,
+                    err.error_code,
                     err.error_id,
                 ),
             )

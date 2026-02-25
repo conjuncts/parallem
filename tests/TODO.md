@@ -17,3 +17,5 @@ msg_state.ask_functions()
 - [ ] mcp server
 
 - [ ] error example: image/ppm type
+- [ ] batch API but where a response has an error (in other words, test _decode_gemini_batch_error)
+- [ ] decode_batch_content (this should be easily testable using real data)
