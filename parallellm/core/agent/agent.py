@@ -3,7 +3,7 @@ from parallellm.core.ask import Askable
 from parallellm.core.cast.fix_docs import cast_documents, reduce_to_list
 from parallellm.core.exception import NotAvailable
 from parallellm.core.hash import compute_hash
-from parallellm.core.msg.state import MessageState
+from parallellm.core.state.msg_state import MessageState
 from parallellm.core.response import (
     ReadyLLMResponse,
 )

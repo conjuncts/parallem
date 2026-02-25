@@ -8,7 +8,6 @@ from parallellm.types import (
 )
 
 if TYPE_CHECKING:
-    from parallellm.core.msg.state import MessageState
     from parallellm.core.datastore.base import Datastore
 
 

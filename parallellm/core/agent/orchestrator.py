@@ -3,8 +3,9 @@ from typing import List, Literal, Optional, Union
 from parallellm.core.agent.agent import AgentContext
 from parallellm.core.backend import BaseBackend
 from parallellm.core.batch_namespace import BatchNamespace
-from parallellm.core.msg.state import MessageState
+from parallellm.core.state.msg_state import MessageState
 from parallellm.core.hydrate import hydrate_llm_response, hydrate_msg_state
+from parallellm.core.state.non_msg_state import NonMessageState
 from parallellm.logging.dashlog_context import DashboardLoggerContext
 from parallellm.provider.base import BaseProvider
 from parallellm.file_io.file_manager import FileManager
@@ -43,6 +44,7 @@ class AgentOrchestrator:
         self._provider = provider
         self._logger = logger
         self._batch = BatchNamespace(self)
+        self._userdata = NonMessageState(self._fm, self._backend)
 
         # dashlog's display is disabled by default
         self._dashlog: DashboardLogger = dashlog
@@ -100,22 +102,9 @@ class AgentOrchestrator:
         """
         self._fm.save_agent_msg_state(agent.agent_name, msg_state)
 
-    def save_userdata(self, key, value):
-        """
-        The intended way to let data persist across runs
-        """
-        return self._fm.save_userdata(key, value)
-
-    def load_userdata(self, key):
-        """
-        The intended way to let data persist across runs
-        """
-        data = self._fm.load_userdata(key)
-
-        # If the loaded data is an LLMResponse, inject the backend and hydrate
-        data = hydrate_llm_response(data, self._backend)
-
-        return data
+    @property
+    def userdata(self):
+        return self._userdata
 
     def persist(self):
         """

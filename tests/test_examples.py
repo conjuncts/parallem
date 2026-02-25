@@ -8,7 +8,6 @@ For more comprehensive examples testing real ParalleLLM functionality:
 - test_tournament_examples.py: Tests tournament logic, persistence, and caching
 """
 
-import shutil
 import tempfile
 import pytest
 from parallellm.core.gateway import resume_directory
@@ -19,20 +18,18 @@ from parallellm.testing.simple_mock import (
 
 
 @pytest.fixture
-def temp_orch():
+def temp_orch(tmp_path):
     """Pytest fixture that provides a temporary ParalleLLM instance"""
-    shutil.rmtree(".pllm/test/sync", ignore_errors=True)
-    orch = resume_directory(".pllm/test/sync", provider="openai", strategy="sync")
+    orch_dir = tmp_path / "sync"
+    orch = resume_directory(str(orch_dir), provider="openai", strategy="sync")
     yield orch
 
 
 @pytest.fixture
-def concurrent_temp_orch():
+def concurrent_temp_orch(tmp_path):
     """Pytest fixture that provides a temporary concurrent ParalleLLM instance"""
-    shutil.rmtree(".pllm/test/concurrent", ignore_errors=True)
-    orch = resume_directory(
-        ".pllm/test/concurrent", provider="openai", strategy="concurrent"
-    )
+    orch_dir = tmp_path / "concurrent"
+    orch = resume_directory(str(orch_dir), provider="openai", strategy="concurrent")
     yield orch
 
 

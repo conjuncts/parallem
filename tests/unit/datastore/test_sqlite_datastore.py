@@ -180,7 +180,7 @@ class TestSQLiteBatch:
 
         # Get all pending batch UUIDs
         pending_uuids = temp_datastore.get_all_pending_batch_uuids()
-        assert batch_identifier.batch_uuid in pending_uuids
+        assert (batch_identifier.batch_uuid, "openai") in pending_uuids
 
         # Clear batch pending
         temp_datastore.clear_batch_pending(batch_identifier.batch_uuid)

@@ -295,9 +295,9 @@ class TestAgentOrchestratorIntegration:
 
             # Test save/load through orchestrator
             test_data = {"key": "value", "number": 42}
-            orchestrator.save_userdata("test_data", test_data)
+            orchestrator.userdata["test_data"] = test_data
 
-            loaded_data = orchestrator.load_userdata("test_data")
+            loaded_data = orchestrator.userdata["test_data"]
             assert loaded_data == test_data
 
     def test_userdata_llm_responses(self, generic_call_id):
@@ -330,12 +330,12 @@ class TestAgentOrchestratorIntegration:
             )
 
             # Save responses
-            orchestrator.save_userdata("pending", pending_response)
-            orchestrator.save_userdata("ready", ready_response)
+            orchestrator.userdata["pending"] = pending_response
+            orchestrator.userdata["ready"] = ready_response
 
             # Load and verify backend injection
-            loaded_pending = orchestrator.load_userdata("pending")
-            loaded_ready = orchestrator.load_userdata("ready")
+            loaded_pending = orchestrator.userdata["pending"]
+            loaded_ready = orchestrator.userdata["ready"]
 
             assert isinstance(loaded_pending, PendingLLMResponse)
             assert loaded_pending._backend == backend

@@ -8,7 +8,7 @@ import hashlib
 from pathlib import Path
 from typing import Optional
 
-from parallellm.core.msg.state import MessageState
+from parallellm.core.state.msg_state import MessageState
 from parallellm.types import WorkingMetadata
 
 
