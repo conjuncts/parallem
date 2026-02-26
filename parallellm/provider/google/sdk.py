@@ -24,6 +24,7 @@ from parallellm.types import (
 from google import genai
 from google.genai import types
 
+from parallellm.utils._batch_helper import _split_batch_response
 from parallellm.utils.image import get_type_and_b64, is_image
 from parallellm.utils.manip import maybe_snake_to_camel
 
@@ -575,44 +576,12 @@ class BatchGoogleProvider(BatchProvider, GoogleProvider):
                     )
                     not_ok_i.append(line_i)
 
-        if not parsed_errors:
-            # Perfect result
-            return [
-                BatchResult(
-                    status="ready",
-                    raw_output=content,
-                    parsed_responses=parsed_responses,
-                )
-            ]
-        elif not parsed_responses:
-            return [
-                BatchResult(
-                    status="error",
-                    raw_output=content,
-                    parsed_responses=parsed_errors,
-                )
-            ]
-        else:
-            ok_str = ""
-            err_str = ""
-            for i, line in enumerate(content.strip().split("\n")):
-                if i in not_ok_i:
-                    err_str += line + "\n"
-                else:
-                    ok_str += line + "\n"
-
-            return [
-                BatchResult(
-                    status="ready",
-                    raw_output=ok_str,
-                    parsed_responses=parsed_responses,
-                ),
-                BatchResult(
-                    status="error",
-                    raw_output=err_str,
-                    parsed_responses=parsed_errors,
-                ),
-            ]
+        return _split_batch_response(
+            parsed_responses=parsed_responses,
+            parsed_errors=parsed_errors,
+            content=content,
+            not_ok_i=not_ok_i,
+        )
 
     def download_batch(
         self,

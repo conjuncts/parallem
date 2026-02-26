@@ -744,6 +744,10 @@ class SQLiteDatastore(Datastore):
             for i, parsed in enumerate(batch_result.parsed_responses):
                 custom_id = parsed.custom_id
                 # Look up the call_id using custom_id from active batch_pending
+
+                if parsed.error_code != 0:
+                    # TODO: This means there is an error. Should be stored separately.
+                    pass
                 cursor = conn.execute(
                     """
                     SELECT agent_name, seq_id, session_id, doc_hash, provider_type, tag

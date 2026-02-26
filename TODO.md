@@ -94,6 +94,7 @@ Read
 
 High priority:
 - [ ] batch bulk import/export
+    - not sure it's possible
 - [ ] df export to parquet
 - [ ] add `llm` as a top-level optoin
 - [ ] clienet as a way to delegate

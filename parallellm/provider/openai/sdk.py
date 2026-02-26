@@ -16,10 +16,12 @@ from parallellm.types import (
     FunctionCallOutput,
     LLMDocument,
     LLMIdentity,
+    ParsedError,
     ParsedResponse,
     ServerTool,
     FunctionCall,
 )
+from parallellm.utils._batch_helper import _split_batch_response
 from parallellm.utils.image import get_type_and_b64, is_image
 
 if TYPE_CHECKING:
@@ -425,7 +427,51 @@ class BatchOpenAIProvider(BatchProvider, OpenAIProvider):
         return batch_obj.id
 
     def decode_batch_content(self, content: str) -> List[BatchResult]:
-        raise NotImplementedError()  # TODO
+        """Decode content_str into dictionaries, with some error handling"""
+        parsed_responses = []
+        parsed_errors = []
+        not_ok_i = []
+        for line_i, line in enumerate(content.strip().split("\n")):
+            if not line:
+                continue
+            try:
+                line_data = json.loads(line)
+                custom_id = line_data.get("custom_id", "unknown")
+
+                # Check if it's a successful response (status_code 200) or an error
+                response = line_data.get("response", {})
+                status_code = response.get("status_code")
+                has_error = line_data.get("error") or (
+                    status_code and status_code != 200
+                )
+
+                if not has_error and status_code == 200:
+                    parsed_responses.append(self._decode_openai_batch_result(line_data))
+                else:
+                    decoded_err = self._decode_openai_batch_error(line_data)
+                    decoded_err.error_code = status_code
+                    parsed_errors.append(decoded_err)
+                    not_ok_i.append(line_i)
+
+            except json.JSONDecodeError as e:
+                # Handle malformed JSON lines
+                parsed_errors.append(
+                    ParsedError(
+                        text=f"JSON decode error: {str(e)}",
+                        response_id=None,
+                        custom_id="unknown",
+                        metadata={},
+                        error_code=1,
+                    )
+                )
+                not_ok_i.append(line_i)
+
+        return _split_batch_response(
+            parsed_responses=parsed_responses,
+            parsed_errors=parsed_errors,
+            content=content,
+            not_ok_i=not_ok_i,
+        )
 
     def download_batch(
         self,
@@ -451,24 +497,7 @@ class BatchOpenAIProvider(BatchProvider, OpenAIProvider):
 
         # Successful completion
         out_content = self.client.files.content(out_file_id).text
-        try:
-            parsed_results = [
-                self._decode_openai_batch_result(json.loads(line))
-                for line in out_content.strip().split("\n")
-                if line
-            ]
-            suc_res = BatchResult(
-                status="ready",
-                raw_output=out_content,
-                parsed_responses=parsed_results,
-            )
-        except json.JSONDecodeError:
-            suc_res = BatchResult(
-                status="error",
-                raw_output=out_content,
-                parsed_responses=None,
-            )
-        results.append(suc_res)
+        results.extend(self.decode_batch_content(out_content))
 
         # Errors
         if err_file_id is not None:

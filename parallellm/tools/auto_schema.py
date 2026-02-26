@@ -27,7 +27,7 @@ def to_tool_schema(funcs: Union[Callable, List[Callable]]) -> List[dict]:
     tool_schemas = []
 
     if not isinstance(funcs, (list, tuple)):
-        func = funcs
+        funcs = [funcs]
     for func in funcs:
         sig = inspect.signature(func)
         params = {
