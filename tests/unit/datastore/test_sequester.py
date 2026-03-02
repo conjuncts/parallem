@@ -5,7 +5,7 @@ import shutil
 import sqlite3
 from parallellm.core.datastore.sqlite import SQLiteDatastore
 from parallellm.core.sink.sequester import sequester_metadata
-from parallellm.file_io.file_manager import FileManager
+from parallellm.core.file_manager import FileManager
 
 
 @pytest.fixture

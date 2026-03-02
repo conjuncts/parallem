@@ -1,6 +1,6 @@
 import os
 from typing import TYPE_CHECKING, Optional
-from parallellm.file_io.file_manager import FileManager
+from parallellm.core.file_manager import FileManager
 from pathlib import Path
 
 import sqlite3

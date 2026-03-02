@@ -6,7 +6,7 @@ from typing import List, Literal, Optional, Union, TYPE_CHECKING
 from parallellm.core.backend import BaseBackend
 from parallellm.core.datastore.sqlite import SQLiteDatastore
 from parallellm.core.response import BatchLLMResponse
-from parallellm.file_io.file_manager import FileManager
+from parallellm.core.file_manager import FileManager
 from parallellm.logging.dash_logger import (
     DashboardLogger,
     HashStatus,

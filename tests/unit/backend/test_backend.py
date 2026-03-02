@@ -16,7 +16,7 @@ import asyncio
 from pathlib import Path
 from parallellm.core.backend.concurrent_backend import ConcurrentBackend
 from parallellm.core.backend.sync_backend import SyncBackend
-from parallellm.file_io.file_manager import FileManager
+from parallellm.core.file_manager import FileManager
 from parallellm.types import ParsedResponse, to_serial_id
 
 

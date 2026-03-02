@@ -8,7 +8,7 @@ from parallellm.core.hydrate import hydrate_llm_response, hydrate_msg_state
 from parallellm.core.state.non_msg_state import NonMessageState
 from parallellm.logging.dashlog_context import DashboardLoggerContext
 from parallellm.provider.base import BaseProvider
-from parallellm.file_io.file_manager import FileManager
+from parallellm.core.file_manager import FileManager
 from parallellm.logging.dash_logger import DashboardLogger
 from parallellm.types import AskParameters, LLMResponse
 

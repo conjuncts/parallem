@@ -16,7 +16,7 @@ import json
 import pickle
 from pathlib import Path
 from unittest.mock import Mock, patch
-from parallellm.file_io.file_manager import FileManager
+from parallellm.core.file_manager import FileManager
 from parallellm.core.agent.orchestrator import AgentOrchestrator
 from parallellm.core.response import ReadyLLMResponse, PendingLLMResponse
 from parallellm.testing.simple_backend import MockBackend

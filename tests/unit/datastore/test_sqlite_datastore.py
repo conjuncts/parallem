@@ -10,7 +10,7 @@ from pathlib import Path
 from unittest.mock import patch, MagicMock
 
 from parallellm.core.datastore.sqlite import SQLiteDatastore
-from parallellm.file_io.file_manager import FileManager
+from parallellm.core.file_manager import FileManager
 from parallellm.types import (
     CallIdentifier,
     ParsedResponse,

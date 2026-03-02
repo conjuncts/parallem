@@ -14,7 +14,7 @@ from parallellm.core.datastore.sql_migrate import (
 from parallellm.core.state.msg_state import MessageState
 from parallellm.core.sink.sequester import sequester_metadata
 from parallellm.core.sink.to_parquet import ParquetUniqueWriter, ParquetWriter
-from parallellm.file_io.file_manager import FileManager
+from parallellm.core.file_manager import FileManager
 from parallellm.types import (
     BatchIdentifier,
     BatchResult,

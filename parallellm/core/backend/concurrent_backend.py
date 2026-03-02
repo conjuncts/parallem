@@ -8,7 +8,7 @@ from parallellm.core.throttler import Throttler
 from parallellm.core.calls import _call_matches
 from parallellm.core.datastore.sqlite import SQLiteDatastore
 from parallellm.core.response import PendingLLMResponse
-from parallellm.file_io.file_manager import FileManager
+from parallellm.core.file_manager import FileManager
 from parallellm.logging.dash_logger import (
     DashboardLogger,
     HashStatus,

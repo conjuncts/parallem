@@ -6,7 +6,7 @@ from parallellm.core.hydrate import hydrate_llm_response
 
 if TYPE_CHECKING:
     from parallellm.core.backend import BaseBackend
-    from parallellm.file_io.file_manager import FileManager
+    from parallellm.core.file_manager import FileManager
 
 
 class NonMessageState:

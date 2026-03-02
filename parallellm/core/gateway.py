@@ -2,7 +2,7 @@ import logging
 from typing import Literal, Optional
 
 from parallellm.core.agent.orchestrator import AgentOrchestrator
-from parallellm.file_io.file_manager import FileManager
+from parallellm.core.file_manager import FileManager
 from parallellm.logging.dash_logger import DashboardLogger
 from parallellm.logging.fancy import get_parallellm_log_handler
 from parallellm.provider.openai.sdk import BatchOpenAIProvider

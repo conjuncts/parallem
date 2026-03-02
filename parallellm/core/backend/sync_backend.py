@@ -4,7 +4,7 @@ from parallellm.core.backend import BaseBackend
 from parallellm.core.throttler import Throttler
 from parallellm.core.datastore.sqlite import SQLiteDatastore
 from parallellm.core.response import ReadyLLMResponse
-from parallellm.file_io.file_manager import FileManager
+from parallellm.core.file_manager import FileManager
 from parallellm.logging.dash_logger import (
     DashboardLogger,
     HashStatus,
