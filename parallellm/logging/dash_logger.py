@@ -175,7 +175,7 @@ class DashboardLogger:
             # do not show it if we are turning it on, until the next update_hash call
             if self._console_written:
                 if clear_console:
-                    sys.stdout.write(f"\r\033[K")
+                    sys.stdout.write("\r\033[K")
                     sys.stdout.flush()
                 self._console_written = False
 
@@ -185,7 +185,7 @@ class DashboardLogger:
             self._hashes.clear()
             if self._console_written:
                 if clear_console:
-                    sys.stdout.write(f"\r\033[K")
+                    sys.stdout.write("\r\033[K")
                     sys.stdout.flush()
                 self._console_written = False
 
@@ -201,7 +201,7 @@ class DashboardLogger:
         with self._lock:
             # Clear the current dashboard line if it exists
             if self._console_written:
-                sys.stdout.write(f"\r\033[K")
+                sys.stdout.write("\r\033[K")
                 sys.stdout.flush()
 
             # Print the user's content

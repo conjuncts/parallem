@@ -124,7 +124,7 @@ def _remove_unique_constraint(
             if index_row[0] and "UNIQUE" not in index_row[0]:
                 # Recreate non-unique indexes
                 conn.execute(
-                    index_row[0].replace(f"CREATE INDEX", "CREATE INDEX IF NOT EXISTS")
+                    index_row[0].replace("CREATE INDEX", "CREATE INDEX IF NOT EXISTS")
                 )
 
         conn.execute("COMMIT")
@@ -133,7 +133,7 @@ def _remove_unique_constraint(
         # Rollback on error
         try:
             conn.execute("ROLLBACK")
-        except:
+        except sqlite3.Error:
             pass
         raise RuntimeError(f"Failed to remove UNIQUE constraint from {table_name}: {e}")
 
@@ -218,7 +218,7 @@ def _drop_column(conn: sqlite3.Connection, table_name: str, column: str) -> None
             if index_row[0] and column not in index_row[0]:
                 # Only recreate indexes that don't reference the dropped column
                 conn.execute(
-                    index_row[0].replace(f"CREATE INDEX", "CREATE INDEX IF NOT EXISTS")
+                    index_row[0].replace("CREATE INDEX", "CREATE INDEX IF NOT EXISTS")
                 )
 
         conn.execute("COMMIT")
@@ -227,7 +227,7 @@ def _drop_column(conn: sqlite3.Connection, table_name: str, column: str) -> None
         # Rollback on error
         try:
             conn.execute("ROLLBACK")
-        except:
+        except sqlite3.Error:
             pass
         raise RuntimeError(f"Failed to drop column {column} from {table_name}: {e}")
 
@@ -261,7 +261,7 @@ def migrate_all_databases_in_directory(root_dir: str) -> None:
                 print(f"  ✓ Successfully migrated {db_path}")
                 migrated_count += 1
             else:
-                print(f"  ✗ Failed to migrate {db_path}: {e}")
+                print(f"  ✗ Failed to migrate {db_path}")
                 failed_count += 1
         except Exception as e:
             print(f"  ✗ Failed to migrate {db_path}: {e}")

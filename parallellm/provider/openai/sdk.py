@@ -30,7 +30,6 @@ if TYPE_CHECKING:
     from openai.types.responses.response import Response
 
 
-
 class OpenAIProvider(BaseProvider):
     provider_type: str = "openai"
 
@@ -435,7 +434,7 @@ class BatchOpenAIProvider(BatchProvider, OpenAIProvider):
                 continue
             try:
                 line_data = json.loads(line)
-                custom_id = line_data.get("custom_id", "unknown")
+                # custom_id = line_data.get("custom_id", "unknown")
 
                 # Check if it's a successful response (status_code 200) or an error
                 response = line_data.get("response", {})

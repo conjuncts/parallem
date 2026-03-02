@@ -136,7 +136,7 @@ def test_complex_userdata_workflow(temp_integration_dir):
             schema = agent2.ask_llm("Design database schema")
             orch.userdata["technical/database_schema"] = schema.resolve()
 
-        with orch.agent("3") as agent3:
+        with orch.agent("3") as agent3:  # noqa: F841
             db_schema = orch.userdata["technical/database_schema"]
             assert db_schema == "Database schema v2.1"
 

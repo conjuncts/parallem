@@ -24,9 +24,8 @@ from PIL import Image
 pytest.skip("Not very informative", allow_module_level=True)
 
 
-_fix_docs_for_openai = lambda *args, **kwargs: SyncOpenAIProvider._fix_docs_for_openai(
-    None, *args, **kwargs
-)
+def _fix_docs_for_openai(*args, **kwargs):
+    return SyncOpenAIProvider._fix_docs_for_openai(None, *args, **kwargs)
 
 
 class TestDocumentFixing:

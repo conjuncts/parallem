@@ -23,7 +23,7 @@ with plm.resume_directory(
 
         teams = [x for x in resp.resolve().split("```")[1].split("\n")[1:] if x]
 
-        agt.print(f"===Candidates===")
+        agt.print("===Candidates===")
         agt.print(teams)
 
         while len(teams) > 1:
@@ -32,7 +32,7 @@ with plm.resume_directory(
             for i in range(0, len(teams), 2):
                 if i + 1 < len(teams):
                     resp = agt.ask_llm(
-                        f"Given two enzymes, choose the one you like more. Only respond with the name of the enzyme.",
+                        "Given two enzymes, choose the one you like more. Only respond with the name of the enzyme.",
                         teams[i],
                         teams[i + 1],
                     )

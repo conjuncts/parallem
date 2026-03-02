@@ -140,8 +140,8 @@ class MessageState(UserList[Union[LLMDocument, LLMResponse]], Askable):
         save_input: Optional[bool] = None,
         **kwargs,
     ) -> LLMResponse:
-        f"""
-        Ask the LLM a question. By asking a question directly on the MessageState, 
+        """
+        Ask the LLM a question. By asking a question directly on the MessageState,
         new documents and the response
         automatically gets appended to the conversation.
 
@@ -158,7 +158,7 @@ class MessageState(UserList[Union[LLMDocument, LLMResponse]], Askable):
             For Google: sets response_mime_type and response_schema.
             For Anthropic: not supported.
         :param tools: A list of tools to make available to the LLM.
-            Both user-defined tools (function tools) and server-defined tools 
+            Both user-defined tools (function tools) and server-defined tools
             (ie. web search, code interpreter) are supported.
         :param tag: An optional tag to associate with the request.
         :param save_input: Whether to save input documents. Default None: no saving.
@@ -230,7 +230,7 @@ class MessageState(UserList[Union[LLMDocument, LLMResponse]], Askable):
                 callme = functions.get(fc.name)
                 if callme is None:
                     # Function not found
-                    if if_func_not_exist == ValueError:
+                    if if_func_not_exist is ValueError:
                         raise ValueError(
                             f"LLM asked for {fc.name}, but it was not provided."
                         )

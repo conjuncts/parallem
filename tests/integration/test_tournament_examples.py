@@ -128,7 +128,7 @@ Chymotrypsin
             for i in range(0, len(teams), 2):
                 if i + 1 < len(teams):
                     resp = d.ask_llm(
-                        f"Given two enzymes, choose the one you like more. Only respond with the name of the enzyme.",
+                        "Given two enzymes, choose the one you like more. Only respond with the name of the enzyme.",
                         teams[i],
                         teams[i + 1],
                     )
