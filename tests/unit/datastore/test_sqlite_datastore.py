@@ -4,10 +4,9 @@ Tests for SQLiteDatastore
 
 import pytest
 import tempfile
-import json
 import sqlite3
 from pathlib import Path
-from unittest.mock import patch, MagicMock
+from unittest.mock import patch
 
 from parallellm.core.datastore.sqlite import SQLiteDatastore
 from parallellm.core.file_manager import FileManager
@@ -390,7 +389,6 @@ class TestSQLiteExtras:
     def test_threading_isolation(self, temp_datastore):
         """Test that connections are isolated per thread"""
         import threading
-        import time
 
         results = {}
 

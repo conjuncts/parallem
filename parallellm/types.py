@@ -1,7 +1,6 @@
 from abc import ABC
 from dataclasses import dataclass
 from typing import (
-    TYPE_CHECKING,
     List,
     Literal,
     TypedDict,

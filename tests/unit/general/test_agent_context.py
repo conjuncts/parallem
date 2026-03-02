@@ -9,11 +9,11 @@ Tests the core agent functionality including:
 """
 
 import pytest
-from unittest.mock import Mock, MagicMock, patch
+from unittest.mock import patch
 from parallellm.core.agent.agent import AgentContext
 from parallellm.core.exception import NotAvailable
 from parallellm.core.response import ReadyLLMResponse, PendingLLMResponse
-from parallellm.types import CallIdentifier, ParsedResponse
+from parallellm.types import ParsedResponse
 
 
 class TestAgentContextBasics:

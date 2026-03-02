@@ -1,6 +1,6 @@
 import json
 from pathlib import Path
-from typing import TYPE_CHECKING, List, Optional, Union
+from typing import TYPE_CHECKING, List, Union
 from pydantic import BaseModel
 from parallellm.provider.base import (
     ConcurrentProvider,
@@ -29,7 +29,6 @@ if TYPE_CHECKING:
     from openai.types.responses.response_input_param import Message
     from openai.types.responses.response import Response
 
-from openai.types.responses.response_function_tool_call import ResponseFunctionToolCall
 
 
 class OpenAIProvider(BaseProvider):

@@ -1,8 +1,7 @@
-from typing import Literal, Union
+from typing import Union
 from parallellm.types import (
     DocumentType,
     LLMDocument,
-    FunctionCall,
     FunctionCallOutput,
     FunctionCallRequest,
     LLMResponse,

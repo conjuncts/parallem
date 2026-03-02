@@ -1,7 +1,7 @@
 """Simple testing utilities for mocking OpenAI calls"""
 
 from dataclasses import asdict
-from typing import List, Union, Optional, Dict, Any
+from typing import List, Union, Optional, Dict
 from unittest.mock import Mock
 import asyncio
 import re

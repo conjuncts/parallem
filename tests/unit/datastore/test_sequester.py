@@ -2,9 +2,7 @@ import pytest
 import polars as pl
 from pathlib import Path
 import shutil
-import sqlite3
 from parallellm.core.datastore.sqlite import SQLiteDatastore
-from parallellm.core.sink.sequester import sequester_metadata
 from parallellm.core.file_manager import FileManager
 
 

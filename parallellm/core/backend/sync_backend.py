@@ -1,5 +1,5 @@
 import time
-from typing import Optional, List, Dict, Any, TYPE_CHECKING
+from typing import Optional, TYPE_CHECKING
 from parallellm.core.backend import BaseBackend
 from parallellm.core.throttler import Throttler
 from parallellm.core.datastore.sqlite import SQLiteDatastore

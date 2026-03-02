@@ -1,5 +1,4 @@
 import time
-import pytest
 import threading
 from parallellm.core.throttler import Throttler
 

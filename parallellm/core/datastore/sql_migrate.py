@@ -1,16 +1,7 @@
-import os
 from typing import TYPE_CHECKING, Optional
-from parallellm.core.file_manager import FileManager
 from pathlib import Path
 
 import sqlite3
-
-try:
-    import polars as pl
-
-    HAS_POLARS = True
-except ImportError:
-    HAS_POLARS = False
 
 if TYPE_CHECKING:
     from parallellm.core.datastore.sqlite import SQLiteDatastore

@@ -9,7 +9,7 @@ Tests the core hashing and caching functionality including:
 """
 
 import pytest
-from unittest.mock import Mock, patch
+from unittest.mock import patch
 import hashlib
 from PIL import Image
 from parallellm.core.hash import compute_hash

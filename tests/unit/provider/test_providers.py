@@ -10,17 +10,13 @@ Tests the OpenAI provider functionality including:
 """
 
 import pytest
-from unittest.mock import Mock, AsyncMock, patch
-import asyncio
-from typing import Callable, Any, Tuple, Dict
 from parallellm.provider.openai.sdk import (
     SyncOpenAIProvider,
     ConcurrentOpenAIProvider,
 )
-from parallellm.core.backend.sync_backend import SyncBackend
 from parallellm.testing.simple_backend import MockSyncBackend, MockConcurrentBackend
 from parallellm.core.response import PendingLLMResponse, ReadyLLMResponse
-from parallellm.types import CallIdentifier, LLMDocument, LLMIdentity, ParsedResponse
+from parallellm.types import LLMIdentity
 from parallellm.testing.simple_mock import MockOpenAIClient, MockConcurrentOpenAIClient
 from PIL import Image
 

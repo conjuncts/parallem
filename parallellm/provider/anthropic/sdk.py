@@ -1,4 +1,4 @@
-from typing import TYPE_CHECKING, List, Optional, Union
+from typing import TYPE_CHECKING, List, Union
 from pydantic import BaseModel
 from parallellm.provider.base import ConcurrentProvider, BaseProvider, SyncProvider
 from parallellm.types import (
@@ -12,8 +12,6 @@ from parallellm.types import (
     ServerTool,
 )
 from parallellm.utils.image import (
-    _get_image_type,
-    _image_to_b64,
     get_type_and_b64,
     is_image,
 )

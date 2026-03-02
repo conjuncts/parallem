@@ -11,20 +11,15 @@ Tests the userdata persistence functionality including:
 
 import pytest
 import tempfile
-import os
 import json
-import pickle
 from pathlib import Path
-from unittest.mock import Mock, patch
+from unittest.mock import Mock
 from parallellm.core.file_manager import FileManager
 from parallellm.core.agent.orchestrator import AgentOrchestrator
 from parallellm.core.response import ReadyLLMResponse, PendingLLMResponse
 from parallellm.testing.simple_backend import MockBackend
 from parallellm.types import (
     ParsedResponse,
-    WorkingMetadata,
-    AgentMetadata,
-    CallIdentifier,
 )
 
 

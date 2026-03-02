@@ -1,5 +1,5 @@
-from typing import TYPE_CHECKING, Optional
-from parallellm.core.calls import _call_to_concise_dict, _concise_dict_to_call
+from typing import TYPE_CHECKING
+from parallellm.core.calls import _call_to_concise_dict
 from parallellm.types import LLMResponse
 from parallellm.core.exception import NotAvailable
 from parallellm.types import (

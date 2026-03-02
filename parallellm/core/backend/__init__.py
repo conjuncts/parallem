@@ -1,9 +1,8 @@
-from typing import TYPE_CHECKING, List, Optional, Union
+from typing import TYPE_CHECKING, Optional
 from parallellm.provider.base import BaseProvider
 from parallellm.types import (
     CallIdentifier,
     CommonQueryParameters,
-    LLMDocument,
     ParsedResponse,
 )
 

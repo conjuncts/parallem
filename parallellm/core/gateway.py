@@ -1,5 +1,5 @@
 import logging
-from typing import Literal, Optional
+from typing import Literal
 
 from parallellm.core.agent.orchestrator import AgentOrchestrator
 from parallellm.core.file_manager import FileManager

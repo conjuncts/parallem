@@ -1,5 +1,5 @@
 from abc import ABC
-from typing import TYPE_CHECKING, List, Optional, Union
+from typing import List, Optional, Union
 
 from parallellm.types import (
     BatchIdentifier,

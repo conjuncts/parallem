@@ -9,7 +9,7 @@ Tests the LLM identity system including:
 """
 
 from parallellm.types import LLMIdentity
-from parallellm.utils.hardcoded import guess_provider, guess_provider_and_name
+from parallellm.utils.hardcoded import guess_provider_and_name
 
 
 def test_identity_with_guessed_provider():

@@ -2,7 +2,7 @@ import json
 import os
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import List, Literal, Optional, Union, TYPE_CHECKING
+from typing import List, Literal, Optional, Union
 from parallellm.core.backend import BaseBackend
 from parallellm.core.datastore.sqlite import SQLiteDatastore
 from parallellm.core.response import BatchLLMResponse

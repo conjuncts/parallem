@@ -7,11 +7,7 @@ These tests validate:
 3. Caching behavior on second runs
 """
 
-from pathlib import Path
 import pytest
-import shutil
-import tempfile
-import os
 from parallellm.core.gateway import resume_directory
 from parallellm.testing.simple_mock import mock_openai_calls
 

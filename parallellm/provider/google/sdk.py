@@ -1,6 +1,6 @@
 import json
 from pathlib import Path
-from typing import TYPE_CHECKING, List, Optional, Union
+from typing import List, Union
 from pydantic import BaseModel
 from parallellm.provider.base import (
     ConcurrentProvider,
@@ -593,7 +593,6 @@ class BatchGoogleProvider(BatchProvider, GoogleProvider):
         :return: List of BatchResult objects containing the results and errors (if any).
             If nothing is ready yet, empty list is returned.
         """
-        import json
 
         # Get batch job status
         batch_job = self.client.batches.get(name="batches/" + batch_uuid)

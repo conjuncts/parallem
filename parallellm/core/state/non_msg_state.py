@@ -1,4 +1,3 @@
-from collections import UserDict
 from typing import TYPE_CHECKING
 
 from parallellm.core.hydrate import hydrate_llm_response
