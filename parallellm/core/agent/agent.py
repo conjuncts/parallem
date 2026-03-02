@@ -35,13 +35,13 @@ class AgentContext(Askable):
     def __init__(
         self,
         agent_name: str,
-        batch_manager: "AgentOrchestrator",
+        orch: "AgentOrchestrator",
         *,
         ask_params: Optional[AskParameters] = None,
         ignore_cache: bool = False,
     ):
         self.agent_name = agent_name
-        self._bm = batch_manager
+        self._orch = orch
 
         self._anonymous_counter = 0
 
@@ -63,7 +63,7 @@ class AgentContext(Askable):
 
         if exc_type in (NotAvailable,):
             return True
-        if self._bm.strategy == "batch" and exc_type in (NotAvailable,):
+        if self._orch.strategy == "batch" and exc_type in (NotAvailable,):
             # swallow NotAvailable errors only in batch mode
             return True
         return False
@@ -73,7 +73,7 @@ class AgentContext(Askable):
         Print to console above the dashboard output.
         This ensures proper display ordering when the dashboard is active.
         """
-        self._bm._dashlog.print(*args, **kwargs)
+        self._orch._dashlog.print(*args, **kwargs)
 
     @property
     def my_metadata(self) -> dict:
@@ -82,7 +82,7 @@ class AgentContext(Askable):
         Backed by the AgentOrchestrator's FileManager.
         """
         key = self.agent_name if self.agent_name is not None else ""
-        return self._bm._fm.metadata["agents"].setdefault(
+        return self._orch._fm.metadata["agents"].setdefault(
             key,
             {},
         )
@@ -114,7 +114,7 @@ class AgentContext(Askable):
                 save_input = v
 
         if llm is None:
-            llm = self._bm._provider.get_default_llm_identity()
+            llm = self._orch._provider.get_default_llm_identity()
         elif isinstance(llm, str):
             llm = LLMIdentity(llm)
 
@@ -137,12 +137,12 @@ class AgentContext(Askable):
                     if llm is not None:
                         salt_terms.append(llm.identity)
                     else:
-                        salt_terms.append(self._bm._provider.provider_type)
+                        salt_terms.append(self._orch._provider.provider_type)
         hashed = compute_hash(instructions, resolved_docs + salt_terms)
 
         if save_input:
             msg_hashes = [compute_hash(None, [msg]) for msg in resolved_docs]
-            self._bm._backend._get_datastore().store_doc_hash(
+            self._orch._backend._get_datastore().store_doc_hash(
                 hashed,
                 instructions=instructions,
                 msgs=documents,
@@ -154,15 +154,15 @@ class AgentContext(Askable):
             "agent_name": self.agent_name,
             "doc_hash": hashed,
             "seq_id": seq_id,
-            "session_id": self._bm.get_session_counter(),
+            "session_id": self._orch.get_session_counter(),
             "meta": {
-                "provider_type": self._bm._provider.provider_type,
+                "provider_type": self._orch._provider.provider_type,
                 "tag": tag,
             },
         }
 
         # Cache using datastore
-        cached = None if self.ignore_cache else self._bm._backend.retrieve(call_id)
+        cached = None if self.ignore_cache else self._orch._backend.retrieve(call_id)
         if cached is not None:
             self.update_hash_status(hashed, HashStatus.CACHED)
 
@@ -175,10 +175,10 @@ class AgentContext(Askable):
                 pr=cached,
             )
 
-        if not self._bm._provider.is_compatible(llm.provider):
+        if not self._orch._provider.is_compatible(llm.provider):
             raise ValueError(
                 f"LLM {llm.identity} is not compatible"
-                + f" with provider {self._bm._provider.provider_type}"
+                + f" with provider {self._orch._provider.provider_type}"
             )
 
         params: CommonQueryParameters = {
@@ -189,8 +189,8 @@ class AgentContext(Askable):
             "tools": tools,
         }
 
-        return self._bm._backend.submit_query(
-            self._bm._provider,
+        return self._orch._backend.submit_query(
+            self._orch._provider,
             params,
             call_id=call_id,
             **kwargs,
@@ -208,13 +208,13 @@ class AgentContext(Askable):
         :returns: The current message state.
         """
         if self._msg_state is None:
-            self._msg_state = self._bm.get_msg_state(self)
+            self._msg_state = self._orch.get_msg_state(self)
             self._persist_msg_state = continuation
 
         return self._msg_state
 
     def _try_persist_msg_state(self, msg_state):
-        self._bm.save_msg_state(
+        self._orch.save_msg_state(
             self,
             msg_state,
         )
@@ -228,5 +228,5 @@ class AgentContext(Askable):
             status: New status - one of 'C' (cached), '↗' (sent), '↘' (received), '✓' (stored)
         """
         # only track if asked
-        if self._bm._dashlog.display:
-            self._bm._dashlog.update_hash(hash_value, status)
+        if self._orch._dashlog.display:
+            self._orch._dashlog.update_hash(hash_value, status)

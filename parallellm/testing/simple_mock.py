@@ -123,11 +123,11 @@ class MockConcurrentOpenAIClient(MockOpenAIClient):
 
 
 def mock_openai_calls(
-    batch_manager: AgentOrchestrator,
+    orch: AgentOrchestrator,
     responses: Optional[List[Union[str, MockResponse]]] = None,
 ) -> Union[MockOpenAIClient, MockConcurrentOpenAIClient]:
     """Replace OpenAI client in BatchManager with mock"""
-    provider = batch_manager._provider
+    provider = orch._provider
 
     from parallellm.provider.openai.sdk import ConcurrentOpenAIProvider
 
