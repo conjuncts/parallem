@@ -138,7 +138,9 @@ class OpenAIProvider(BaseProvider):
     def get_default_llm_identity(self) -> LLMIdentity:
         return LLMIdentity("gpt-5-nano", provider_type=self.provider_type)
 
-    def parse_response(self, raw_response: Union["BaseModel", dict]) -> ParsedResponse:
+    def parse_response(
+        self, raw_response: Union["BaseModel", dict], provider_type: str = None
+    ) -> ParsedResponse:
         """Parse OpenAI API response into common format"""
         if isinstance(raw_response, dict):
             # Dict response (e.g., from batch API)
