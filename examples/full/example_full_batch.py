@@ -33,31 +33,29 @@ tools = [
 
 with plm.resume_directory(
     ".pllm/example/batch",
-    provider="google",
+    provider="openai",
     strategy="batch",
     log_level=logging.DEBUG,
     dashboard=True,
+    hash_by=["llm"],
     # ignore_cache=True,
 ) as orch:
     with orch.agent() as agt:
-        resp1 = agt.ask_llm("Please name a power of 3.", hash_by=["llm"])
+        resp1 = agt.ask_llm("Please name a power of 3.")
         resp2 = agt.ask_llm(
             "In 1 sentence, what is AAPL's current price?",
             # llm="claude-haiku-4-5-20251001",
             tools=[plm.tools.WebSearchTool()],
-            hash_by=["llm"],
         )
         resp3 = agt.ask_llm(
             "How many files are in ~/examples? Give the final answer in words.",
-            hash_by=["llm"],
             tools=tools,
         )
-        resp4 = agt.ask_llm(
-            "What is the capital of France?", hash_by=["llm"], text_format=MyModel
-        )
+        resp4 = agt.ask_llm("What is the capital of France?", text_format=MyModel)
 
         img = Image.open("tests/data/images/Nokota_Horses_cropped.jpg")
-        resp5 = agt.ask_llm("What animal is this?", img, hash_by=["llm"])
+        img.thumbnail((100, 100))  # Downsample
+        resp5 = agt.ask_llm("What animal is this?", img)
 
         for resp in [resp1, resp2, resp3, resp4, resp5]:
             if fcs := resp.resolve_function_calls():

@@ -35,6 +35,7 @@ with plm.resume_directory(
     strategy="sync",
     log_level=logging.DEBUG,
     dashboard=True,
+    hash_by=["llm"],
     # ignore_cache=True,
 ) as orch:
     with orch.agent() as agt:
@@ -42,7 +43,6 @@ with plm.resume_directory(
         msgs = ["How many files are in '~/examples'? Give the final answer in words."]
         resp = agt.ask_llm(
             msgs,
-            hash_by=["llm"],
             tools=tools,
         )
 
@@ -63,5 +63,5 @@ with plm.resume_directory(
             call_id=tool_calls[0].call_id,
         )
 
-        resp = agt.ask_llm(msgs + [computed_tool_output], hash_by=["llm"])
+        resp = agt.ask_llm(msgs + [computed_tool_output])
         agt.print(resp.resolve())

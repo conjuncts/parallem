@@ -40,6 +40,7 @@ with plm.resume_directory(
     strategy="sync",
     log_level=logging.DEBUG,
     dashboard=True,
+    hash_by=["llm"],
     # ignore_cache=True,
 ) as orch:
     with orch.agent() as agt:
@@ -47,7 +48,6 @@ with plm.resume_directory(
         convo = agt.get_msg_state()
         resp = convo.ask_llm(
             "How many files are in '~/examples'? Give the final answer in words.",
-            hash_by=["llm"],
             tools=tools,
             # llm="gpt-4o"
         )
@@ -56,5 +56,5 @@ with plm.resume_directory(
         assert len(tool_calls) == 1
         assert tool_calls[0].name == "count_files"
         convo.ask_functions(count_files=ls_tool)
-        convo.ask_llm(hash_by=["llm"])
+        convo.ask_llm()
         agt.print(convo.resolve())

@@ -27,6 +27,7 @@ with plm.resume_directory(
     strategy="sync",
     log_level=logging.DEBUG,
     dashboard=True,
+    hash_by=["llm"],
     # ignore_cache=True,
 ) as orch:
     with orch.agent() as agt:
@@ -34,12 +35,11 @@ with plm.resume_directory(
         convo = agt.get_msg_state()
         resp = convo.ask_llm(
             "Add 3 and 4.",
-            hash_by=["llm"],
             tools=plm.to_tool_schema([multiply, add, divide]),
         )
 
         convo.ask_functions(multiply=multiply, add=add, divide=divide)
-        convo.ask_llm(hash_by=["llm"])
+        convo.ask_llm()
         agt.print(convo.resolve())
 
         # ['Add 3 and 4.', '', FunctionCallOutput(name=add, call_id=, content=7...), '3 + 4 = 7']
