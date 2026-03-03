@@ -8,6 +8,8 @@ Tests the LLM identity system including:
 - Default provider behavior
 """
 
+import pytest
+
 from parallellm.types import LLMIdentity
 from parallellm.utils.hardcoded import guess_provider_and_name
 
@@ -37,10 +39,8 @@ def test_identity_with_guessed_provider():
 
 def test_identity_unknown_provider():
     """Test creating identity with unknown provider"""
-    identity = LLMIdentity("unknown-model")
-
-    assert identity.identity == "unknown-model"
-    assert identity.provider is None
+    with pytest.raises(ValueError):
+        _ = LLMIdentity("unknown-model")
 
 
 def test_to_str_with_explicit_provider():
@@ -79,3 +79,43 @@ def test_split_notation():
         "openai",
         "claude-sonnet-3.5",
     )
+
+
+def test_identity_hashable():
+    """Test that LLMIdentity can be used as a dictionary key"""
+    identity1 = LLMIdentity("gpt-4")
+    identity2 = LLMIdentity("claude-sonnet-3.5")
+
+    # Should be able to use as dict keys
+    my_dict = {identity1: "openai_model", identity2: "anthropic_model"}
+
+    assert my_dict[identity1] == "openai_model"
+    assert my_dict[identity2] == "anthropic_model"
+
+
+def test_identity_equality():
+    """Test that LLMIdentity instances with same provider/model are equal"""
+    identity1 = LLMIdentity("gpt-4")
+    identity2 = LLMIdentity("gpt-4")
+
+    assert identity1 == identity2
+    assert hash(identity1) == hash(identity2)
+
+    # Different identities should not be equal
+    identity3 = LLMIdentity("gpt-3.5-turbo")
+    assert identity1 != identity3
+    assert hash(identity1) != hash(identity3)
+
+
+def test_identity_set_operations():
+    """Test that LLMIdentity works correctly in sets"""
+    identity1 = LLMIdentity("gpt-4")
+    identity2 = LLMIdentity("gpt-4")
+    identity3 = LLMIdentity("claude-sonnet-3.5")
+
+    identity_set = {identity1, identity2, identity3}
+
+    # identity1 and identity2 are equal, so set should have 2 items
+    assert len(identity_set) == 2
+    assert identity1 in identity_set
+    assert identity3 in identity_set

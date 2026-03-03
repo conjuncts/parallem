@@ -301,6 +301,10 @@ class LLMIdentity:
         if provider is None:
             # do some guessing
             provider, model_name = guess_provider_and_name(identity)
+            if provider is None:
+                raise ValueError(
+                    f"Unknown provider for identity '{identity}'. Please specify provider explicitly."
+                )
         elif model_name is None:
             # if provider is given but not model_name, assume identity is model_name
             model_name = identity
@@ -308,6 +312,20 @@ class LLMIdentity:
 
         self.provider = provider
         self.model_name = model_name
+
+    def __hash__(self):
+        """Make LLMIdentity hashable based on provider and model_name."""
+        return hash((self.provider, self.model_name, self.identity))
+
+    def __eq__(self, other):
+        """Compare LLMIdentity instances based on provider and model_name."""
+        if not isinstance(other, LLMIdentity):
+            return False
+        return (
+            self.provider == other.provider
+            and self.model_name == other.model_name
+            and self.identity == other.identity
+        )
 
 
 class CommonQueryParameters(TypedDict):
