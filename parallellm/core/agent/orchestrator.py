@@ -110,7 +110,6 @@ class AgentOrchestrator:
         """
         Ensure that everything is properly saved AND cleans up resources.
         """
-        self._backend.persist()
 
         if getattr(self._backend, "execute_batch", None):
             with self.dashboard():
@@ -122,6 +121,7 @@ class AgentOrchestrator:
             self._dashlog._update_console()
             self._dashlog.finalize_line()
 
+        self._backend.persist()
         self._fm.persist()
 
     def save_to_file(

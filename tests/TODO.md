@@ -19,3 +19,8 @@ msg_state.ask_functions()
 - [ ] error example: image/ppm type
 - [ ] batch API but where a response has an error (in other words, test _decode_gemini_batch_error)
 - [ ] decode_batch_content (this should be easily testable using real data)
+
+
+- test max_batch_size
+- test Batch API (and all other - integration test) by comparing batch output but not sending it
+- test out max_batch_size (! convenience point!)
