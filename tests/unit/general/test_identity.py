@@ -19,22 +19,22 @@ def test_identity_with_guessed_provider():
     identity = LLMIdentity("gpt-4")
     assert identity.identity == "gpt-4"
     assert identity.model_name == "gpt-4"
-    assert identity.provider == "openai"
+    assert identity.provider_type == "openai"
 
     identity = LLMIdentity("chatgpt-3.5-turbo")
     assert identity.identity == "chatgpt-3.5-turbo"
     assert identity.model_name == "chatgpt-3.5-turbo"
-    assert identity.provider == "openai"
+    assert identity.provider_type == "openai"
 
     identity = LLMIdentity("claude-sonnet-3.5")
     assert identity.identity == "claude-sonnet-3.5"
     assert identity.model_name == "claude-sonnet-3.5"
-    assert identity.provider == "anthropic"
+    assert identity.provider_type == "anthropic"
 
     identity = LLMIdentity("gemini-2.5-flash")
     assert identity.identity == "gemini-2.5-flash"
     assert identity.model_name == "gemini-2.5-flash"
-    assert identity.provider == "google"
+    assert identity.provider_type == "google"
 
 
 def test_identity_unknown_provider():
@@ -45,9 +45,9 @@ def test_identity_unknown_provider():
 
 def test_to_str_with_explicit_provider():
     """Test string conversion with explicit provider"""
-    identity = LLMIdentity("claude-sonnet-3.5", provider="openai")
+    identity = LLMIdentity("claude-sonnet-3.5", provider_type="openai")
     assert identity.model_name == "claude-sonnet-3.5"
-    assert identity.provider == "openai"
+    assert identity.provider_type == "openai"
 
 
 def test_guess_openai_provider():

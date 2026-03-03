@@ -1,6 +1,6 @@
 import json
 import os
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from pathlib import Path
 from typing import List, Literal, Optional, Union
 from parallellm.core.backend import BaseBackend
@@ -25,13 +25,20 @@ from parallellm.types import (
 
 
 @dataclass
-class _BatchRecord:
+class BatchGroup:
     """Private dataclass for organizing batch data"""
 
-    call_ids: List[CallIdentifier] = field(default_factory=list)
-    model_name: Optional[str] = None
-    data: List[dict] = field(default_factory=list)
-    custom_ids: List[str] = field(default_factory=list)
+    call_ids: List[CallIdentifier]
+    llm: Optional[LLMIdentity]
+    data: List[dict]
+    custom_ids: List[str]
+
+
+@dataclass
+class BatchBufferItem:
+    call_id: CallIdentifier
+    llm: LLMIdentity
+    stuff: dict
 
 
 class BatchBackend(BaseBackend):
@@ -60,7 +67,8 @@ class BatchBackend(BaseBackend):
         self._confirm_batch_submission = confirm_batch_submission
         self._rewrite_cache = rewrite_cache
 
-        self._batch_buffer: list[tuple[CallIdentifier, dict]] = []
+        self._batch_buffer: list[BatchBufferItem] = []
+        """List of BatchBufferItem objects"""
         self.session_id = session_id
 
         self._private_increment = 0
@@ -137,7 +145,9 @@ class BatchBackend(BaseBackend):
         if self._ds.is_call_in_pending_batch(call_id):
             return
 
-        self._batch_buffer.append((call_id, llm.model_name, stuff))
+        self._batch_buffer.append(
+            BatchBufferItem(call_id=call_id, llm=llm, stuff=stuff)
+        )
 
     def generate_custom_id(
         self,
@@ -169,53 +179,70 @@ class BatchBackend(BaseBackend):
 
         # 1. Split based on model_name
         # Many batch APIs (like OpenAI's) require the same model across the entire batch
-        index_groups: list[list[int]] = []  # list of groups of indices
+        # one "flight" = group of calls, less than 1000 calls, sent together in one batch API call
+        grouped_calls: list[list[BatchBufferItem]] = []
         if partition_by_model_name:
-            mn2b = {}
-            for i, (call_id, model_name, stuff) in enumerate(self._batch_buffer):
-                if model_name not in mn2b:
-                    mn2b[model_name] = []
-                mn2b[model_name].append(i)
-            index_groups = list(mn2b.values())
+            llm_to_indices: dict[LLMIdentity, list[BatchBufferItem]] = {}
+            # group_by based on LLMIdentity
+            for item in self._batch_buffer:
+                if item.llm not in llm_to_indices:
+                    llm_to_indices[item.llm] = []
+                llm_to_indices[item.llm].append(item)
+            grouped_calls = list(llm_to_indices.values())
         else:
-            index_groups = [list(range(len(self._batch_buffer)))]
+            grouped_calls = [self._batch_buffer]
 
         # 2. Split into groups of max_batch_size
-        _bdr = []
-        for batch in index_groups:
-            if len(batch) <= max_batch_size:
-                _bdr.append(batch)
+        _result = []
+        for gp in grouped_calls:
+            if len(gp) <= max_batch_size:
+                _result.append(gp)
             else:
-                for i in range(0, len(batch), max_batch_size):
-                    _bdr.append(batch[i : i + max_batch_size])
-        index_groups = _bdr
+                for i in range(0, len(gp), max_batch_size):
+                    _result.append(gp[i : i + max_batch_size])
+        grouped_calls = _result
 
         # dict with keys: call_ids, model_name, stuff, custom_ids
-        batches: list[_BatchRecord] = []
-        for index_gp in index_groups:
-            rowwise = _BatchRecord()
-            for i in index_gp:
-                call_id, model_name, stuff = self._batch_buffer[i]
-                rowwise.call_ids.append(call_id)
-                rowwise.model_name = model_name
-                rowwise.data.append(stuff)
-            rowwise.custom_ids = provider.get_batch_custom_ids(rowwise.data)
-            batches.append(rowwise)
+        batch_groups: list[BatchGroup] = []
+        for gp in grouped_calls:
+            if not gp:
+                continue  # should not happen, but just in case
+            llm_common = None
+            call_ids = []
+            data = []
+
+            for item in gp:
+                llm_common = item.llm  # all calls should have same llm
+                call_ids.append(item.call_id)
+                data.append(item.stuff)
+
+            assert llm_common is not None
+            custom_ids = provider.get_batch_custom_ids(
+                data, provider_type=llm_common.provider_type
+            )
+            batch_groups.append(
+                BatchGroup(
+                    call_ids=call_ids,
+                    llm=llm_common,
+                    data=data,
+                    custom_ids=custom_ids,
+                )
+            )
 
         pending_fpaths = []
 
         # Ask for confirmation if requested
         _saved_already = False
         if self._confirm_batch_submission:
-            total_calls = sum(len(batch) for batch in index_groups)
-            num_batches = len(index_groups)
+            total_calls = sum(len(batch.call_ids) for batch in batch_groups)
+            num_batches = len(batch_groups)
 
             confirmed = dl.confirm_batch_submission(num_batches, total_calls)
 
             if confirmed == "p":
                 # Preview: write them to file, but do not yet submit
                 _saved_already = True
-                for record in batches:
+                for record in batch_groups:
                     fpath = self._fm.save_batch_in(record.data)
                     pending_fpaths.append(fpath)
                 dl.print(f"Batch preview files written to {pending_fpaths[0]}")
@@ -229,14 +256,14 @@ class BatchBackend(BaseBackend):
                 return CohortIdentifier(batch_ids=[], session_id=self.session_id)
             # else, proceed
         if not _saved_already:
-            for record in batches:
+            for record in batch_groups:
                 fpath = self._fm.save_batch_in(record.data)
                 pending_fpaths.append(fpath)
 
         # 3. Submit each batch
         batch_ids = []
-        for fpath, record in zip(pending_fpaths, batches):
-            batch_uuid = provider.submit_batch_to_provider(fpath, record.model_name)
+        for fpath, record in zip(pending_fpaths, batch_groups):
+            batch_uuid = provider.submit_batch_to_provider(fpath, record.llm)
             ident = BatchIdentifier(
                 call_ids=record.call_ids,
                 custom_ids=record.custom_ids,
@@ -299,6 +326,7 @@ class BatchBackend(BaseBackend):
         provider: "BatchProvider",
         batch_uuid: str,
         *,
+        provider_type: str,
         save_to_disk: Literal[None, "zip"] = "zip",
     ) -> List[BatchResult]:
         """
@@ -314,7 +342,7 @@ class BatchBackend(BaseBackend):
             If None, does not save to disk.
         """
 
-        batch_results = provider.download_batch(batch_uuid)
+        batch_results = provider.download_batch(batch_uuid, provider_type=provider_type)
 
         for res in batch_results:
             if save_to_disk == "zip":
@@ -355,7 +383,7 @@ class BatchBackend(BaseBackend):
             if not provider.is_compatible(batch_provider):
                 continue
             batch_results = self.download_batch_from_provider(
-                provider, batch_uuid, save_to_disk="zip"
+                provider, batch_uuid, save_to_disk="zip", provider_type=batch_provider
             )
             for batch_result in batch_results:
                 if batch_result.status == "ready":

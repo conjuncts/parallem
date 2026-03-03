@@ -1,7 +1,6 @@
 import json
 from pathlib import Path
-from typing import List, Union
-from pydantic import BaseModel
+from typing import TYPE_CHECKING, List, Union
 from parallellm.provider.base import (
     ConcurrentProvider,
     BaseProvider,
@@ -20,9 +19,12 @@ from parallellm.types import (
     ParsedResponse,
     ServerTool,
 )
+from parallellm.utils._quick_pydantic import is_pydantic_model
 
-from google import genai
-from google.genai import types
+if TYPE_CHECKING:
+    from google import genai
+    from google.genai import types
+    from pydantic import BaseModel
 
 from parallellm.utils._batch_helper import _split_batch_response
 from parallellm.utils.image import get_type_and_b64, is_image
@@ -175,6 +177,8 @@ def _prepare_tool_schema(
                     f"Unsupported ServerTool type for Google Gemini: {sch.server_tool_type}"
                 )
             continue
+        from google.genai import types
+
         if isinstance(sch, types.Tool):
             google_tools.append(sch)
             continue
@@ -215,7 +219,7 @@ def _prepare_google_config(params: CommonQueryParameters, **kwargs):
     return model_name, contents, config
 
 
-def _extract_text_from_gemini_model(resp: BaseModel):
+def _extract_text_from_gemini_model(resp: "BaseModel"):
     """Extract text content from Gemini API response.
     See google.genai.types.GenerateContentResponse._get_text
     Also suppresses a warning
@@ -265,43 +269,13 @@ class GoogleProvider(BaseProvider):
     provider_type: str = "google"
 
     def get_default_llm_identity(self) -> LLMIdentity:
-        return LLMIdentity("gemini-2.5-flash", provider=self.provider_type)
+        return LLMIdentity("gemini-2.5-flash", provider_type=self.provider_type)
 
-    def parse_response(self, raw_response: Union[BaseModel, dict]) -> ParsedResponse:
+    def parse_response(
+        self, raw_response: Union["BaseModel", dict], provider_type: str = None
+    ) -> ParsedResponse:
         """Parse Gemini API response into common format"""
-        if isinstance(raw_response, BaseModel):
-            # Pydantic model (e.g., google.genai.types.GenerateContentResponse)
-
-            response: "types.GenerateContentResponse" = raw_response
-            # Suppress warning
-            # text = response.text
-            text = _extract_text_from_gemini_model(response)
-            response_id = response.response_id
-            obj = response.model_dump(mode="json")
-            obj.pop("response_id", None)
-
-            tools = []
-
-            if not response.candidates:
-                # Could be an error like rate limit
-                pass
-
-            for part in response.candidates[0].content.parts or []:
-                if part.function_call:
-                    func_call: "types.FunctionCall" = part.function_call
-                    tools.append(
-                        FunctionCall(
-                            name=func_call.name,
-                            arguments=func_call.args,
-                            call_id=func_call.id,
-                        )
-                    )
-            if text is None:
-                text = ""  # I guess this can happen
-            return ParsedResponse(
-                text=text, response_id=response_id, metadata=obj, function_calls=tools
-            )
-        elif isinstance(raw_response, dict):
+        if isinstance(raw_response, dict):
             resp_id = raw_response.pop("response_id", None) or raw_response.pop(
                 "responseId", None
             )
@@ -338,6 +312,38 @@ class GoogleProvider(BaseProvider):
                 response_id=resp_id,
                 metadata=raw_response,
                 function_calls=tools,
+            )
+        elif is_pydantic_model(raw_response):
+            # Pydantic model (e.g., google.genai.types.GenerateContentResponse)
+
+            response: "types.GenerateContentResponse" = raw_response
+            # Suppress warning
+            # text = response.text
+            text = _extract_text_from_gemini_model(response)
+            response_id = response.response_id
+            obj = response.model_dump(mode="json")
+            obj.pop("response_id", None)
+
+            tools = []
+
+            if not response.candidates:
+                # Could be an error like rate limit
+                pass
+
+            for part in response.candidates[0].content.parts or []:
+                if part.function_call:
+                    func_call: "types.FunctionCall" = part.function_call
+                    tools.append(
+                        FunctionCall(
+                            name=func_call.name,
+                            arguments=func_call.args,
+                            call_id=func_call.id,
+                        )
+                    )
+            if text is None:
+                text = ""  # I guess this can happen
+            return ParsedResponse(
+                text=text, response_id=response_id, metadata=obj, function_calls=tools
             )
         else:
             raise ValueError(f"Unsupported response type: {type(raw_response)}")
@@ -498,7 +504,7 @@ class BatchGoogleProvider(BatchProvider, GoogleProvider):
             error_code=1,  # TODO: figure out exact format of gemini
         )
 
-    def get_batch_custom_ids(self, stuff):
+    def get_batch_custom_ids(self, stuff, provider_type: str):
         custom_ids = []
         for item in stuff:
             if "key" not in item:
@@ -506,7 +512,7 @@ class BatchGoogleProvider(BatchProvider, GoogleProvider):
             custom_ids.append(item["key"])
         return custom_ids
 
-    def submit_batch_to_provider(self, fpath: Path, llm: str) -> str:
+    def submit_batch_to_provider(self, fpath: Path, llm: LLMIdentity) -> str:
         """
         Submit a batch of calls to the provider.
 
@@ -529,7 +535,7 @@ class BatchGoogleProvider(BatchProvider, GoogleProvider):
 
         # Create batch job
         batch_job = self.client.batches.create(
-            model=llm,
+            model=llm.model_name,
             src=uploaded_file.name,
             config={
                 "display_name": f"batch-job-{num_lines}-requests",
@@ -586,6 +592,7 @@ class BatchGoogleProvider(BatchProvider, GoogleProvider):
     def download_batch(
         self,
         batch_uuid: str,
+        provider_type: str,
     ) -> List[BatchResult]:
         """Download the results of a batch from the provider.
 

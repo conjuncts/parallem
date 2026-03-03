@@ -175,7 +175,7 @@ class AgentContext(Askable):
                 pr=cached,
             )
 
-        if not self._orch._provider.is_compatible(llm.provider):
+        if not self._orch._provider.is_compatible(llm.provider_type):
             raise ValueError(
                 f"LLM {llm.identity} is not compatible"
                 + f" with provider {self._orch._provider.provider_type}"

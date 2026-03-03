@@ -1,6 +1,8 @@
 from pathlib import Path
-from typing import List, Optional, Union
-from pydantic import BaseModel
+from typing import TYPE_CHECKING, List, Optional, Union
+
+if TYPE_CHECKING:
+    from pydantic import BaseModel
 
 from parallellm.types import (
     BatchResult,
@@ -23,7 +25,9 @@ class BaseProvider:
         """Returns a default LLMIdentity for this provider."""
         raise NotImplementedError
 
-    def parse_response(self, raw_response: Union[BaseModel, dict]) -> ParsedResponse:
+    def parse_response(
+        self, raw_response: Union["BaseModel", dict], provider_type: str = None
+    ) -> ParsedResponse:
         """
         Parse a raw API response into a common format.
 
@@ -78,23 +82,22 @@ class BatchProvider(BaseProvider):
         """
         raise NotImplementedError
 
-    def get_batch_custom_ids(self, stuff: list[dict]) -> list[str]:
+    def get_batch_custom_ids(self, stuff: list[dict], provider_type: str) -> list[str]:
         """Get batch IDs from a bunch of raw data."""
         raise NotImplementedError
 
-    def submit_batch_to_provider(self, fpath: Path, llm: str) -> str:
+    def submit_batch_to_provider(self, fpath: Path, llm: LLMIdentity) -> str:
         """Submit a batch of calls to the provider."""
         raise NotImplementedError
 
-    def download_batch(self, batch_uuid: str) -> List[BatchResult]:
+    def download_batch(self, batch_uuid: str, provider_type: str) -> List[BatchResult]:
         """Download the results of a batch from the provider.
 
         The list can contain both ready and error results.
         Empty list = still pending.
         - batch_status is one of "pending", "ready", or "error".
-        """
-        raise NotImplementedError
 
-    def decode_batch_content(self, content: str) -> List[BatchResult]:
-        """Decode raw batch content from the provider into a list of BatchResults."""
+        :param provider_type: Double check to make sure that batch_uuid is for the same provider.
+        :param batch_uuid: The unique identifier for the batch to download
+        """
         raise NotImplementedError

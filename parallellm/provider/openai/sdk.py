@@ -1,7 +1,6 @@
 import json
 from pathlib import Path
 from typing import TYPE_CHECKING, List, Union
-from pydantic import BaseModel
 from parallellm.provider.base import (
     ConcurrentProvider,
     BaseProvider,
@@ -22,12 +21,14 @@ from parallellm.types import (
     FunctionCall,
 )
 from parallellm.utils._batch_helper import _split_batch_response
+from parallellm.utils._quick_pydantic import is_pydantic_model
 from parallellm.utils.image import get_type_and_b64, is_image
 
 if TYPE_CHECKING:
     from openai import OpenAI, AsyncOpenAI
     from openai.types.responses.response_input_param import Message
     from openai.types.responses.response import Response
+    from pydantic import BaseModel
 
 
 class OpenAIProvider(BaseProvider):
@@ -135,37 +136,11 @@ class OpenAIProvider(BaseProvider):
         return openai_tools
 
     def get_default_llm_identity(self) -> LLMIdentity:
-        return LLMIdentity("gpt-5-nano", provider=self.provider_type)
+        return LLMIdentity("gpt-5-nano", provider_type=self.provider_type)
 
-    def parse_response(self, raw_response: Union[BaseModel, dict]) -> ParsedResponse:
+    def parse_response(self, raw_response: Union["BaseModel", dict]) -> ParsedResponse:
         """Parse OpenAI API response into common format"""
-        if isinstance(raw_response, BaseModel):
-            # Pydantic model (e.g., from openai.types.responses.response.Response)
-            response: Response = raw_response
-            text = response.output_text
-            obj = response.model_dump(mode="json")
-            resp_id = response.id
-            obj.pop("id", None)
-
-            function_calls = []
-            for item in response.output:
-                if item.type == "function_call":
-                    function_calls.append(
-                        FunctionCall(
-                            name=item.name,
-                            arguments=item.arguments,
-                            call_id=item.call_id,
-                        )
-                    )
-                elif item.type == "custom_tool_call":
-                    function_calls.append(
-                        FunctionCall(
-                            name=item.name, arguments=item.input, call_id=item.call_id
-                        )
-                    )
-
-            parsed_metadata = obj
-        elif isinstance(raw_response, dict):
+        if isinstance(raw_response, dict):
             # Dict response (e.g., from batch API)
 
             if "output_text" in raw_response:
@@ -201,6 +176,32 @@ class OpenAIProvider(BaseProvider):
 
             resp_id = raw_response.pop("id", None)
             parsed_metadata = raw_response
+        elif is_pydantic_model(raw_response):
+            # Pydantic model (e.g., from openai.types.responses.response.Response)
+            response: Response = raw_response
+            text = response.output_text
+            obj = response.model_dump(mode="json")
+            resp_id = response.id
+            obj.pop("id", None)
+
+            function_calls = []
+            for item in response.output:
+                if item.type == "function_call":
+                    function_calls.append(
+                        FunctionCall(
+                            name=item.name,
+                            arguments=item.arguments,
+                            call_id=item.call_id,
+                        )
+                    )
+                elif item.type == "custom_tool_call":
+                    function_calls.append(
+                        FunctionCall(
+                            name=item.name, arguments=item.input, call_id=item.call_id
+                        )
+                    )
+
+            parsed_metadata = obj
         else:
             raise ValueError(f"Unsupported response type: {type(raw_response)}")
         return ParsedResponse(
@@ -395,7 +396,7 @@ class BatchOpenAIProvider(BatchProvider, OpenAIProvider):
             metadata=body_error,
         )
 
-    def get_batch_custom_ids(self, stuff: list[dict]) -> list[str]:
+    def get_batch_custom_ids(self, stuff: list[dict], provider_type: str) -> list[str]:
         custom_ids = []
         for s in stuff:
             if not s.get("custom_id"):
@@ -403,7 +404,7 @@ class BatchOpenAIProvider(BatchProvider, OpenAIProvider):
             custom_ids.append(s["custom_id"])
         return custom_ids
 
-    def submit_batch_to_provider(self, fpath: Path, llm: str) -> str:
+    def submit_batch_to_provider(self, fpath: Path, llm: LLMIdentity) -> str:
         """
         Submit a batch of calls to the provider.
 
@@ -474,6 +475,7 @@ class BatchOpenAIProvider(BatchProvider, OpenAIProvider):
     def download_batch(
         self,
         batch_uuid: str,
+        provider_type: str,
     ) -> List[BatchResult]:
         """Download the results of a batch from the provider.
 

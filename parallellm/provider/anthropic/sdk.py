@@ -194,9 +194,11 @@ class AnthropicProvider(BaseProvider):
     provider_type: str = "anthropic"
 
     def get_default_llm_identity(self) -> LLMIdentity:
-        return LLMIdentity("claude-3-haiku-20240307", provider=self.provider_type)
+        return LLMIdentity("claude-3-haiku-20240307", provider_type=self.provider_type)
 
-    def parse_response(self, raw_response: Union[BaseModel, dict]) -> ParsedResponse:
+    def parse_response(
+        self, raw_response: Union[BaseModel, dict], provider_type: str = None
+    ) -> ParsedResponse:
         """Parse Anthropic API response into common format"""
 
         # https://docs.claude.com/en/docs/agents-and-tools/tool-use/implement-tool-use

@@ -101,7 +101,9 @@ class SyncBackend(BaseBackend):
             **kwargs,
         )
         self.dashlog.update_hash(doc_hash, HashStatus.RECEIVED)
-        parsed = provider.parse_response(result)
+        parsed = provider.parse_response(
+            result, provider_type=params["llm"].provider_type
+        )
         self._ds.store(call_id, parsed, upsert=self._rewrite_cache)
 
         return ReadyLLMResponse(call_id=call_id, pr=parsed)

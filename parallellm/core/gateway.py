@@ -5,15 +5,15 @@ from parallellm.core.agent.orchestrator import AgentOrchestrator
 from parallellm.core.file_manager import FileManager
 from parallellm.logging.dash_logger import DashboardLogger
 from parallellm.logging.fancy import get_parallellm_log_handler
-from parallellm.provider.openai.sdk import BatchOpenAIProvider
-from parallellm.types import HashByOptions, MinorTweaks, ProviderType
+from parallellm.provider.multi.provider_selector import dynamic_select_provider
+from parallellm.types import HashByOptions, MinorTweaks
 
 
 def resume_directory(
     directory,
     *,
     strategy: Literal["sync", "concurrent", "batch", "hybrid"] = "sync",
-    provider: ProviderType = "openai",
+    provider: Literal["openai", "google", "anthropic", "multi"] = "multi",
     datastore: Literal["sqlite", "sqlite_parquet"] = "sqlite",
     dry_run=False,
     log_level=logging.INFO,
@@ -31,7 +31,7 @@ def resume_directory(
     :param directory: Path to directory
 
     :param strategy: Execution strategy for LLM calls
-    :param provider: LLM provider to use for API calls
+    :param provider: LLM provider to use for API calls. "multi" allows a mixture of providers.
     :param datastore: Backend datastore type for response storage. Recommended: sqlite.
     :param dry_run: If True, validate setup without making actual API calls
     :param log_level: Logging level for the session
@@ -114,63 +114,7 @@ def resume_directory(
         raise NotImplementedError(f"Strategy '{strategy}' is not implemented yet")
 
     logger.debug("Creating provider")
-    if provider == "openai":
-        from parallellm.provider.openai.sdk import (
-            ConcurrentOpenAIProvider,
-            SyncOpenAIProvider,
-        )
-
-        if strategy == "concurrent":
-            from openai import AsyncOpenAI
-
-            client = AsyncOpenAI()
-            provider = ConcurrentOpenAIProvider(client=client)
-        elif strategy == "batch":
-            from openai import OpenAI
-
-            client = OpenAI()
-            provider = BatchOpenAIProvider(client=client)
-        else:
-            # For other strategies, default to sync for now
-            from openai import OpenAI
-
-            client = OpenAI()
-            provider = SyncOpenAIProvider(client=client)
-    elif provider == "google":
-        from parallellm.provider.google.sdk import (
-            ConcurrentGoogleProvider,
-            BatchGoogleProvider,
-            SyncGoogleProvider,
-        )
-        from google import genai
-
-        if strategy == "concurrent":
-            client = genai.Client()
-            provider = ConcurrentGoogleProvider(client=client)
-        elif strategy == "batch":
-            client = genai.Client()
-            provider = BatchGoogleProvider(client=client)
-        else:
-            client = genai.Client()
-            provider = SyncGoogleProvider(client=client)
-    elif provider == "anthropic":
-        from parallellm.provider.anthropic.sdk import (
-            ConcurrentAnthropicProvider,
-            SyncAnthropicProvider,
-        )
-
-        if strategy == "concurrent":
-            from anthropic import AsyncAnthropic
-
-            client = AsyncAnthropic()
-            provider = ConcurrentAnthropicProvider(client=client)
-        else:
-            from anthropic import Anthropic
-
-            client = Anthropic()
-            provider = SyncAnthropicProvider(client=client)
-    else:
-        raise NotImplementedError(f"Provider '{provider}' not implemented yet")
+    provider_obj = dynamic_select_provider(provider, strategy, multi_allowed=True)
 
     logger.debug("Creating AgentOrchestrator")
 
@@ -182,7 +126,7 @@ def resume_directory(
     bm = AgentOrchestrator(
         file_manager=fm,
         backend=backend,
-        provider=provider,
+        provider=provider_obj,
         logger=logger,
         dashlog=dashlog,
         ignore_cache=ignore_cache,
@@ -195,7 +139,7 @@ def resume_directory(
     # try downloading previous batches if any
     if strategy == "batch":
         with bm.dashboard() as d:
-            statuses = backend.try_download_all_batches(provider, d)
+            statuses = backend.try_download_all_batches(provider_obj, d)
             # Don't store these statuses: batch_hash != msg_hash
             d.clear(clear_console=False)
         d.finalize_line()

@@ -284,7 +284,7 @@ class LLMIdentity:
         self,
         identity: str,
         *,
-        provider: Optional[ProviderType] = None,
+        provider_type: Optional[ProviderType] = None,
         model_name: Optional[str] = None,
     ):
         """
@@ -298,10 +298,10 @@ class LLMIdentity:
         """
         self.identity = identity
 
-        if provider is None:
+        if provider_type is None:
             # do some guessing
-            provider, model_name = guess_provider_and_name(identity)
-            if provider is None:
+            provider_type, model_name = guess_provider_and_name(identity)
+            if provider_type is None:
                 raise ValueError(
                     f"Unknown provider for identity '{identity}'. Please specify provider explicitly."
                 )
@@ -310,19 +310,19 @@ class LLMIdentity:
             model_name = identity
         # else: both provider and model_name are given, use as-is
 
-        self.provider = provider
+        self.provider_type = provider_type
         self.model_name = model_name
 
     def __hash__(self):
         """Make LLMIdentity hashable based on provider and model_name."""
-        return hash((self.provider, self.model_name, self.identity))
+        return hash((self.provider_type, self.model_name, self.identity))
 
     def __eq__(self, other):
         """Compare LLMIdentity instances based on provider and model_name."""
         if not isinstance(other, LLMIdentity):
             return False
         return (
-            self.provider == other.provider
+            self.provider_type == other.provider_type
             and self.model_name == other.model_name
             and self.identity == other.identity
         )
@@ -335,7 +335,7 @@ class CommonQueryParameters(TypedDict):
 
     instructions: Optional[str]
     strict_documents: List[LLMDocument]
-    llm: "LLMIdentity"
+    llm: LLMIdentity
     text_format: Optional[dict]
     tools: Optional[List[dict]]
 
