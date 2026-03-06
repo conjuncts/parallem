@@ -33,6 +33,7 @@ Diana
         temp_integration_dir / "checkpoint_tournament",
         provider="openai",
         strategy="sync",
+        client=None,
     )
 
     mock_client = mock_openai_calls(orch, responses=responses)
@@ -78,7 +79,9 @@ def test_strategy_switching_persistence(temp_integration_dir):
     test_dir = temp_integration_dir / "strategy_switch"
 
     # Run 1: Use sync strategy
-    pllm_sync = resume_directory(test_dir, provider="openai", strategy="sync")
+    pllm_sync = resume_directory(
+        test_dir, provider="openai", strategy="sync", client=None
+    )
 
     mock_client_sync = mock_openai_calls(pllm_sync, responses=["Sync response"])
 
@@ -95,6 +98,7 @@ def test_strategy_switching_persistence(temp_integration_dir):
         test_dir,
         provider="openai",
         strategy="concurrent",  # Different strategy
+        client=None,
     )
 
     mock_client_async = mock_openai_calls(
@@ -129,6 +133,7 @@ def test_complex_userdata_workflow(temp_integration_dir):
         temp_integration_dir / "complex_userdata",
         provider="openai",
         strategy="sync",
+        client=None,
     ) as orch:
         mock_openai_calls(orch, responses=responses)
 
@@ -146,7 +151,7 @@ def test_mixed_checkpoint_and_caching(temp_integration_dir):
     test_dir = temp_integration_dir / "checkpoint_cache"
 
     # First run: Create checkpoints and cache
-    pllm1 = resume_directory(test_dir, provider="openai", strategy="sync")
+    pllm1 = resume_directory(test_dir, provider="openai", strategy="sync", client=None)
 
     mock_client1 = mock_openai_calls(
         pllm1, responses=["Initial data", "Checkpoint A result", "Checkpoint B result"]
@@ -173,7 +178,7 @@ def test_mixed_checkpoint_and_caching(temp_integration_dir):
     assert len(mock_client1.calls) == 3
 
     # Second run: Should use cache for non-checkpoint calls
-    pllm2 = resume_directory(test_dir, provider="openai", strategy="sync")
+    pllm2 = resume_directory(test_dir, provider="openai", strategy="sync", client=None)
 
     mock_client2 = mock_openai_calls(pllm2, responses=["Should not be called"])
 

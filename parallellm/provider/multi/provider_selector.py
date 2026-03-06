@@ -8,7 +8,11 @@ def dynamic_select_provider(
     strategy: Literal["sync", "concurrent", "batch"],
     *,
     multi_allowed=False,
+    client=None,
 ):
+    """
+    Produces the correct parallellm provider object.
+    """
     if provider_type == "openai":
         from parallellm.provider.openai.sdk import (
             ConcurrentOpenAIProvider,
@@ -17,20 +21,23 @@ def dynamic_select_provider(
         )
 
         if strategy == "concurrent":
-            from openai import AsyncOpenAI
+            if client is None:
+                from openai import AsyncOpenAI
 
-            client = AsyncOpenAI()
+                client = AsyncOpenAI()
             provider = ConcurrentOpenAIProvider(client=client)
         elif strategy == "batch":
-            from openai import OpenAI
+            if client is None:
+                from openai import OpenAI
 
-            client = OpenAI()
+                client = OpenAI()
             provider = BatchOpenAIProvider(client=client)
         else:
             # For other strategies, default to sync for now
-            from openai import OpenAI
+            if client is None:
+                from openai import OpenAI
 
-            client = OpenAI()
+                client = OpenAI()
             provider = SyncOpenAIProvider(client=client)
     elif provider_type == "google":
         from parallellm.provider.google.sdk import (
@@ -38,16 +45,17 @@ def dynamic_select_provider(
             BatchGoogleProvider,
             SyncGoogleProvider,
         )
-        from google import genai
+
+        if client is None:
+            from google import genai
+
+            client = genai.Client()
 
         if strategy == "concurrent":
-            client = genai.Client()
             provider = ConcurrentGoogleProvider(client=client)
         elif strategy == "batch":
-            client = genai.Client()
             provider = BatchGoogleProvider(client=client)
         else:
-            client = genai.Client()
             provider = SyncGoogleProvider(client=client)
     elif provider_type == "anthropic":
         from parallellm.provider.anthropic.sdk import (
@@ -56,14 +64,16 @@ def dynamic_select_provider(
         )
 
         if strategy == "concurrent":
-            from anthropic import AsyncAnthropic
+            if client is None:
+                from anthropic import AsyncAnthropic
 
-            client = AsyncAnthropic()
+                client = AsyncAnthropic()
             provider = ConcurrentAnthropicProvider(client=client)
         else:
-            from anthropic import Anthropic
+            if client is None:
+                from anthropic import Anthropic
 
-            client = Anthropic()
+                client = Anthropic()
             provider = SyncAnthropicProvider(client=client)
     elif multi_allowed and provider_type == "multi":
         from parallellm.provider.multi.multiplexer import (

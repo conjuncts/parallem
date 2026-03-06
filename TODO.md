@@ -91,6 +91,7 @@ Read
 
 - Manual MCP server
     - ping get tool calls 
+- dry run
 
 High priority:
 - [ ] batch bulk import/export

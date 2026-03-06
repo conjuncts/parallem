@@ -36,7 +36,10 @@ Steelers
     ]
 
     orch = resume_directory(
-        temp_integration_dir / "tour-nfl", provider="openai", strategy="sync"
+        temp_integration_dir / "tour-nfl",
+        provider="openai",
+        strategy="sync",
+        client=None,
     )
 
     mock_client = mock_openai_calls(orch, responses=responses)
@@ -108,7 +111,10 @@ Chymotrypsin
     ]
 
     orch = resume_directory(
-        temp_integration_dir / "tour-enzyme", provider="openai", strategy="sync"
+        temp_integration_dir / "tour-enzyme",
+        provider="openai",
+        strategy="sync",
+        client=None,
     )
 
     mock_client = mock_openai_calls(orch, responses=responses)
@@ -171,7 +177,9 @@ Team D
     ]
 
     # First run - should make API calls
-    pllm1 = resume_directory(tournament_dir, provider="openai", strategy="sync")
+    pllm1 = resume_directory(
+        tournament_dir, provider="openai", strategy="sync", client=None
+    )
 
     mock_client1 = mock_openai_calls(pllm1, responses=responses)
 
@@ -193,7 +201,9 @@ Team D
     assert "Team C wins" in game2
 
     # Second run - should use cache (no API calls)
-    pllm2 = resume_directory(tournament_dir, provider="openai", strategy="sync")
+    pllm2 = resume_directory(
+        tournament_dir, provider="openai", strategy="sync", client=None
+    )
 
     mock_client2 = mock_openai_calls(pllm2, responses=["Should not be called"])
 
@@ -236,6 +246,7 @@ Delta
         temp_integration_dir / "tour-concurrent-test",
         provider="openai",
         strategy="concurrent",  # Test concurrent strategy
+        client=None,
     )
 
     mock_client = mock_openai_calls(orch, responses=responses)

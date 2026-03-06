@@ -1,5 +1,5 @@
 import logging
-from typing import Literal
+from typing import TYPE_CHECKING, Any, Literal, Optional
 
 from parallellm.core.agent.orchestrator import AgentOrchestrator
 from parallellm.core.file_manager import FileManager
@@ -7,6 +7,9 @@ from parallellm.logging.dash_logger import DashboardLogger
 from parallellm.logging.fancy import get_parallellm_log_handler
 from parallellm.provider.multi.provider_selector import dynamic_select_provider
 from parallellm.types import HashByOptions, MinorTweaks
+
+if TYPE_CHECKING:
+    from parallellm.core.throttler import Throttler
 
 
 def resume_directory(
@@ -19,11 +22,12 @@ def resume_directory(
     log_level=logging.INFO,
     ignore_cache=False,
     rewrite_cache=False,
-    throttler=None,
+    throttler: Optional["Throttler"] = None,
     tweaks: MinorTweaks = MinorTweaks(),
     dashboard: bool = False,
+    client: Optional[Any] = None,
     hash_by: HashByOptions = None,
-    save_input: bool = None,
+    save_input: Optional[bool] = None,
 ) -> AgentOrchestrator:
     """
     Resume an AgentOrchestrator from a previously saved directory.
@@ -45,6 +49,7 @@ def resume_directory(
         are considered equivalent. Specify additional parameters (like "llm")
         to differentiate.
     :param save_input: By default, input documents are not saved. Set to True to save them.
+    :param client: Optional pre-initialized client instance (ie. OpenAI, Google, Anthropic, etc.)
 
     :return: Configured AgentOrchestrator instance
     :raises ValueError: If strategy is not supported
@@ -114,7 +119,9 @@ def resume_directory(
         raise NotImplementedError(f"Strategy '{strategy}' is not implemented yet")
 
     logger.debug("Creating provider")
-    provider_obj = dynamic_select_provider(provider, strategy, multi_allowed=True)
+    provider_obj = dynamic_select_provider(
+        provider, strategy, multi_allowed=True, client=client
+    )
 
     logger.debug("Creating AgentOrchestrator")
 

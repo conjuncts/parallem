@@ -21,7 +21,9 @@ from parallellm.testing.simple_mock import (
 def temp_orch(tmp_path):
     """Pytest fixture that provides a temporary ParalleLLM instance"""
     orch_dir = tmp_path / "sync"
-    orch = resume_directory(str(orch_dir), provider="openai", strategy="sync")
+    orch = resume_directory(
+        str(orch_dir), provider="openai", strategy="sync", client=None
+    )
     yield orch
 
 
@@ -29,7 +31,9 @@ def temp_orch(tmp_path):
 def concurrent_temp_orch(tmp_path):
     """Pytest fixture that provides a temporary concurrent ParalleLLM instance"""
     orch_dir = tmp_path / "concurrent"
-    orch = resume_directory(str(orch_dir), provider="openai", strategy="concurrent")
+    orch = resume_directory(
+        str(orch_dir), provider="openai", strategy="concurrent", client=None
+    )
     yield orch
 
 
@@ -182,7 +186,9 @@ Steelers
     ]
 
     with tempfile.TemporaryDirectory() as temp_dir:
-        orch = resume_directory(temp_dir, provider="openai", strategy="sync")
+        orch = resume_directory(
+            temp_dir, provider="openai", strategy="sync", client=None
+        )
         mock_client = mock_openai_calls(orch, responses=responses)
 
         with orch.agent() as a:
