@@ -9,7 +9,7 @@ These tests validate:
 
 import pytest
 from parallellm.core.gateway import resume_directory
-from parallellm.testing.simple_mock import mock_openai_calls
+from parallellm.testing.simple_mock import mock_openai_client
 
 
 def test_nfl_tournament_mocked(temp_integration_dir):
@@ -35,14 +35,13 @@ Steelers
         "Ravens defeat Steelers 24-10",
     ]
 
+    mock_client = mock_openai_client(responses=responses)
     orch = resume_directory(
         temp_integration_dir / "tour-nfl",
         provider="openai",
         strategy="sync",
-        client=None,
+        client=mock_client,
     )
-
-    mock_client = mock_openai_calls(orch, responses=responses)
 
     with orch.agent() as dash:
         # Get teams
@@ -110,14 +109,13 @@ Chymotrypsin
         "Amylase",  # Amylase vs Catalase
     ]
 
+    mock_client = mock_openai_client(responses=responses)
     orch = resume_directory(
         temp_integration_dir / "tour-enzyme",
         provider="openai",
         strategy="sync",
-        client=None,
+        client=mock_client,
     )
-
-    mock_client = mock_openai_calls(orch, responses=responses)
 
     with orch.agent() as d:
         # Get initial enzymes
@@ -177,11 +175,10 @@ Team D
     ]
 
     # First run - should make API calls
+    mock_client1 = mock_openai_client(responses=responses)
     pllm1 = resume_directory(
-        tournament_dir, provider="openai", strategy="sync", client=None
+        tournament_dir, provider="openai", strategy="sync", client=mock_client1
     )
-
-    mock_client1 = mock_openai_calls(pllm1, responses=responses)
 
     with pllm1.agent() as agent:
         teams_resp = agent.ask_llm("Get 4 teams")
@@ -201,11 +198,10 @@ Team D
     assert "Team C wins" in game2
 
     # Second run - should use cache (no API calls)
+    mock_client2 = mock_openai_client(responses=["Should not be called"])
     pllm2 = resume_directory(
-        tournament_dir, provider="openai", strategy="sync", client=None
+        tournament_dir, provider="openai", strategy="sync", client=mock_client2
     )
-
-    mock_client2 = mock_openai_calls(pllm2, responses=["Should not be called"])
 
     with pllm2.agent() as agent:
         # Same queries should return cached results
@@ -242,14 +238,13 @@ Delta
         "Gamma beats Delta",
     ]
 
+    mock_client = mock_openai_client(responses=responses, concurrent=True)
     orch = resume_directory(
         temp_integration_dir / "tour-concurrent-test",
         provider="openai",
         strategy="concurrent",  # Test concurrent strategy
-        client=None,
+        client=mock_client,
     )
-
-    mock_client = mock_openai_calls(orch, responses=responses)
 
     with orch.agent() as agent:
         teams_resp = agent.ask_llm("Get teams")

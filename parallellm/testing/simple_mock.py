@@ -6,7 +6,6 @@ from unittest.mock import Mock
 import asyncio
 import re
 
-from parallellm.core.agent.orchestrator import AgentOrchestrator
 from .fixtures import MockResponse
 
 
@@ -122,16 +121,18 @@ class MockConcurrentOpenAIClient(MockOpenAIClient):
         return result
 
 
-def mock_openai_calls(
-    orch: AgentOrchestrator,
+def mock_openai_client(
     responses: Optional[List[Union[str, MockResponse]]] = None,
+    *,
+    concurrent: bool = False,
 ) -> Union[MockOpenAIClient, MockConcurrentOpenAIClient]:
-    """Replace OpenAI client in BatchManager with mock"""
-    provider = orch._provider
+    """Create a mock OpenAI client for testing
 
-    from parallellm.provider.openai.sdk import ConcurrentOpenAIProvider
-
-    if isinstance(provider, ConcurrentOpenAIProvider):
+    :param responses: List of responses to return sequentially
+    :param concurrent: If True, return concurrent mock client
+    :return: Mock client that can be passed to orchestrator constructor
+    """
+    if concurrent:
         mock_client = MockConcurrentOpenAIClient()
     else:
         mock_client = MockOpenAIClient()
@@ -139,7 +140,6 @@ def mock_openai_calls(
     if responses:
         mock_client.set_responses(responses)
 
-    provider.client = mock_client
     return mock_client
 
 

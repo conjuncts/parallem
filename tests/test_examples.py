@@ -12,7 +12,7 @@ import tempfile
 import pytest
 from parallellm.core.gateway import resume_directory
 from parallellm.testing.simple_mock import (
-    mock_openai_calls,
+    mock_openai_client,
     assert_call_made,
 )
 
@@ -21,9 +21,11 @@ from parallellm.testing.simple_mock import (
 def temp_orch(tmp_path):
     """Pytest fixture that provides a temporary ParalleLLM instance"""
     orch_dir = tmp_path / "sync"
+    mock_client = mock_openai_client()
     orch = resume_directory(
-        str(orch_dir), provider="openai", strategy="sync", client=None
+        str(orch_dir), provider="openai", strategy="sync", client=mock_client
     )
+    orch._mock_client = mock_client
     yield orch
 
 
@@ -31,9 +33,11 @@ def temp_orch(tmp_path):
 def concurrent_temp_orch(tmp_path):
     """Pytest fixture that provides a temporary concurrent ParalleLLM instance"""
     orch_dir = tmp_path / "concurrent"
+    mock_client = mock_openai_client(concurrent=True)
     orch = resume_directory(
-        str(orch_dir), provider="openai", strategy="concurrent", client=None
+        str(orch_dir), provider="openai", strategy="concurrent", client=mock_client
     )
+    orch._mock_client = mock_client
     yield orch
 
 
@@ -41,7 +45,8 @@ def test_simple_mock_responses(temp_orch):
     """Test with a simple list of mock responses"""
     responses = ["First response", "Second response", "Third response"]
 
-    mock_client = mock_openai_calls(temp_orch, responses=responses)
+    mock_client = temp_orch._mock_client
+    mock_client.set_responses(responses)
 
     with temp_orch.agent() as a:
         resp1 = a.ask_llm("First question")
@@ -62,7 +67,7 @@ def test_simple_mock_responses(temp_orch):
 
 def test_pattern_based_responses(temp_orch):
     """Test with pattern-based response mapping"""
-    mock_client = mock_openai_calls(temp_orch)
+    mock_client = temp_orch._mock_client
 
     # Add patterns using the convenient dict method
     mock_client.add_patterns(
@@ -93,7 +98,7 @@ def test_pattern_based_responses(temp_orch):
 
 def test_exact_instruction_matching(temp_orch):
     """Test with exact instruction matching"""
-    mock_client = mock_openai_calls(temp_orch)
+    mock_client = temp_orch._mock_client
 
     # Add exact matches using the dict method with literal=True
     mock_client.add_patterns(
@@ -117,7 +122,7 @@ def test_exact_instruction_matching(temp_orch):
 
 def test_mixed_pattern_methods(temp_orch):
     """Test mixing individual add_pattern and batch add_patterns"""
-    mock_client = mock_openai_calls(temp_orch)
+    mock_client = temp_orch._mock_client
 
     # Add batch patterns first
     mock_client.add_patterns(
@@ -148,7 +153,8 @@ def test_concurrent_provider(concurrent_temp_orch):
     """Test with concurrent provider"""
     responses = ["Async response 1", "Async response 2"]
 
-    mock_client = mock_openai_calls(concurrent_temp_orch, responses=responses)
+    mock_client = concurrent_temp_orch._mock_client
+    mock_client.set_responses(responses)
 
     with concurrent_temp_orch.agent() as a:
         resp1 = a.ask_llm("First async question")
@@ -186,10 +192,10 @@ Steelers
     ]
 
     with tempfile.TemporaryDirectory() as temp_dir:
+        mock_client = mock_openai_client(responses=responses)
         orch = resume_directory(
-            temp_dir, provider="openai", strategy="sync", client=None
+            temp_dir, provider="openai", strategy="sync", client=mock_client
         )
-        mock_client = mock_openai_calls(orch, responses=responses)
 
         with orch.agent() as a:
             # Get teams

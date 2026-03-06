@@ -75,7 +75,7 @@ def test_full_batch(
         strategy="batch",
         hash_by=["llm"],
         tweaks=pllm.types.MinorTweaks(batch_user_confirmation=False),
-        client=None,
+        client=False,  # Don't use real client
     ) as orch:
         # Mock the provider to prevent actual submission
         mock_submit = Mock(return_value=f"mock_batch_uuid_{provider}")
@@ -139,4 +139,6 @@ def test_full_batch(
             f.write("\n".join(generated_lines))
         with open(test_debug_dir / f"expected_{provider}.jsonl", "w") as f:
             f.write("\n".join(expected_lines))
-    assert not mismatch_in, f"Lines with mismatches: {mismatch_in}."
+    assert not mismatch_in, (
+        f"Lines with mismatches: {mismatch_in}. See tests/data/diffs/generated_{provider}.jsonl"
+    )

@@ -8,7 +8,7 @@ These tests validate complex scenarios that combine:
 
 import pytest
 from parallellm.core.gateway import resume_directory
-from parallellm.testing.simple_mock import mock_openai_calls
+from parallellm.testing.simple_mock import mock_openai_client
 
 
 def test_tournament(temp_integration_dir):
@@ -29,14 +29,13 @@ Diana
         "Alice",  # Alice vs Diana
     ]
 
+    mock_client = mock_openai_client(responses=responses)
     orch = resume_directory(
         temp_integration_dir / "checkpoint_tournament",
         provider="openai",
         strategy="sync",
-        client=None,
+        client=mock_client,
     )
-
-    mock_client = mock_openai_calls(orch, responses=responses)
     agent = orch.agent()
 
     # Phase 1: Get contestants (always runs)
@@ -79,47 +78,45 @@ def test_strategy_switching_persistence(temp_integration_dir):
     test_dir = temp_integration_dir / "strategy_switch"
 
     # Run 1: Use sync strategy
-    pllm_sync = resume_directory(
-        test_dir, provider="openai", strategy="sync", client=None
+    mock_client_sync = mock_openai_client(responses=["Sync response"])
+    orch_sync = resume_directory(
+        test_dir, provider="openai", strategy="sync", client=mock_client_sync
     )
 
-    mock_client_sync = mock_openai_calls(pllm_sync, responses=["Sync response"])
-
-    with pllm_sync.agent() as agent:
+    with orch_sync.agent() as agent:
         resp = agent.ask_llm("Test question")
         result = resp.resolve()
-        pllm_sync.userdata["sync_result"] = result
+        orch_sync.userdata["sync_result"] = result
 
-    pllm_sync.persist()
+    orch_sync.persist()
     assert len(mock_client_sync.calls) == 1
 
     # Run 2: Switch to async strategy, load same data
-    pllm_async = resume_directory(
+    mock_client_async = mock_openai_client(
+        responses=["Should not be called"], concurrent=True
+    )
+    orch_async = resume_directory(
         test_dir,
         provider="openai",
         strategy="concurrent",  # Different strategy
-        client=None,
-    )
-
-    mock_client_async = mock_openai_calls(
-        pllm_async, responses=["Should not be called"]
+        client=mock_client_async,
     )
 
     # Should be able to load data created with sync strategy
-    loaded_result = pllm_async.userdata["sync_result"]
+    loaded_result = orch_async.userdata["sync_result"]
     assert loaded_result == "Sync response"
 
     # Add new data with async strategy
-    with pllm_async.agent() as agent:
+    with orch_async.agent() as agent:
         new_resp = agent.ask_llm("Test question")  # Should hit cache
         assert new_resp.resolve() == "Sync response"  # Cached from sync run
 
-        pllm_async.userdata["concurrent_addition"] = "concurrent_data"
+        orch_async.userdata["concurrent_addition"] = "concurrent_data"
 
     # Verify no new API calls (cache hit)
     assert len(mock_client_async.calls) == 0
 
-    pllm_async.persist()
+    orch_async.persist()
 
 
 def test_complex_userdata_workflow(temp_integration_dir):
@@ -129,14 +126,13 @@ def test_complex_userdata_workflow(temp_integration_dir):
         "Final implementation plan ready",
     ]
 
+    mock_client = mock_openai_client(responses=responses)
     with resume_directory(
         temp_integration_dir / "complex_userdata",
         provider="openai",
         strategy="sync",
-        client=None,
+        client=mock_client,
     ) as orch:
-        mock_openai_calls(orch, responses=responses)
-
         with orch.agent("2") as agent2:
             schema = agent2.ask_llm("Design database schema")
             orch.userdata["technical/database_schema"] = schema.resolve()
@@ -151,38 +147,40 @@ def test_mixed_checkpoint_and_caching(temp_integration_dir):
     test_dir = temp_integration_dir / "checkpoint_cache"
 
     # First run: Create checkpoints and cache
-    pllm1 = resume_directory(test_dir, provider="openai", strategy="sync", client=None)
-
-    mock_client1 = mock_openai_calls(
-        pllm1, responses=["Initial data", "Checkpoint A result", "Checkpoint B result"]
+    mock_client1 = mock_openai_client(
+        responses=["Initial data", "Checkpoint A result", "Checkpoint B result"]
+    )
+    orch = resume_directory(
+        test_dir, provider="openai", strategy="sync", client=mock_client1
     )
 
-    agent1 = pllm1.agent()
+    agent1 = orch.agent()
 
     # Regular call (will be cached)
     with agent1:
         initial = agent1.ask_llm("Get initial data")
-        pllm1.userdata["initial"] = initial.resolve()
+        orch.userdata["initial"] = initial.resolve()
 
     # Checkpoint A
     with agent1:
         result_a = agent1.ask_llm("Process A")
-        pllm1.userdata["result_a"] = result_a.resolve()
+        orch.userdata["result_a"] = result_a.resolve()
 
     # Checkpoint B
     with agent1:
         result_b = agent1.ask_llm("Process B")
-        pllm1.userdata["result_b"] = result_b.resolve()
+        orch.userdata["result_b"] = result_b.resolve()
 
-    pllm1.persist()
+    orch.persist()
     assert len(mock_client1.calls) == 3
 
     # Second run: Should use cache for non-checkpoint calls
-    pllm2 = resume_directory(test_dir, provider="openai", strategy="sync", client=None)
+    mock_client2 = mock_openai_client(responses=["Should not be called"])
+    orch2 = resume_directory(
+        test_dir, provider="openai", strategy="sync", client=mock_client2
+    )
 
-    mock_client2 = mock_openai_calls(pllm2, responses=["Should not be called"])
-
-    agent2 = pllm2.agent()
+    agent2 = orch2.agent()
 
     # This should hit cache
     with agent2:
@@ -190,13 +188,13 @@ def test_mixed_checkpoint_and_caching(temp_integration_dir):
         assert initial2.resolve() == "Initial data"  # From cache
 
     # Load checkpoint data
-    assert pllm2.userdata["result_a"] == "Checkpoint A result"
-    assert pllm2.userdata["result_b"] == "Checkpoint B result"
+    assert orch2.userdata["result_a"] == "Checkpoint A result"
+    assert orch2.userdata["result_b"] == "Checkpoint B result"
 
     # Verify no new API calls
     assert len(mock_client2.calls) == 0
 
-    pllm2.persist()
+    orch2.persist()
 
 
 if __name__ == "__main__":
