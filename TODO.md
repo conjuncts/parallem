@@ -44,11 +44,11 @@ Input storage:
 
 - [ ] resolve_all
 - [ ] export_all
-- [ ] import batch.zip
 
 - [x] make arguments that work on all ask_llm calls (ie. save_input)
     - save_input
     - hash_by
+    - llm
     - already exists: ask_params
 - [ ] a ParquetWriter that is backed by a temp SQLite table
 - [ ] in MessageState, is there some more elegant way to only keep track of the deltas to the conversation?
@@ -86,7 +86,7 @@ Read
 - [x] dashboard should be placed at the 'pllm' level, not the agent level, to avoid spam
 - cancel (forget about) batch
 
-- output_text, 
+- output_text, final_answer
 - [x] rename async to concurrent
 
 - Manual MCP server
@@ -94,9 +94,8 @@ Read
 - dry run
 
 High priority:
-- [ ] batch bulk import/export
+- [ ] batch bulk import/export (batch.zip)
     - not sure it's possible
-- [ ] df export to parquet
-- [ ] add `llm` as a top-level optoin
+- [x] df export to parquet
 - [ ] clienet as a way to delegate
 - [ ] function calls can only return str

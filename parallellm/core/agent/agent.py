@@ -112,6 +112,8 @@ class AgentContext(Askable):
                 hash_by = v
             elif k == "save_input" and save_input is None:
                 save_input = v
+            elif k == "llm" and llm is None:
+                llm = v
 
         if llm is None:
             llm = self._orch._provider.get_default_llm_identity()

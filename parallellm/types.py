@@ -90,6 +90,7 @@ class AskParameters(TypedDict):
 
     hash_by: HashByOptions
     save_input: bool
+    llm: Union["LLMIdentity", str]
 
 
 BatchStatus = Literal["ready", "error"]

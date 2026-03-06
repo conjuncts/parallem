@@ -1,12 +1,12 @@
 import logging
-from typing import TYPE_CHECKING, Any, Literal, Optional
+from typing import TYPE_CHECKING, Any, Literal, Optional, Union
 
 from parallellm.core.agent.orchestrator import AgentOrchestrator
 from parallellm.core.file_manager import FileManager
 from parallellm.logging.dash_logger import DashboardLogger
 from parallellm.logging.fancy import get_parallellm_log_handler
 from parallellm.provider.multi.provider_selector import dynamic_select_provider
-from parallellm.types import HashByOptions, MinorTweaks
+from parallellm.types import AskParameters, HashByOptions, LLMIdentity, MinorTweaks
 
 if TYPE_CHECKING:
     from parallellm.core.throttler import Throttler
@@ -28,6 +28,7 @@ def resume_directory(
     client: Optional[Any] = None,
     hash_by: HashByOptions = None,
     save_input: Optional[bool] = None,
+    llm: Union[LLMIdentity, str, None] = None,
 ) -> AgentOrchestrator:
     """
     Resume an AgentOrchestrator from a previously saved directory.
@@ -44,12 +45,13 @@ def resume_directory(
     :param throttler: Throttler instance for rate limiting (default: None, no throttling)
     :param tweaks: MinorTweaks instance for fine-tuning behavior
     :param dashboard: If True, pretty prints sent requests in real time
+    :param client: Optional pre-initialized client instance (ie. OpenAI, Google, Anthropic, etc.)
 
     :param hash_by: By default, responses with identical content but different configs
         are considered equivalent. Specify additional parameters (like "llm")
         to differentiate.
     :param save_input: By default, input documents are not saved. Set to True to save them.
-    :param client: Optional pre-initialized client instance (ie. OpenAI, Google, Anthropic, etc.)
+    :param llm: By default, LLM identity to use for API calls.
 
     :return: Configured AgentOrchestrator instance
     :raises ValueError: If strategy is not supported
@@ -125,11 +127,13 @@ def resume_directory(
 
     logger.debug("Creating AgentOrchestrator")
 
-    ask_params = {}
+    ask_params: AskParameters = {}
     if hash_by is not None:
         ask_params["hash_by"] = hash_by
     if save_input is not None:
         ask_params["save_input"] = save_input
+    if llm is not None:
+        ask_params["llm"] = llm
     bm = AgentOrchestrator(
         file_manager=fm,
         backend=backend,
