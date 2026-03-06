@@ -4,7 +4,7 @@ from pydantic import BaseModel
 from dotenv import load_dotenv
 from PIL import Image
 
-import parallellm as plm
+import parallellm as pllm
 
 load_dotenv()
 
@@ -31,7 +31,7 @@ tools = [
     }
 ]
 
-with plm.resume_directory(
+with pllm.resume_directory(
     ".pllm/example/batch",
     provider="openai",
     strategy="batch",
@@ -45,7 +45,7 @@ with plm.resume_directory(
         resp2 = agt.ask_llm(
             "In 1 sentence, what is AAPL's current price?",
             # llm="claude-haiku-4-5-20251001",
-            tools=[plm.tools.WebSearchTool()],
+            tools=[pllm.tools.WebSearchTool()],
         )
         resp3 = agt.ask_llm(
             "How many files are in ~/examples? Give the final answer in words.",

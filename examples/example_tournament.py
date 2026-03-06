@@ -1,10 +1,10 @@
 import logging
 from dotenv import load_dotenv
-import parallellm as plm
+import parallellm as pllm
 
 load_dotenv()
 
-orch = plm.resume_directory(
+orch = pllm.resume_directory(
     ".pllm/example/nfl",
     provider="openai",
     strategy="sync",
@@ -40,4 +40,4 @@ with orch.agent() as agt:
     agt.print("Descriptions:", [x[:70] for x in game_descriptions])
 
 
-plm.persist()
+pllm.persist()

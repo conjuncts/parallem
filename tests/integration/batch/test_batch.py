@@ -19,7 +19,7 @@ from pydantic import BaseModel
 from PIL import Image
 from unittest.mock import Mock
 
-import parallellm as plm
+import parallellm as pllm
 from tests.integration.batch.data import data_batch_full_openai, data_batch_full_google
 
 
@@ -92,12 +92,12 @@ def normalize_batch_line(line_dict, provider="openai"):
 def test_full_batch_openai(temp_integration_dir, sample_tools, sample_image):
     """Test full batch file generation for OpenAI with all features"""
 
-    with plm.resume_directory(
+    with pllm.resume_directory(
         temp_integration_dir / "full_batch_openai",
         provider="openai",
         strategy="batch",
         hash_by=["llm"],
-        tweaks=plm.types.MinorTweaks(batch_user_confirmation=False),
+        tweaks=pllm.types.MinorTweaks(batch_user_confirmation=False),
     ) as orch:
         # Mock the provider to prevent actual submission to OpenAI
         mock_submit = Mock(return_value="mock_batch_uuid_123")
@@ -110,7 +110,7 @@ def test_full_batch_openai(temp_integration_dir, sample_tools, sample_image):
             # Test 2: Web search tool
             agt.ask_llm(
                 "In 1 sentence, what is AAPL's current price?",
-                tools=[plm.tools.WebSearchTool()],
+                tools=[pllm.tools.WebSearchTool()],
             )
 
             # Test 3: Custom function tool
@@ -209,12 +209,12 @@ def test_full_batch_openai(temp_integration_dir, sample_tools, sample_image):
 def test_full_batch_google(temp_integration_dir, sample_tools, sample_image):
     """Test full batch file generation for Google with all features"""
 
-    with plm.resume_directory(
+    with pllm.resume_directory(
         temp_integration_dir / "full_batch_google",
         provider="google",
         strategy="batch",
         hash_by=["llm"],
-        tweaks=plm.types.MinorTweaks(batch_user_confirmation=False),
+        tweaks=pllm.types.MinorTweaks(batch_user_confirmation=False),
     ) as orch:
         # Mock the provider to prevent actual submission to Google
         mock_submit = Mock(return_value="mock_batch_uuid_456")
@@ -227,7 +227,7 @@ def test_full_batch_google(temp_integration_dir, sample_tools, sample_image):
             # Test 2: Web search tool (Google Search)
             agt.ask_llm(
                 "In 1 sentence, what is AAPL's current price?",
-                tools=[plm.tools.WebSearchTool()],
+                tools=[pllm.tools.WebSearchTool()],
             )
 
             # Test 3: Custom function tool

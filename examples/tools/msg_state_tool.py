@@ -6,7 +6,7 @@ to conveniently store conversation history.
 import logging
 
 from dotenv import load_dotenv
-import parallellm as plm
+import parallellm as pllm
 
 load_dotenv()
 
@@ -34,7 +34,7 @@ def ls_tool(directory) -> str:
     return f"There are 4 files in {directory}."
 
 
-with plm.resume_directory(
+with pllm.resume_directory(
     ".pllm/simplest-tool",
     provider="openai",
     strategy="sync",

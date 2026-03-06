@@ -1,7 +1,7 @@
 import logging
 from dotenv import load_dotenv
 
-import parallellm as plm
+import parallellm as pllm
 
 load_dotenv()
 
@@ -21,7 +21,7 @@ def divide(a: int, b: int) -> float:
     return str(a / b)
 
 
-with plm.resume_directory(
+with pllm.resume_directory(
     ".pllm/simplest-tool",
     provider="google",
     strategy="sync",
@@ -33,13 +33,14 @@ with plm.resume_directory(
     with orch.agent() as agt:
         # See docs on the MessageState abstraction.
         convo = agt.get_msg_state()
-        resp = convo.ask_llm(
+        last_msg = convo.ask_llm(
             "Add 3 and 4.",
-            tools=plm.to_tool_schema([multiply, add, divide]),
+            tools=pllm.to_tool_schema([multiply, add, divide]),
         )
 
-        convo.ask_functions(multiply=multiply, add=add, divide=divide)
-        convo.ask_llm()
-        agt.print(convo.resolve())
+        while last_msg.resolve_function_calls():
+            convo.ask_functions(multiply=multiply, add=add, divide=divide)
+            last_msg = convo.ask_llm()
+            agt.print(convo.resolve())
 
         # ['Add 3 and 4.', '', FunctionCallOutput(name=add, call_id=, content=7...), '3 + 4 = 7']

@@ -376,6 +376,10 @@ class LLMResponse:
         """
         return self.value
 
+    @property
+    def final_answer(self) -> str:
+        return self.resolve()
+
     def resolve_json(self) -> Optional[dict]:
         """
         Resolve the response and automatically convert it to JSON. Returns None if invalid.

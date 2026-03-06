@@ -1,9 +1,9 @@
 from dotenv import load_dotenv
-import parallellm as plm
+import parallellm as pllm
 
 load_dotenv()
 
-with plm.resume_directory(
+with pllm.resume_directory(
     ".pllm/simple/mcp",
     strategy="sync",
     provider="openai",
@@ -18,7 +18,7 @@ with plm.resume_directory(
         resp = agt.ask_llm(
             "Roll 2d4+1.",
             tools=[
-                plm.tools.MCPTool(
+                pllm.tools.MCPTool(
                     server_label="dmcp",
                     server_description="A Dungeons and Dragons MCP server to assist with dice rolling.",
                     server_url="https://dmcp-server.deno.dev/sse",
