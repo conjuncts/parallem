@@ -144,7 +144,7 @@ class AgentContext(Askable):
 
         if save_input:
             msg_hashes = [compute_hash(None, [msg]) for msg in resolved_docs]
-            self._orch._backend._get_datastore().store_doc_hash(
+            self._orch._backend._get_datastore().store_input(
                 hashed,
                 instructions=instructions,
                 msgs=documents,

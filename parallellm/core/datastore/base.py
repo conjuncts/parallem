@@ -75,9 +75,9 @@ class Datastore(ABC):
         """
         raise NotImplementedError
 
-    # === begin methods ===
+    # === begin SaveInput methods ===
 
-    def store_doc_hash(
+    def store_input(
         self,
         doc_hash: str,
         *,

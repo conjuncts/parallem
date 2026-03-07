@@ -1,6 +1,6 @@
 import sqlite3
 from pathlib import Path
-from typing import Generator
+from typing import Generator, Literal
 
 import polars as pl
 
@@ -28,15 +28,27 @@ def sqlite_to_df(path_to_db: Path) -> Generator[tuple[str, pl.DataFrame], None, 
     conn.close()
 
 
-def export_sqlite_to_parquet(path_to_db: Path, folder_for_parquet: Path):
+def export_sqlite_to_folder(
+    path_to_db: Path,
+    folder_for_parquet: Path,
+    *,
+    filetype: Literal["parquet", "csv", "tsv"] = "parquet",
+):
     """
     Turns a SQLite database into parquet files (one per table).
 
     :param path_to_db: Path to the SQLite database file.
     :param folder_for_parquet: Folder where parquet files will be written.
+    :param filetype: The type of file to export to.
     """
     folder_for_parquet.mkdir(parents=True, exist_ok=True)
 
     for table_name, df in sqlite_to_df(path_to_db):
-        parquet_file_path = folder_for_parquet / f"{table_name}.parquet"
-        df.write_parquet(parquet_file_path)
+        fpath = folder_for_parquet / f"{table_name}.{filetype}"
+
+        if filetype == "parquet":
+            df.write_parquet(fpath)
+        elif filetype == "csv":
+            df.write_csv(fpath)
+        elif filetype == "tsv":
+            df.write_csv(fpath, separator="\t")

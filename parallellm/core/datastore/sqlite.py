@@ -4,7 +4,7 @@ import threading
 import polars as pl
 from typing import List, Optional, Union
 
-from parallellm.core.cast.doc_to_str import cast_document_to_str
+from parallellm.core.cast.doc_to_str import cast_document_to_bytes
 from parallellm.core.cast.fix_tools import dump_function_calls, load_function_calls
 from parallellm.core.datastore.base import Datastore
 from parallellm.core.datastore.sql_migrate import (
@@ -53,8 +53,8 @@ class SQLiteDatastore(Datastore):
             },
         )
 
-        self.doc_hash_table = ParquetUniqueWriter(
-            self.file_manager.path_doc_hash_table(),
+        self.history_table = ParquetUniqueWriter(
+            self.file_manager.path_history_table(),
             schema={
                 "doc_hash": pl.Utf8,
                 "instructions": pl.Utf8,
@@ -64,11 +64,11 @@ class SQLiteDatastore(Datastore):
             unique_column_name="doc_hash",
         )
 
-        self.msg_hash_table = ParquetUniqueWriter(
-            self.file_manager.path_msg_hash_table(),
+        self.msg_content_table = ParquetUniqueWriter(
+            self.file_manager.path_msg_content_table(),
             schema={
                 "msg_hash": pl.Utf8,
-                "msg_value": pl.Utf8,
+                "msg_value": pl.Binary,
                 "msg_type": pl.Utf8,
                 "msg_extra": pl.Utf8,
             },
@@ -298,8 +298,8 @@ class SQLiteDatastore(Datastore):
         Also, OpenAI metadata is transferred from SQLite to Parquet files
         for better storage efficiency.
         """
-        self.doc_hash_table.commit(mode="unique", on="doc_hash")
-        self.msg_hash_table.commit(mode="unique", on="msg_hash")
+        self.history_table.commit(mode="unique", on="doc_hash")
+        self.msg_content_table.commit(mode="unique", on="msg_hash")
 
         # Transfer all metadata to parquet
         if hasattr(self, "_local") and hasattr(self._local, "connections"):
@@ -654,7 +654,7 @@ class SQLiteDatastore(Datastore):
             conn.rollback()
             raise RuntimeError(f"SQLite error while storing error: {e}")
 
-    def store_doc_hash(
+    def store_input(
         self,
         doc_hash: str,
         *,
@@ -663,7 +663,7 @@ class SQLiteDatastore(Datastore):
         msg_hashes: list[str],
         salt_terms: list[str],
     ):
-        self.doc_hash_table.log_kv(
+        self.history_table.log_kv(
             doc_hash,
             {
                 "instructions": instructions,
@@ -678,10 +678,10 @@ class SQLiteDatastore(Datastore):
             )
 
         for msg, msg_hash in zip(msgs, msg_hashes):
-            val = cast_document_to_str(msg)
+            val = cast_document_to_bytes(msg)
             if val is not None:
                 content, msg_type, msg_extra = val
-                self.msg_hash_table.log_kv(
+                self.msg_content_table.log_kv(
                     msg_hash,
                     {
                         "msg_value": content,

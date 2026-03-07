@@ -211,11 +211,21 @@ class FileManager:
         folder.mkdir(parents=True, exist_ok=True)
         return folder
 
-    def path_doc_hash_table(self) -> Path:
-        return self.path_datastore() / "doc_hash_table.parquet"
+    def path_inputs(self) -> Path:
+        """
+        Get the base inputs directory.
 
-    def path_msg_hash_table(self) -> Path:
-        return self.path_datastore() / "msg_hash_table.parquet"
+        :returns: Path to the inputs directory
+        """
+        inputs_dir = self.directory / "inputs"
+        inputs_dir.mkdir(parents=True, exist_ok=True)
+        return inputs_dir
+
+    def path_history_table(self) -> Path:
+        return self.path_inputs() / "history_table.parquet"
+
+    def path_msg_content_table(self) -> Path:
+        return self.path_inputs() / "msg_content_table.parquet"
 
     def path_batch_in(self) -> Path:
         """

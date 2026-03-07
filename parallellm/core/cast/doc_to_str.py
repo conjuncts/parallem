@@ -1,4 +1,5 @@
 from typing import Union
+from io import BytesIO
 from parallellm.types import (
     DocumentType,
     LLMDocument,
@@ -7,28 +8,34 @@ from parallellm.types import (
     LLMResponse,
     to_serial_id,
 )
+from parallellm.utils.image import is_image
 
 
-def cast_document_to_str(
+def cast_document_to_bytes(
     doc: Union[LLMDocument, LLMResponse],
-) -> tuple[str, DocumentType, str]:
+) -> tuple[bytes, DocumentType, str]:
     """
-    Convert Document to string, for purpose of serialization.
+    Convert Document to bytes, for purpose of serialization.
 
     :param doc: The LLMDocument to cast
-    :return: Tuple of (doc_value: str, doc_type: str, doc_extra: str)
+    :return: Tuple of (doc_value: bytes, doc_type: str, doc_extra: str)
     """
     if isinstance(doc, str):
-        return doc, "text", None
+        return doc.encode("utf-8"), "text", None
     elif isinstance(doc, FunctionCallRequest):
-        return to_serial_id(doc.call_id), "function_call", None
+        return to_serial_id(doc.call_id).encode("utf-8"), "function_call", None
     elif isinstance(doc, FunctionCallOutput):
-        return doc.content, "function_call_output", doc.call_id
+        return doc.content.encode("utf-8"), "function_call_output", doc.call_id
     elif isinstance(doc, tuple):
-        return doc[1], "text", doc[0]
+        return doc[1].encode("utf-8"), "text", doc[0]
+    elif is_image(doc):
+        # Dump image as bytes
+        buffered = BytesIO()
+        doc.save(buffered, format=doc.format or "PNG")
+        return buffered.getvalue(), "image", None
     elif isinstance(doc, LLMResponse):
         # Serialize based on LLMResponse ID rather than content
         serial_id = to_serial_id(doc.call_id)
-        return serial_id, "llm_response", None
+        return serial_id.encode("utf-8"), "llm_response", None
     else:
         raise NotImplementedError(f"Unknown document type: {type(doc)}")

@@ -1,7 +1,7 @@
 ParquetWriter
 ParquetUniqueWriter
-cast_document_to_str
-store_doc_hash
+cast_document_to_bytes
+store_input
 batch(tools, structured_output)(gemini, openai)
 images
 
