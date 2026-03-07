@@ -1,9 +1,37 @@
+[build-system]
+requires = ["flit_core >=3.2,<4"]
+build-backend = "flit_core.buildapi"
+
 [project]
 name = "pipelinellm"
 version = "0.0.1"
-description = "Beta prerelease - do not use."
+description = "A library for building LLM pipelines with built-in support for batch processing and multi-provider compatibility. Beta prerelease - use at your own risk."
 readme = "README.md"
 requires-python = ">=3.10"
+authors = [
+    {name = "conjuncts"}
+]
+keywords = [
+    "llm",
+    "openai",
+    "anthropic",
+    "google",
+    "batch",
+    "pipeline",
+    "ai",
+    "machine-learning"
+]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+]
 dependencies = [
     "colorama>=0.4.6",
     "openai>=1.107.2",
@@ -14,9 +42,15 @@ dependencies = [
 [tool.setuptools.packages.find]
 include = ["pipelinellm*"]
 
+[project.urls]
+Homepage = "https://github.com/conjuncts/parallellm"
+Repository = "https://github.com/conjuncts/parallellm"
+Issues = "https://github.com/conjuncts/parallellm/issues"
+
 [dependency-groups]
 dev = [
     "anthropic>=0.69.0",
+    "flit>=3.12.0",
     "google-genai>=1.41.0",
     "pandas>=2.3.2",
     "pyarrow>=21.0.0",
@@ -25,6 +59,31 @@ dev = [
     "python-dotenv>=1.1.1",
     "tabulate>=0.9.0",
 ]
+
+[tool.flit.sdist]
+include = ["pipelinellm/**/*.py", "README.md", "pipelinellm/py.typed"]
+exclude = [
+    "*.tsv",
+    "*.yaml",
+    "*.zip",
+    "CHANGELOG.md",
+    "philosophy.md",
+    "TODO.md",
+    "comparison.md",
+    "data/**/*",
+    "dev.md",
+    "docs/**/*",
+    "notebooks/**/*",
+    "examples/**/*",
+    "experiments/**/*",
+    "reading_list.md",
+    "samples/**/*",
+    "tests/**/*",
+    "uv.lock",
+    ".github",
+    ".git*",
+]
+
 
 [tool.ruff]
 lint.ignore = ["E261"]
