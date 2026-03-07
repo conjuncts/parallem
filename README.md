@@ -1,4 +1,4 @@
-# Parallellm
+# pipelinellm
 
 (Parallel Language Models) *p*-LLM
 

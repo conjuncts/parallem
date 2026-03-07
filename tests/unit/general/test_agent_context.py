@@ -10,10 +10,10 @@ Tests the core agent functionality including:
 
 import pytest
 from unittest.mock import patch
-from parallellm.core.agent.agent import AgentContext
-from parallellm.core.exception import NotAvailable
-from parallellm.core.response import ReadyLLMResponse, PendingLLMResponse
-from parallellm.types import ParsedResponse
+from pipelinellm.core.agent.agent import AgentContext
+from pipelinellm.core.exception import NotAvailable
+from pipelinellm.core.response import ReadyLLMResponse, PendingLLMResponse
+from pipelinellm.types import ParsedResponse
 
 
 class TestAgentContextBasics:
@@ -27,8 +27,8 @@ class TestAgentContextBasics:
         with agent:
             pass
 
-    def test_exit_with_parallellm_exceptions(self, mock_orchestrator):
-        """Test __exit__ handles ParalleLLM exceptions correctly"""
+    def test_exit_with_pipelinellm_exceptions(self, mock_orchestrator):
+        """Test __exit__ handles PipelineLLM exceptions correctly"""
         agent = AgentContext("test_agent", mock_orchestrator)
 
         suppressed_exceptions = [NotAvailable]
@@ -45,7 +45,7 @@ class TestAgentContextBasics:
         # Other exceptions should not be suppressed
         with pytest.raises(ValueError):
             with agent:
-                raise ValueError("non-ParalleLLM exception")
+                raise ValueError("non-PipelineLLM exception")
 
         with pytest.raises(AssertionError):
             with agent:
@@ -117,7 +117,7 @@ class TestAskLLMMethod:
             assert call_id["session_id"] == 1
             assert call_id["meta"]["provider_type"] == "openai"
 
-    @patch("parallellm.core.agent.agent.compute_hash")
+    @patch("pipelinellm.core.agent.agent.compute_hash")
     def test_ask_llm_hash_computation(self, mock_compute_hash, mock_orchestrator):
         """Test that ask_llm computes hashes correctly"""
         mock_compute_hash.return_value = "test_hash_123"

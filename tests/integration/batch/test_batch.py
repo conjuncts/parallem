@@ -19,7 +19,7 @@ from pydantic import BaseModel
 from PIL import Image
 from unittest.mock import Mock
 
-import parallellm as pllm
+import pipelinellm as pllm
 import polars as pl
 from tests.integration.batch.data import data_batch_full_openai, data_batch_full_google
 

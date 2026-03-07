@@ -1,7 +1,7 @@
 import logging
 import random
 from dotenv import load_dotenv
-import parallellm as pllm
+import pipelinellm as pllm
 
 load_dotenv()
 
@@ -17,7 +17,7 @@ orch = pllm.resume_directory(
 # However, some code will be non-deterministic (ie. API calls, random)
 # or might take a really long time, leading to different outcomes.
 
-# In such a case, ParalleLLM introduces "message state"
+# In such a case, PipelineLLM introduces "message state"
 agent = orch.agent()
 
 with agent:

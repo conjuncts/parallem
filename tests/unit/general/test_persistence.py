@@ -14,11 +14,11 @@ import tempfile
 import json
 from pathlib import Path
 from unittest.mock import Mock
-from parallellm.core.file_manager import FileManager
-from parallellm.core.agent.orchestrator import AgentOrchestrator
-from parallellm.core.response import ReadyLLMResponse, PendingLLMResponse
-from parallellm.testing.simple_backend import MockBackend
-from parallellm.types import (
+from pipelinellm.core.file_manager import FileManager
+from pipelinellm.core.agent.orchestrator import AgentOrchestrator
+from pipelinellm.core.response import ReadyLLMResponse, PendingLLMResponse
+from pipelinellm.testing.simple_backend import MockBackend
+from pipelinellm.types import (
     ParsedResponse,
 )
 

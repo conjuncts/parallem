@@ -1,17 +1,17 @@
 """
-Example usage of the simple ParalleLLM testing utilities
+Example usage of the simple PipelineLLM testing utilities
 
 This module demonstrates how to use the simple mock utilities
-to write effective tests for code that uses ParalleLLM with pytest.
+to write effective tests for code that uses PipelineLLM with pytest.
 
-For more comprehensive examples testing real ParalleLLM functionality:
+For more comprehensive examples testing real PipelineLLM functionality:
 - test_tournament_examples.py: Tests tournament logic, persistence, and caching
 """
 
 import tempfile
 import pytest
-from parallellm.core.gateway import resume_directory
-from parallellm.testing.simple_mock import (
+from pipelinellm.core.gateway import resume_directory
+from pipelinellm.testing.simple_mock import (
     mock_openai_client,
     assert_call_made,
 )
@@ -19,7 +19,7 @@ from parallellm.testing.simple_mock import (
 
 @pytest.fixture
 def temp_orch(tmp_path):
-    """Pytest fixture that provides a temporary ParalleLLM instance"""
+    """Pytest fixture that provides a temporary PipelineLLM instance"""
     orch_dir = tmp_path / "sync"
     mock_client = mock_openai_client()
     orch = resume_directory(
@@ -31,7 +31,7 @@ def temp_orch(tmp_path):
 
 @pytest.fixture
 def concurrent_temp_orch(tmp_path):
-    """Pytest fixture that provides a temporary concurrent ParalleLLM instance"""
+    """Pytest fixture that provides a temporary concurrent PipelineLLM instance"""
     orch_dir = tmp_path / "concurrent"
     mock_client = mock_openai_client(concurrent=True)
     orch = resume_directory(

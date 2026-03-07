@@ -10,14 +10,14 @@ Tests the OpenAI provider functionality including:
 """
 
 import pytest
-from parallellm.provider.openai.sdk import (
+from pipelinellm.provider.openai.sdk import (
     SyncOpenAIProvider,
     ConcurrentOpenAIProvider,
 )
-from parallellm.testing.simple_backend import MockSyncBackend, MockConcurrentBackend
-from parallellm.core.response import PendingLLMResponse, ReadyLLMResponse
-from parallellm.types import LLMIdentity
-from parallellm.testing.simple_mock import MockOpenAIClient, MockConcurrentOpenAIClient
+from pipelinellm.testing.simple_backend import MockSyncBackend, MockConcurrentBackend
+from pipelinellm.core.response import PendingLLMResponse, ReadyLLMResponse
+from pipelinellm.types import LLMIdentity
+from pipelinellm.testing.simple_mock import MockOpenAIClient, MockConcurrentOpenAIClient
 from PIL import Image
 
 

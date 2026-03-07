@@ -1,6 +1,6 @@
-Underlying parallellm are 4 design philosophies:
+Underlying pipelinellm are 4 design philosophies:
 
-1. **Batch first.** parallellm is great for when a response is not immediately needed; or OLAP workflows. 
+1. **Batch first.** pipelinellm is great for when a response is not immediately needed; or OLAP workflows. 
 
 2. **Sync and batch interchangeable**. By instantly switching from batch to sync, you can debug batch pipelines and allow rapid prototyping without having to wait. Switching from sync to batch, you effortlessly scale up to hundreds of thousands of calls.
 

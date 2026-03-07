@@ -14,10 +14,10 @@ import pytest
 import tempfile
 import asyncio
 from pathlib import Path
-from parallellm.core.backend.concurrent_backend import ConcurrentBackend
-from parallellm.core.backend.sync_backend import SyncBackend
-from parallellm.core.file_manager import FileManager
-from parallellm.types import ParsedResponse, to_serial_id
+from pipelinellm.core.backend.concurrent_backend import ConcurrentBackend
+from pipelinellm.core.backend.sync_backend import SyncBackend
+from pipelinellm.core.file_manager import FileManager
+from pipelinellm.types import ParsedResponse, to_serial_id
 
 
 pytest.skip("Takes ~1s", allow_module_level=True)

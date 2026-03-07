@@ -4,7 +4,7 @@ from pydantic import BaseModel
 from dotenv import load_dotenv
 from PIL import Image
 
-import parallellm as pllm
+import pipelinellm as pllm
 
 load_dotenv()
 

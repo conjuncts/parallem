@@ -568,7 +568,7 @@ wheels = [
 ]
 
 [[package]]
-name = "parallellm"
+name = "pipelinellm"
 version = "0.1.0"
 source = { virtual = "." }
 dependencies = [

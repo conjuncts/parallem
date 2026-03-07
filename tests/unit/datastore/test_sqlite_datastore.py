@@ -10,9 +10,9 @@ from pathlib import Path
 from PIL import Image
 from unittest.mock import patch
 
-from parallellm.core.datastore.sqlite import SQLiteDatastore
-from parallellm.core.file_manager import FileManager
-from parallellm.types import (
+from pipelinellm.core.datastore.sqlite import SQLiteDatastore
+from pipelinellm.core.file_manager import FileManager
+from pipelinellm.types import (
     CallIdentifier,
     ParsedResponse,
     BatchIdentifier,
@@ -431,7 +431,7 @@ class TestSQLiteExtras:
             temp_datastore.store(generic_call_id, parsed_response)
 
     @pytest.mark.skip("Fails but idk why")
-    @patch("parallellm.core.sink.sequester.sequester_openai_metadata")
+    @patch("pipelinellm.core.sink.sequester.sequester_openai_metadata")
     def test_metadata_transfer_on_persist(
         self, mock_sequester, temp_datastore, generic_call_id
     ):

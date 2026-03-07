@@ -2,7 +2,7 @@ import logging
 import time
 from dotenv import load_dotenv
 
-import parallellm as pllm
+import pipelinellm as pllm
 
 load_dotenv()
 

@@ -12,10 +12,10 @@ import pytest
 from unittest.mock import patch
 import hashlib
 from PIL import Image
-from parallellm.core.hash import compute_hash
-from parallellm.logging.dash_logger import DashboardLogger, HashStatus
-from parallellm.core.calls import _call_matches
-from parallellm.types import CallIdentifier
+from pipelinellm.core.hash import compute_hash
+from pipelinellm.logging.dash_logger import DashboardLogger, HashStatus
+from pipelinellm.core.calls import _call_matches
+from pipelinellm.types import CallIdentifier
 
 
 class TestComputeHash:
