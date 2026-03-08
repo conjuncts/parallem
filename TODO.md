@@ -98,4 +98,4 @@ High priority:
     - not sure it's possible
 - [x] df export to parquet
 - [ ] clienet as a way to delegate
-- [ ] function calls can only return str
+- [x] function calls can only return str

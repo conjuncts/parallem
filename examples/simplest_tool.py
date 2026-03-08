@@ -8,17 +8,17 @@ load_dotenv()
 
 def multiply(a: int, b: int) -> int:
     """Calculates a times b."""
-    return str(a * b)
+    return a * b
 
 
 def add(a: int, b: int) -> int:
     """Calculates a plus b."""
-    return str(a + b)
+    return a + b
 
 
 def divide(a: int, b: int) -> float:
     """Calculates a divided by b."""
-    return str(a / b)
+    return a / b
 
 
 with pllm.resume_directory(

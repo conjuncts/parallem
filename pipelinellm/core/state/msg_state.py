@@ -243,7 +243,9 @@ class MessageState(UserList[Union[LLMDocument, LLMResponse]], Askable):
                 # Execute the function
                 result = callme(**fc.args)
                 self.append(
-                    FunctionCallOutput(content=result, name=fc.name, call_id=fc.call_id)
+                    FunctionCallOutput(
+                        content=str(result), name=fc.name, call_id=fc.call_id
+                    )
                 )
 
     def resolve(self) -> List[LLMDocument]:

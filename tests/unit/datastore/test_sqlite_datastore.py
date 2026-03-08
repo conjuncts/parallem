@@ -759,7 +759,7 @@ class TestSQLiteStoreInput:
         assert row["msg_hashes"] == []
 
         # Msg content table should be missing
-        temp_datastore.file_manager.path_msg_content_table().exists() == False
+        assert not temp_datastore.file_manager.path_msg_content_table().exists()
 
     def test_store_input_empty_salt_terms(self, temp_datastore):
         """Test storing with empty salt_terms"""
