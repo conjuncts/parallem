@@ -197,13 +197,14 @@ class MessageState(UserList[Union[LLMDocument, LLMResponse]], Askable):
 
     def ask_functions(
         self,
+        response: Optional[LLMResponse] = None,
         functions: Dict[str, Callable] = None,
         *,
         if_func_not_exist: Union[str, Exception] = ValueError,
         **kwargs,
-    ) -> None:
+    ) -> List[FunctionCallOutput]:
         """
-        If the agent requested any function calls, then this
+        If the agent requested any function calls, then this method actually calls user-defined functions.
 
         Functions should be provided as kwargs.
 
@@ -214,39 +215,22 @@ class MessageState(UserList[Union[LLMDocument, LLMResponse]], Askable):
             conversation as an error message but allowed to continue.
             Default: ValueError.
         """
-        if functions is None:
-            functions = {}
-        functions.update(kwargs)
-
-        # Obtain last message from LLM; check if it made any function calls
-        if len(self) <= 0:
-            # Nothing to do??
-            return
-
-        last_msg = self[-1]
-        if isinstance(last_msg, LLMResponse):
-            fcs = last_msg.resolve_function_calls()
-            for fc in fcs:
-                callme = functions.get(fc.name)
-                if callme is None:
-                    # Function not found
-                    if if_func_not_exist is ValueError:
-                        raise ValueError(
-                            f"LLM asked for {fc.name}, but it was not provided."
-                        )
-                    if isinstance(if_func_not_exist, Exception):
-                        raise if_func_not_exist
-                    else:
-                        self.append(if_func_not_exist)
-                        continue
-
-                # Execute the function
-                result = callme(**fc.args)
-                self.append(
-                    FunctionCallOutput(
-                        content=str(result), name=fc.name, call_id=fc.call_id
-                    )
-                )
+        if response is None:
+            # Obtain last message from LLM; check if it made any function calls
+            if len(self) <= 0:
+                # Nothing to do??
+                return
+            last_msg = self[-1]
+            if not isinstance(last_msg, LLMResponse):
+                # Nothing to do
+                return
+        else:
+            last_msg = response
+        fc_outs = self._true_agent.ask_functions(
+            last_msg, functions=functions, if_func_not_exist=if_func_not_exist, **kwargs
+        )
+        self.extend(fc_outs)
+        return fc_outs
 
     def resolve(self) -> List[LLMDocument]:
         """Helper to make sure that all messages have been resolved."""

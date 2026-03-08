@@ -1,7 +1,8 @@
 from abc import ABC
-from typing import TYPE_CHECKING, List, Optional, Union
+from typing import TYPE_CHECKING, Callable, Dict, List, Optional, Union
 
 from pipelinellm.types import (
+    FunctionCallOutput,
     HashByOptions,
     LLMDocument,
     LLMIdentity,
@@ -59,5 +60,27 @@ class Askable(ABC):
         :param save_input: Whether to save input documents. Default None: no saving.
         :returns: A LLMResponse. The value is **lazy loaded**: for best efficiency,
             it should not be resolved until you actually need it.
+        """
+        raise NotImplementedError()
+
+    def ask_functions(
+        self,
+        response: Optional[LLMResponse] = None,
+        functions: Dict[str, Callable] = None,
+        *,
+        if_func_not_exist: Union[str, Exception] = ValueError,
+        **kwargs,
+    ) -> List[FunctionCallOutput]:
+        """
+        If the agent requested any function calls, then this method actually calls user-defined functions.
+
+        Functions should be provided as kwargs.
+
+        :param functions: Available functions to the model. Mapping from function name to callable.
+        :param kwargs: Any additional functions will be added to "functions".
+        :param if_func_not_exist: What to do if a function is not found.
+            If an Exception is passed, it will be raised. If a string is passed, it will be added to the
+            conversation as an error message but allowed to continue.
+            Default: ValueError.
         """
         raise NotImplementedError()

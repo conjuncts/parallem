@@ -1,4 +1,4 @@
-from typing import TYPE_CHECKING, List, Optional, Union
+from typing import TYPE_CHECKING, Callable, Dict, List, Optional, Union
 from pipelinellm.core.ask import Askable
 from pipelinellm.core.cast.fix_docs import cast_documents, reduce_to_list
 from pipelinellm.core.exception import NotAvailable
@@ -12,6 +12,7 @@ from pipelinellm.types import (
     AskParameters,
     CallIdentifier,
     CommonQueryParameters,
+    FunctionCallOutput,
     HashByOptions,
     LLMDocument,
     LLMIdentity,
@@ -197,6 +198,44 @@ class AgentContext(Askable):
             call_id=call_id,
             **kwargs,
         )
+
+    def ask_functions(
+        self,
+        response: LLMResponse,
+        functions: Dict[str, Callable] = None,
+        *,
+        if_func_not_exist: Union[str, Exception] = ValueError,
+        **kwargs,
+    ) -> List[FunctionCallOutput]:
+        if functions is None:
+            functions = {}
+        functions.update(kwargs)
+
+        # Check if response has function calls. If so, delegate to user-defined functions.
+        fcs = response.resolve_function_calls()
+        fc_outs = []
+        for fc in fcs:
+            callme = functions.get(fc.name)
+            if callme is None:
+                # Function not found
+                if if_func_not_exist is ValueError:
+                    raise ValueError(
+                        f"LLM asked for {fc.name}, but it was not provided."
+                    )
+                if isinstance(if_func_not_exist, Exception):
+                    raise if_func_not_exist
+                else:
+                    fc_outs.append(if_func_not_exist)
+                    continue
+
+            # Execute the function
+            result = callme(**fc.args)
+            fc_outs.append(
+                FunctionCallOutput(
+                    content=str(result), name=fc.name, call_id=fc.call_id
+                )
+            )
+        return fc_outs
 
     def get_msg_state(self, continuation=False) -> MessageState:
         """

@@ -1,21 +1,16 @@
-import logging
 from dotenv import load_dotenv
 import pipelinellm as pllm
 
-load_dotenv()
+load_dotenv()  # Put your OPENAI_API_KEY in the .env file
 
 with pllm.resume_directory(
     ".pllm/simplest",
     provider="openai",
     strategy="sync",
-    log_level=logging.DEBUG,
     dashboard=True,
     # ignore_cache=True,
 ) as orch:
     with orch.agent() as agt:
         resp = agt.ask_llm("Please name a power of 3.", hash_by=["llm"])
 
-        agt.print(resp.resolve())
-
-
-# pllm.persist()
+        agt.print(resp.final_answer)

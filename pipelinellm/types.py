@@ -379,6 +379,10 @@ class LLMResponse:
 
     @property
     def final_answer(self) -> str:
+        """
+        Resolve the response to a string. If not available, execution should
+        stop gracefully and proceed to the next batch.
+        """
         return self.resolve()
 
     def resolve_json(self) -> Optional[dict]:

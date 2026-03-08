@@ -7,7 +7,7 @@ explicitly not-agentic philosophy (more of an input/output machine) although age
 - [x] different execution counters
 - [x] condition_hash (salt-by)
 - [ ] batch api
-- [ ] allow LLM to change on a per-`ask_llm` level
+- [x] allow LLM to change on a per-`ask_llm` level
     - concoct a "multi-provider" that routes based on `provider_type`
 - [ ] dedicated SQLite storage for requests that error
 - [ ] retrieve() should also be able to return if a value is pending (in addition to present/absent)
@@ -84,7 +84,7 @@ Read
 - [x] restore resolve_json()
 - [ ] continuable errors (ie. JSON)
 - [x] dashboard should be placed at the 'pllm' level, not the agent level, to avoid spam
-- cancel (forget about) batch
+- [x] cancel (forget about) batch
 
 - output_text, final_answer
 - [x] rename async to concurrent
@@ -99,3 +99,4 @@ High priority:
 - [x] df export to parquet
 - [ ] clienet as a way to delegate
 - [x] function calls can only return str
+- [ ] tags for batch mode

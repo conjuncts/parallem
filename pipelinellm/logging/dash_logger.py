@@ -286,7 +286,7 @@ class PrimitiveDashboardLogger(DashboardLogger):
             k: Maximum number of hashes/batches to display (default 10)
             display: Whether to display console output (default True)
         """
-        pass
+        super().__init__()
 
     def update_hash(self, full_hash: str, status: HashStatus):
         pass
