@@ -63,7 +63,7 @@ def _fix_docs_for_anthropic(
                     {
                         "type": "tool_result",
                         "tool_use_id": doc.call_id,
-                        "content": doc.content,
+                        "content": str(doc.content),
                     }
                 ],
             }

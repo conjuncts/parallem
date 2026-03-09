@@ -69,7 +69,7 @@ class OpenAIProvider(BaseProvider):
                 msg = {
                     "type": "function_call_output",
                     "call_id": doc.call_id,
-                    "output": doc.content,
+                    "output": str(doc.content),
                 }
                 formatted_docs.append(msg)
             elif isinstance(doc, tuple) and len(doc) == 2:

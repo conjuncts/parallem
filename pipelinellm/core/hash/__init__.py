@@ -40,7 +40,7 @@ def compute_hash(instructions: Optional[str], documents: List[LLMDocument]) -> s
         elif isinstance(doc, FunctionCallOutput):
             hasher.update(b"function_call_output")
             _updateh(hasher, doc.name)
-            _updateh(hasher, doc.content)
+            _updateh(hasher, str(doc.content))
             _updateh(hasher, doc.call_id)
         elif isinstance(doc, tuple) and len(doc) == 2:
             # Handle Tuple[Literal["user", "assistant", "system", "developer"], str]

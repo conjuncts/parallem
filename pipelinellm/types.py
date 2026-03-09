@@ -1,6 +1,7 @@
 from abc import ABC
 from dataclasses import dataclass
 from typing import (
+    Any,
     List,
     Literal,
     TypedDict,
@@ -174,7 +175,7 @@ class FunctionCallRequest:
 class FunctionCallOutput:
     """Represents the output/result of a function/tool call."""
 
-    content: str
+    content: Any
     """The output content from the function call."""
 
     call_id: str
@@ -184,7 +185,7 @@ class FunctionCallOutput:
     """The name of the function call this output corresponds to."""
 
     def __repr__(self):
-        return f"FunctionCallOutput(name={self.name}, call_id={(self.call_id or '')[:8]}, content={self.content[:20]}...)"
+        return f"FunctionCallOutput(name={self.name}, call_id={(self.call_id or '')[:8]}, content={str(self.content)[:20]}...)"
 
     def __str__(self):
         return self.__repr__()

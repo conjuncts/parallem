@@ -56,7 +56,7 @@ def _fix_docs_for_google(
             function_response_part: "types.PartDict" = {
                 "function_response": {
                     "name": doc.name,
-                    "response": {"output": doc.content},
+                    "response": {"output": str(doc.content)},
                 }
             }
             # types.Part()

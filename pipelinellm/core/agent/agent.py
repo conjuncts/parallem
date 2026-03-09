@@ -235,9 +235,7 @@ class AgentContext(Askable):
             # Execute the function
             result = callme(**fc.args)
             fc_outs.append(
-                FunctionCallOutput(
-                    content=str(result), name=fc.name, call_id=fc.call_id
-                )
+                FunctionCallOutput(content=result, name=fc.name, call_id=fc.call_id)
             )
         return fc_outs
 

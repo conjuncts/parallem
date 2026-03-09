@@ -25,7 +25,7 @@ def cast_document_to_bytes(
     elif isinstance(doc, FunctionCallRequest):
         return to_serial_id(doc.call_id).encode("utf-8"), "function_call", None
     elif isinstance(doc, FunctionCallOutput):
-        return doc.content.encode("utf-8"), "function_call_output", doc.call_id
+        return str(doc.content).encode("utf-8"), "function_call_output", doc.call_id
     elif isinstance(doc, tuple):
         return doc[1].encode("utf-8"), "text", doc[0]
     elif is_image(doc):
