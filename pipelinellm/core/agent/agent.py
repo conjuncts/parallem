@@ -1,7 +1,7 @@
 from typing import TYPE_CHECKING, Callable, Dict, List, Optional, Union
 from pipelinellm.core.ask import Askable
 from pipelinellm.core.cast.fix_docs import cast_documents, reduce_to_list
-from pipelinellm.core.exception import NotAvailable
+from pipelinellm.core.exception import NotAvailable, PendingNotAvailable
 from pipelinellm.core.hash import compute_hash
 from pipelinellm.core.state.msg_state import MessageState
 from pipelinellm.core.response import (
@@ -62,9 +62,13 @@ class AgentContext(Askable):
         if self._msg_state is not None and self._persist_msg_state:
             self._try_persist_msg_state(self._msg_state)
 
-        if exc_type in (NotAvailable,):
+        if exc_type in (NotAvailable, PendingNotAvailable):
+            # swallow NotAvailable and its subclasses (like PendingNotAvailable)
             return True
-        if self._orch.strategy == "batch" and exc_type in (NotAvailable,):
+        if self._orch.strategy == "batch" and exc_type in (
+            NotAvailable,
+            PendingNotAvailable,
+        ):
             # swallow NotAvailable errors only in batch mode
             return True
         return False

@@ -5,6 +5,7 @@ from pathlib import Path
 from typing import List, Literal, Optional, Union
 from pipelinellm.core.backend import BaseBackend
 from pipelinellm.core.datastore.sqlite import SQLiteDatastore
+from pipelinellm.core.exception import PendingNotAvailable
 from pipelinellm.core.response import BatchLLMResponse
 from pipelinellm.core.file_manager import FileManager
 from pipelinellm.logging.dash_logger import (
@@ -88,6 +89,10 @@ class BatchBackend(BaseBackend):
         New control flow: Backend calls provider to get batch data, then bookkeeps it.
         This inverts control from provider calling backend.
         """
+
+        # Check if the call is already in a pending batch
+        if self._ds.is_call_in_pending_batch(call_id):
+            raise PendingNotAvailable()
 
         # Get the batch call data from the provider
         stuff = provider.prepare_batch_call(

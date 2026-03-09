@@ -1,4 +1,4 @@
-class pipelinellmSignal(Exception):
+class PipelinellmSignal(Exception):
     """
     pipelinellm uses exceptions as "signals" to prevent
     code from executing.
@@ -8,7 +8,15 @@ class pipelinellmSignal(Exception):
     """
 
 
-class NotAvailable(pipelinellmSignal):
+class NotAvailable(PipelinellmSignal):
+    pass
+
+
+class PendingNotAvailable(NotAvailable):
+    """
+    Raised when a response is already pending in a batch and should not be resent.
+    """
+
     pass
 
 

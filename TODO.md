@@ -100,3 +100,6 @@ High priority:
 - [ ] clienet as a way to delegate
 - [x] function calls can only return str
 - [ ] tags for batch mode
+- [ ] demonstrate that traditional workflows (ie. a simple ChatGPT wrapper) is also possible with pipelinellm (albeit not the intended purpose). Probably needs to use some message uuid as the agent_name.
+- [ ] demonstrate that subagents (nested agents) is possible.
+- [ ] instead of locking up, do not resend responses that are known to already be pending. So create a PendingBatchResponse() interrupt.
