@@ -4,24 +4,15 @@ TODO make seq_id not necessarily auto-increment
 explicitly not-agentic philosophy (more of an input/output machine) although agents / responsibility isolation can be implemented with LLMIdentity
 
 
-- [x] different execution counters
-- [x] condition_hash (salt-by)
-- [x] batch api
-- [x] allow LLM to change on a per-`ask_llm` level
-    - concoct a "multi-provider" that routes based on `provider_type`
 - [ ] dedicated SQLite storage for requests that error
 - [ ] retrieve() should also be able to return if a value is pending (in addition to present/absent)
 - [ ] "cohort locking": for consistency, if seq_id is "strict" (if we really care that seq_id is consistent across runs), then we need to "lock" based on cohort (wait until all batches in a cohort complete. This can be implemented simply by refusing to proceed - ie. ).
     - this is like a rendezvous in threading
-- [x] Automatically persist upon pllm exit
-- [x] accept dict as a LLMDocument
-
+- [ ] accept dict as a LLMDocument
 
 ## TODO
-- [x] centrally track documents (and incorporate with MessageState) just as responses are also tracked
-- [x] tree-based MessageState, which in turn stores all historical MessageState's
-    - Solution: existing storage is fine. A Trie can regenerate the MessageState.
 
+- [x] Regenerate tree-based history of MessageState with a Trie.
 - [ ] Error handling: 
     - sync: ask_llm raises an error OR ask_llm produces an error object (ErrorResponse), which is raised when resolve() is called
     - Concurrent: ask_llm is fine, but resolve() raises an error
@@ -33,14 +24,9 @@ explicitly not-agentic philosophy (more of an input/output machine) although age
 
 
 Input storage:
-- [x] doc_hash <=> list of message hashes (doc_table)
-- [x] message_hash <=> message_value (message_table)
-- [x] tool calls for batch mode
-- [x] image as valid document type
-- [ ] fix tag for batches
+- [ ] for store_input, switch to SQLite: probably more performant.
 - [ ] roll up messages when several consecutive come from the same role
 
-- [ ] the doc_hash/msg_hash naming convention is kinda backward due to history
 
 - [ ] resolve_all
 - [ ] export_all
@@ -78,16 +64,12 @@ Read
 
 - what if a function call also involves a LLM? well then the function will need to take in an agent object. Then you will need to do `functools.partial(my_func, agent)`. TODO: Consider then doing some hacking where ask_functions() automatically injects the *first* argument of type AgentContext (dependency inejction) (syntactic sugar)
 
-- [x] fix that ReadyLLMResponse don't have the original sess_id. pertinent: ParsedResponse should be modified to contain (seq_id, sess_id).
 - [ ] need to hash based on available tools??? (TODO: issue a warning)
 - [ ] material docs
-- [x] restore resolve_json()
 - [ ] continuable errors (ie. JSON)
-- [x] dashboard should be placed at the 'pllm' level, not the agent level, to avoid spam
-- [x] cancel (forget about) batch
+
 
 - output_text, final_answer
-- [x] rename async to concurrent
 
 - Manual MCP server
     - ping get tool calls 
