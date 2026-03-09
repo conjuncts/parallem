@@ -248,6 +248,44 @@ class TestSQLiteBatch:
         assert metadata_rows[0]["tag"] == "batch_tag_1"
         assert metadata_rows[1]["tag"] == "batch_tag_2"
 
+    def test_batch_tag_without_metadata(self, temp_datastore, batch_call_ids):
+        """Test that tag is preserved even when response has no metadata"""
+        call_ids = batch_call_ids[:2]
+        custom_ids = [f"nometa_custom_{i}" for i in range(1, 3)]
+        batch_uuid = "nometa-batch-uuid"
+
+        batch_id = BatchIdentifier(
+            call_ids=call_ids, custom_ids=custom_ids, batch_uuid=batch_uuid
+        )
+        temp_datastore.store_pending_batch(batch_id)
+
+        # Responses with NO metadata
+        parsed_responses = [
+            ParsedResponse(
+                text=f"Response {i}",
+                response_id=f"nometa_resp_{i}",
+                custom_id=f"nometa_custom_{i}",
+                metadata=None,
+            )
+            for i in range(1, 3)
+        ]
+
+        batch_result = BatchResult(
+            status="ready", raw_output="output", parsed_responses=parsed_responses
+        )
+        temp_datastore.store_ready_batch(batch_result)
+
+        # Verify tags are still in metadata table
+        conn = temp_datastore._get_connection()
+        cursor = conn.execute(
+            "SELECT tag FROM metadata WHERE response_id IN (?, ?) ORDER BY response_id",
+            ("nometa_resp_1", "nometa_resp_2"),
+        )
+        rows = cursor.fetchall()
+        assert len(rows) == 2
+        assert rows[0]["tag"] == "batch_tag_1"
+        assert rows[1]["tag"] == "batch_tag_2"
+
     def test_store_ready_batch(self, temp_datastore, batch_identifier: BatchIdentifier):
         """Test storing completed batch results"""
 

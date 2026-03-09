@@ -799,9 +799,9 @@ class SQLiteDatastore(Datastore):
                     upsert=upsert,
                 )
 
-                # Store metadata if available
-                if metadata:
-                    metadata_json = json.dumps(metadata)
+                # Store metadata and tag (tag should always be stored)
+                if metadata or tag:
+                    metadata_json = json.dumps(metadata) if metadata else ""
                     conn.execute(
                         "INSERT OR REPLACE INTO metadata (response_id, agent_name, seq_id, session_id, metadata, provider_type, tag) VALUES (?, ?, ?, ?, ?, ?, ?)",
                         (

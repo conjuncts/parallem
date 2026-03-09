@@ -6,7 +6,7 @@ explicitly not-agentic philosophy (more of an input/output machine) although age
 
 - [x] different execution counters
 - [x] condition_hash (salt-by)
-- [ ] batch api
+- [x] batch api
 - [x] allow LLM to change on a per-`ask_llm` level
     - concoct a "multi-provider" that routes based on `provider_type`
 - [ ] dedicated SQLite storage for requests that error
@@ -14,7 +14,7 @@ explicitly not-agentic philosophy (more of an input/output machine) although age
 - [ ] "cohort locking": for consistency, if seq_id is "strict" (if we really care that seq_id is consistent across runs), then we need to "lock" based on cohort (wait until all batches in a cohort complete. This can be implemented simply by refusing to proceed - ie. ).
     - this is like a rendezvous in threading
 - [x] Automatically persist upon pllm exit
-- [ ] accept dict as a LLMDocument
+- [x] accept dict as a LLMDocument
 
 
 ## TODO
@@ -98,7 +98,7 @@ High priority:
     - not sure it's possible
 - [x] df export to parquet
 - [ ] clienet as a way to delegate
-- [ ] tags for batch mode
+- [x] tags for batch mode
 - [ ] demonstrate that traditional workflows (ie. a simple ChatGPT wrapper) is also possible with pipelinellm (albeit not the intended purpose). Probably needs to use some message uuid as the agent_name.
 - [ ] demonstrate that subagents (nested agents) is possible.
 - [ ] instead of locking up, do not resend responses that are known to already be pending. So create a PendingBatchResponse() interrupt.
