@@ -1,5 +1,5 @@
 from abc import ABC
-from typing import List, Literal, Optional, Union
+from typing import TYPE_CHECKING, List, Literal, Optional, Union
 
 from pipelinellm.types import (
     BatchIdentifier,
@@ -10,6 +10,9 @@ from pipelinellm.types import (
     ParsedError,
     ParsedResponse,
 )
+
+if TYPE_CHECKING:
+    from pipelinellm.core.memoize.operations import OperationLog
 
 
 class Datastore(ABC):
@@ -174,24 +177,23 @@ class Datastore(ABC):
     def store_memoize(
         self,
         state_hash: str,
-        operation_log: bytes,
-        *,
-        final_state: Optional[str] = None,
+        operation_log: "OperationLog",
     ) -> None:
         """
         Store memoized operation log for a given state hash.
 
         :param state_hash: The hash of the initial MessageState.
-        :param operation_log: Serialized operation log (pickled).
-        :param final_state: Optional JSON representation of final state for debugging.
+        :param operation_log: The :class:`~pipelinellm.core.memoize.operations.OperationLog`
+            to persist.
         """
         pass
 
-    def retrieve_memoize(self, state_hash: str) -> Optional[bytes]:
+    def retrieve_memoize(self, state_hash: str) -> "Optional[OperationLog]":
         """
         Retrieve memoized operation log for a given state hash.
 
         :param state_hash: The hash of the initial MessageState.
-        :return: Serialized operation log (pickled) or None if not found.
+        :return: The :class:`~pipelinellm.core.memoize.operations.OperationLog`, or
+            ``None`` if not found.
         """
         return None

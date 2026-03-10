@@ -11,7 +11,12 @@ import pytest
 from PIL import Image
 from io import BytesIO
 
-from pipelinellm.core.cast.doc_to_str import cast_document_to_bytes
+from pipelinellm.core.cast.doc_to_str import (
+    cast_bytes_to_document,
+    cast_document_to_bytes,
+    deserialize_document,
+    serialize_document,
+)
 from pipelinellm.types import (
     FunctionCallRequest,
     FunctionCallOutput,
@@ -155,3 +160,132 @@ class TestCastDocumentToBytes:
 
         assert "Unknown document type" in str(exc_info.value)
         assert "dict" in str(exc_info.value)
+
+
+class TestCastBytesToDocument:
+    """Tests for cast_bytes_to_document (reverse of cast_document_to_bytes)."""
+
+    def test_roundtrip_string(self):
+        doc = "Hello, world!"
+        byt, dtype, dextra = cast_document_to_bytes(doc)
+        result = cast_bytes_to_document(byt, dtype, dextra)
+        assert result == doc
+
+    def test_roundtrip_tuple(self):
+        doc = ("system", "You are helpful")
+        byt, dtype, dextra = cast_document_to_bytes(doc)
+        result = cast_bytes_to_document(byt, dtype, dextra)
+        assert result == doc
+
+    def test_roundtrip_image(self):
+        img = Image.new("RGB", (8, 8), color="blue")
+        byt, dtype, dextra = cast_document_to_bytes(img)
+        result = cast_bytes_to_document(byt, dtype, dextra)
+        assert isinstance(result, Image.Image)
+        assert result.size == (8, 8)
+
+    def test_function_call_output_partial(self):
+        """FunctionCallOutput is partially reconstructed (name not stored)."""
+        doc = FunctionCallOutput(content="result", call_id="cid_99", name="my_fn")
+        byt, dtype, dextra = cast_document_to_bytes(doc)
+        result = cast_bytes_to_document(byt, dtype, dextra)
+        assert isinstance(result, FunctionCallOutput)
+        assert result.content == "result"
+        assert result.call_id == "cid_99"
+
+    def test_function_call_raises(self):
+        """FunctionCallRequest is lossy — should raise."""
+        call_id = {
+            "agent_name": "a",
+            "doc_hash": "h",
+            "seq_id": 1,
+            "session_id": 0,
+            "meta": None,
+        }
+        doc = FunctionCallRequest(text_content="t", calls=[], call_id=call_id)
+        byt, dtype, dextra = cast_document_to_bytes(doc)
+        with pytest.raises(NotImplementedError):
+            cast_bytes_to_document(byt, dtype, dextra)
+
+    def test_llm_response_raises(self):
+        """LLMResponse is lossy — should raise."""
+        call_id = {
+            "agent_name": "a",
+            "doc_hash": "h",
+            "seq_id": 1,
+            "session_id": 0,
+            "meta": None,
+        }
+        doc = LLMResponse("hello", call_id=call_id)
+        byt, dtype, dextra = cast_document_to_bytes(doc)
+        with pytest.raises(NotImplementedError):
+            cast_bytes_to_document(byt, dtype, dextra)
+
+    def test_unknown_type_raises(self):
+        with pytest.raises(NotImplementedError):
+            cast_bytes_to_document(b"x", "unknown_type", None)
+
+
+class TestSerializeDeserializeDocument:
+    """Tests for serialize_document / deserialize_document (full round-trip)."""
+
+    @pytest.fixture
+    def call_id(self) -> CallIdentifier:
+        return {
+            "agent_name": "agent",
+            "doc_hash": "abc123",
+            "seq_id": 7,
+            "session_id": 2,
+            "meta": {"provider_type": "openai", "tag": None},
+        }
+
+    def test_roundtrip_string(self):
+        doc = "Hello 世界 🌍"
+        assert deserialize_document(serialize_document(doc)) == doc
+
+    def test_roundtrip_tuple(self):
+        doc = ("assistant", "I can help you.")
+        assert deserialize_document(serialize_document(doc)) == doc
+
+    def test_roundtrip_function_call_output(self):
+        doc = FunctionCallOutput(content="42", call_id="cid_1", name="get_answer")
+        result = deserialize_document(serialize_document(doc))
+        assert isinstance(result, FunctionCallOutput)
+        assert result.content == "42"
+        assert result.call_id == "cid_1"
+        assert result.name == "get_answer"
+
+    def test_roundtrip_function_call_request(self, call_id):
+        fn = FunctionCall(name="search", arguments={"q": "test"}, call_id="fc1")
+        doc = FunctionCallRequest(text_content="searching", calls=[fn], call_id=call_id)
+        result = deserialize_document(serialize_document(doc))
+        assert isinstance(result, FunctionCallRequest)
+        assert result.text_content == "searching"
+        assert len(result.calls) == 1
+        assert result.calls[0].name == "search"
+        assert result.calls[0].args == {"q": "test"}
+        assert result.calls[0].call_id == "fc1"
+
+    def test_roundtrip_llm_response(self, call_id):
+        doc = LLMResponse("The answer is 42.", call_id=call_id)
+        result = deserialize_document(serialize_document(doc))
+        assert isinstance(result, LLMResponse)
+        assert result.value == "The answer is 42."
+
+    def test_roundtrip_image(self):
+        img = Image.new("RGB", (4, 4), color="green")
+        result = deserialize_document(serialize_document(img))
+        assert isinstance(result, Image.Image)
+        assert result.size == (4, 4)
+
+    def test_roundtrip_llm_response_no_call_id(self):
+        doc = LLMResponse("bare response", call_id=None)
+        result = deserialize_document(serialize_document(doc))
+        assert result.value == "bare response"
+
+    def test_unknown_type_raises(self):
+        import json
+
+        data = json.dumps({"type": "mystery"})
+        with pytest.raises(NotImplementedError):
+            deserialize_document(data)

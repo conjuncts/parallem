@@ -3,10 +3,17 @@ import json
 import threading
 import polars as pl
 from pathlib import Path
-from typing import List, Literal, Optional, Union
+from typing import TYPE_CHECKING, List, Literal, Optional, Union
 
-from pipelinellm.core.cast.doc_to_str import cast_document_to_bytes
+from pipelinellm.core.cast.doc_to_str import (
+    cast_document_to_bytes,
+    deserialize_document,
+    serialize_document,
+)
 from pipelinellm.core.cast.fix_tools import dump_function_calls, load_function_calls
+
+if TYPE_CHECKING:
+    from pipelinellm.core.memoize.operations import OperationLog
 from pipelinellm.core.datastore.base import Datastore
 from pipelinellm.core.datastore.sql_migrate import (
     _check_and_migrate,
@@ -183,15 +190,31 @@ class SQLiteDatastore(Datastore):
                     )
                 """)
 
-                # Create memoize table for storing operation logs
                 conn.execute("""
                     CREATE TABLE IF NOT EXISTS memoize (
                         id INTEGER PRIMARY KEY AUTOINCREMENT,
                         state_hash TEXT NOT NULL UNIQUE,
-                        operation_log BLOB NOT NULL,
                         final_state TEXT,
                         timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
                     )
+                """)
+
+                # Structured operation-log rows (safe, no pickle)
+                conn.execute("""
+                    CREATE TABLE IF NOT EXISTS memoize_ops (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        state_hash TEXT NOT NULL,
+                        op_seq INTEGER NOT NULL,
+                        item_seq INTEGER NOT NULL DEFAULT 0,
+                        op_type TEXT NOT NULL,
+                        item_json TEXT,
+                        list_index INTEGER,
+                        sort_reverse INTEGER DEFAULT 0
+                    )
+                """)
+                conn.execute("""
+                    CREATE INDEX IF NOT EXISTS idx_memoize_ops_hash
+                    ON memoize_ops(state_hash)
                 """)
 
                 # Migrate existing schema if needed
@@ -938,40 +961,212 @@ class SQLiteDatastore(Datastore):
     def store_memoize(
         self,
         state_hash: str,
-        operation_log: bytes,
-        *,
-        final_state: Optional[str] = None,
+        operation_log: "OperationLog",
     ) -> None:
         """
         Store memoized operation log for a given state hash.
 
+        Each operation is stored as one or more rows in ``memoize_ops``; no pickle
+        is used.
+
         :param state_hash: The hash of the initial MessageState.
-        :param operation_log: Serialized operation log (pickled).
-        :param final_state: Optional JSON representation of final state for debugging.
+        :param operation_log: The :class:`~pipelinellm.core.memoize.operations.OperationLog`
+            to persist.
         """
+        from pipelinellm.core.memoize.operations import (
+            AppendOp,
+            ClearOp,
+            ExtendOp,
+            InsertOp,
+            PopOp,
+            RemoveOp,
+            ReverseOp,
+            SetItemOp,
+            SortOp,
+        )
+
         conn = self._get_connection(None)
         self._is_dirty = True
 
+        # Upsert the sentinel row in `memoize` so state_hash is indexed
         conn.execute(
             """
-            INSERT OR REPLACE INTO memoize (state_hash, operation_log, final_state, timestamp)
-            VALUES (?, ?, ?, CURRENT_TIMESTAMP)
+            INSERT OR REPLACE INTO memoize (state_hash, timestamp)
+            VALUES (?, CURRENT_TIMESTAMP)
             """,
-            (state_hash, operation_log, final_state),
+            (state_hash,),
         )
 
-    def retrieve_memoize(self, state_hash: str) -> Optional[bytes]:
+        # Remove any previously stored ops for this hash
+        conn.execute("DELETE FROM memoize_ops WHERE state_hash = ?", (state_hash,))
+
+        rows: list[tuple] = []
+        for op_seq, op in enumerate(operation_log.operations):
+            if isinstance(op, AppendOp):
+                rows.append(
+                    (
+                        state_hash,
+                        op_seq,
+                        0,
+                        "append",
+                        serialize_document(op.item),
+                        None,
+                        0,
+                    )
+                )
+            elif isinstance(op, ExtendOp):
+                for item_seq, item in enumerate(op.items):
+                    rows.append(
+                        (
+                            state_hash,
+                            op_seq,
+                            item_seq,
+                            "extend",
+                            serialize_document(item),
+                            None,
+                            0,
+                        )
+                    )
+            elif isinstance(op, InsertOp):
+                rows.append(
+                    (
+                        state_hash,
+                        op_seq,
+                        0,
+                        "insert",
+                        serialize_document(op.item),
+                        op.index,
+                        0,
+                    )
+                )
+            elif isinstance(op, SetItemOp):
+                rows.append(
+                    (
+                        state_hash,
+                        op_seq,
+                        0,
+                        "setitem",
+                        serialize_document(op.item),
+                        op.index,
+                        0,
+                    )
+                )
+            elif isinstance(op, PopOp):
+                rows.append((state_hash, op_seq, 0, "pop", None, op.index, 0))
+            elif isinstance(op, RemoveOp):
+                rows.append(
+                    (
+                        state_hash,
+                        op_seq,
+                        0,
+                        "remove",
+                        serialize_document(op.item),
+                        None,
+                        0,
+                    )
+                )
+            elif isinstance(op, ClearOp):
+                rows.append((state_hash, op_seq, 0, "clear", None, None, 0))
+            elif isinstance(op, ReverseOp):
+                rows.append((state_hash, op_seq, 0, "reverse", None, None, 0))
+            elif isinstance(op, SortOp):
+                rows.append(
+                    (state_hash, op_seq, 0, "sort", None, None, 1 if op.reverse else 0)
+                )
+
+        conn.executemany(
+            """
+            INSERT INTO memoize_ops
+                (state_hash, op_seq, item_seq, op_type, item_json, list_index, sort_reverse)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+            """,
+            rows,
+        )
+
+    def retrieve_memoize(self, state_hash: str) -> "Optional[OperationLog]":
         """
         Retrieve memoized operation log for a given state hash.
 
         :param state_hash: The hash of the initial MessageState.
-        :return: Serialized operation log (pickled) or None if not found.
+        :return: The reconstructed :class:`~pipelinellm.core.memoize.operations.OperationLog`,
+            or ``None`` if not found.
         """
+        from pipelinellm.core.memoize.operations import (
+            AppendOp,
+            ClearOp,
+            ExtendOp,
+            InsertOp,
+            OperationLog,
+            PopOp,
+            RemoveOp,
+            ReverseOp,
+            SetItemOp,
+            SortOp,
+        )
+
         conn = self._get_connection(None)
 
+        # Check whether any ops exist for this hash
         cursor = conn.execute(
-            "SELECT operation_log FROM memoize WHERE state_hash = ?",
+            "SELECT COUNT(*) FROM memoize_ops WHERE state_hash = ?",
             (state_hash,),
         )
-        row = cursor.fetchone()
-        return row["operation_log"] if row else None
+        # count = cursor.fetchone()[0]
+
+        # Also verify the sentinel row exists
+        sentinel = conn.execute(
+            "SELECT id FROM memoize WHERE state_hash = ?", (state_hash,)
+        ).fetchone()
+        if sentinel is None:
+            return None
+
+        cursor = conn.execute(
+            """
+            SELECT op_seq, item_seq, op_type, item_json, list_index, sort_reverse
+            FROM memoize_ops
+            WHERE state_hash = ?
+            ORDER BY op_seq, item_seq
+            """,
+            (state_hash,),
+        )
+        rows_fetched = cursor.fetchall()
+
+        # Group rows by op_seq
+        from itertools import groupby
+
+        log = OperationLog()
+        for op_seq, group in groupby(rows_fetched, key=lambda r: r["op_seq"]):
+            group = list(group)
+            op_type = group[0]["op_type"]
+
+            if op_type == "append":
+                log.record(AppendOp(deserialize_document(group[0]["item_json"])))
+            elif op_type == "extend":
+                items = [deserialize_document(r["item_json"]) for r in group]
+                log.record(ExtendOp(items))
+            elif op_type == "insert":
+                log.record(
+                    InsertOp(
+                        index=group[0]["list_index"],
+                        item=deserialize_document(group[0]["item_json"]),
+                    )
+                )
+            elif op_type == "setitem":
+                log.record(
+                    SetItemOp(
+                        index=group[0]["list_index"],
+                        item=deserialize_document(group[0]["item_json"]),
+                    )
+                )
+            elif op_type == "pop":
+                log.record(PopOp(index=group[0]["list_index"]))
+            elif op_type == "remove":
+                log.record(RemoveOp(deserialize_document(group[0]["item_json"])))
+            elif op_type == "clear":
+                log.record(ClearOp())
+            elif op_type == "reverse":
+                log.record(ReverseOp())
+            elif op_type == "sort":
+                log.record(SortOp(reverse=bool(group[0]["sort_reverse"])))
+
+        return log

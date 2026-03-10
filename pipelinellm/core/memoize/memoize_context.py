@@ -1,5 +1,4 @@
 from typing import TYPE_CHECKING
-import pickle
 
 from pipelinellm.core.exception import PipelinellmSignal
 from pipelinellm.core.memoize.operations import OperationLog
@@ -61,18 +60,16 @@ class MemoizeContext:
             self._operation_log._prepare_for_serialization()
 
             datastore = self.agent._orch._backend._get_datastore()
-            serialized_log = pickle.dumps(self._operation_log)
-            datastore.store_memoize(self._conv_hash, serialized_log)
+            datastore.store_memoize(self._conv_hash, self._operation_log)
 
     def begin(self):
         """Required to start tracking for memoization. Must be called within the context."""
         # Check if there's a cached operation log for this state
         datastore = self.agent._orch._backend._get_datastore()
-        serialized_log = datastore.retrieve_memoize(self._conv_hash)
+        operation_log = datastore.retrieve_memoize(self._conv_hash)
 
-        if serialized_log is not None:
+        if operation_log is not None:
             # Found cached operations - replay them
-            operation_log = pickle.loads(serialized_log)
             msg_state = self.agent.get_msg_state()
             operation_log.replay(msg_state)
 
