@@ -75,19 +75,16 @@ class TestFileManagerBasics:
             # First instance - modify metadata
             fm1 = FileManager(temp_dir)
             fm1.metadata["agents"]["test_agent"] = {
-                "latest_checkpoint": "test_checkpoint",
-                "checkpoint_counter": 5,
+                "foo": "bar",
+                "foo_counter": 5,
             }
             fm1.persist()
 
             # Second instance should load persisted metadata
             fm2 = FileManager(temp_dir)
             assert "test_agent" in fm2.metadata["agents"]
-            assert (
-                fm2.metadata["agents"]["test_agent"]["latest_checkpoint"]
-                == "test_checkpoint"
-            )
-            assert fm2.metadata["agents"]["test_agent"]["checkpoint_counter"] == 5
+            assert fm2.metadata["agents"]["test_agent"]["foo"] == "bar"
+            assert fm2.metadata["agents"]["test_agent"]["foo_counter"] == 5
 
     def test_lock_file_cleanup(self):
         """Test lock file is cleaned up"""
@@ -377,8 +374,8 @@ class TestFileManagerPersistence:
 
             # Modify metadata
             fm.metadata["agents"]["new_agent"] = {
-                "latest_checkpoint": "new_checkpoint",
-                "checkpoint_counter": 10,
+                "foo": "bar",
+                "foo_counter": 10,
             }
 
             fm.persist()
@@ -388,11 +385,8 @@ class TestFileManagerPersistence:
                 saved_metadata = json.load(f)
 
             assert "new_agent" in saved_metadata["agents"]
-            assert (
-                saved_metadata["agents"]["new_agent"]["latest_checkpoint"]
-                == "new_checkpoint"
-            )
-            assert saved_metadata["agents"]["new_agent"]["checkpoint_counter"] == 10
+            assert saved_metadata["agents"]["new_agent"]["foo"] == "bar"
+            assert saved_metadata["agents"]["new_agent"]["foo_counter"] == 10
 
     def test_persist_idempotent(self):
         """Test that multiple persist calls are safe"""

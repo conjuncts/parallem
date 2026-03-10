@@ -36,7 +36,6 @@ def mock_orchestrator():
     # Set up the metadata dictionary structure that my_metadata property expects
     mock_orch._fm.metadata = {"agents": {}}
 
-    # Mock the logging method that's called during checkpoint operations
     mock_orch._logger.info = Mock()
 
     # Create a mock call ID for responses

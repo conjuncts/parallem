@@ -31,7 +31,7 @@ Diana
 
     mock_client = mock_openai_client(responses=responses)
     orch = resume_directory(
-        temp_integration_dir / "checkpoint_tournament",
+        temp_integration_dir / "userdata_tournament",
         provider="openai",
         strategy="sync",
         client=mock_client,
@@ -142,13 +142,13 @@ def test_complex_userdata_workflow(temp_integration_dir):
             assert db_schema == "Database schema v2.1"
 
 
-def test_mixed_checkpoint_and_caching(temp_integration_dir):
-    """Test interaction between checkpoints and caching"""
-    test_dir = temp_integration_dir / "checkpoint_cache"
+def test_mixed_userdata_and_caching(temp_integration_dir):
+    """Test interaction between userdatas and caching"""
+    test_dir = temp_integration_dir / "userdata_cache"
 
-    # First run: Create checkpoints and cache
+    # First run: Create userdatas and cache
     mock_client1 = mock_openai_client(
-        responses=["Initial data", "Checkpoint A result", "Checkpoint B result"]
+        responses=["Initial data", "userdata A result", "userdata B result"]
     )
     orch = resume_directory(
         test_dir, provider="openai", strategy="sync", client=mock_client1
@@ -161,12 +161,12 @@ def test_mixed_checkpoint_and_caching(temp_integration_dir):
         initial = agent1.ask_llm("Get initial data")
         orch.userdata["initial"] = initial.resolve()
 
-    # Checkpoint A
+    # userdata A
     with agent1:
         result_a = agent1.ask_llm("Process A")
         orch.userdata["result_a"] = result_a.resolve()
 
-    # Checkpoint B
+    # userdata B
     with agent1:
         result_b = agent1.ask_llm("Process B")
         orch.userdata["result_b"] = result_b.resolve()
@@ -174,7 +174,7 @@ def test_mixed_checkpoint_and_caching(temp_integration_dir):
     orch.persist()
     assert len(mock_client1.calls) == 3
 
-    # Second run: Should use cache for non-checkpoint calls
+    # Second run: Should use cache for non-userdata calls
     mock_client2 = mock_openai_client(responses=["Should not be called"])
     orch2 = resume_directory(
         test_dir, provider="openai", strategy="sync", client=mock_client2
@@ -187,9 +187,9 @@ def test_mixed_checkpoint_and_caching(temp_integration_dir):
         initial2 = agent2.ask_llm("Get initial data")  # Same as before
         assert initial2.resolve() == "Initial data"  # From cache
 
-    # Load checkpoint data
-    assert orch2.userdata["result_a"] == "Checkpoint A result"
-    assert orch2.userdata["result_b"] == "Checkpoint B result"
+    # Load userdata data
+    assert orch2.userdata["result_a"] == "userdata A result"
+    assert orch2.userdata["result_b"] == "userdata B result"
 
     # Verify no new API calls
     assert len(mock_client2.calls) == 0

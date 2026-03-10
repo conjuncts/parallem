@@ -38,7 +38,6 @@ with agent:
         )
         agent.print(convo)
 
-        # IMPORTANT: need to checkpoint here, because "num-steps" is non-deterministic!
         convo.persist()
     else:
         # Allow user questions, which are not saved along with the conversation
