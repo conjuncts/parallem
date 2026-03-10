@@ -11,7 +11,9 @@ def _updateh(hasher, val: Optional[str]):
         hasher.update(val.encode("utf-8"))
 
 
-def compute_hash(instructions: Optional[str], documents: List[LLMDocument]) -> str:
+def compute_hash(
+    instructions: Optional[str], documents: List[LLMDocument], *, salt=None
+) -> str:
     """
     Compute a hash for the given instructions and documents.
 
@@ -54,4 +56,12 @@ def compute_hash(instructions: Optional[str], documents: List[LLMDocument]) -> s
         else:
             raise ValueError(f"Unsupported document type: {type(doc)}")
 
-    return hasher.hexdigest()
+    base_hash = hasher.hexdigest()
+    if salt is not None:
+        # Combine with salt and re-hash to produce final hash
+        salted_hasher = hashlib.sha256()
+        salted_hasher.update(base_hash.encode("utf-8"))
+        salted_hasher.update(str(salt).encode("utf-8"))
+        return salted_hasher.hexdigest()
+    else:
+        return base_hash

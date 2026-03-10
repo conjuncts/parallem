@@ -10,6 +10,18 @@ from typing import (
 )
 from pipelinellm.core.ask import Askable
 from pipelinellm.core.cast.fix_docs import reduce_to_list
+from pipelinellm.core.hash import compute_hash
+from pipelinellm.core.memoize.operations import (
+    AppendOp,
+    ClearOp,
+    ExtendOp,
+    InsertOp,
+    PopOp,
+    RemoveOp,
+    ReverseOp,
+    SetItemOp,
+    SortOp,
+)
 from pipelinellm.types import (
     FunctionCallOutput,
     HashByOptions,
@@ -21,6 +33,7 @@ from pipelinellm.types import (
 
 if TYPE_CHECKING:
     from pipelinellm.core.agent.agent import AgentContext
+    from pipelinellm.core.memoize.operations import OperationLog
 
 
 class MessageState(UserList[Union[LLMDocument, LLMResponse]], Askable):
@@ -43,6 +56,8 @@ class MessageState(UserList[Union[LLMDocument, LLMResponse]], Askable):
         self.chkp_ctr = chkp_ctr
         self._true_agent = true_agent
         self._memoize_enabled = False
+        self._tracking_operations = False
+        self._operation_log: Optional["OperationLog"] = None
 
     def copy(self) -> "MessageState":
         """Create a copy of this MessageState."""
@@ -55,6 +70,25 @@ class MessageState(UserList[Union[LLMDocument, LLMResponse]], Askable):
         new_state.data = self.data.copy()
         return new_state
 
+    def get_state_hash(self, salt=None) -> str:
+        """Compute a hash of the current MessageState.
+
+        :return: Hash string representing the current state.
+        """
+        # Hash based on the contents of the message list and counters
+        docs = self.data
+        if salt is not None:
+            docs = docs
+        return compute_hash(None, docs, salt=salt)
+
+    def _track_operation(self, operation):
+        """Track an operation if operation tracking is enabled.
+
+        :param operation: The operation to track.
+        """
+        if self._tracking_operations and self._operation_log is not None:
+            self._operation_log.record(operation)
+
     def _update_seq_counters(self, other: Union[LLMDocument, LLMResponse]):
         """Update sequence counters based on the other message."""
         if isinstance(other, LLMResponse):
@@ -65,6 +99,7 @@ class MessageState(UserList[Union[LLMDocument, LLMResponse]], Askable):
 
     def __setitem__(self, i, item):
         self._update_seq_counters(item)
+        self._track_operation(SetItemOp(i, item))
         super().__setitem__(i, item)
 
     def __add__(self, other):
@@ -110,17 +145,46 @@ class MessageState(UserList[Union[LLMDocument, LLMResponse]], Askable):
     def append(self, item: Union[LLMDocument, LLMResponse], /):
         """Append another MessageState to this one and return a new MessageState."""
         self._update_seq_counters(item)
+        self._track_operation(AppendOp(item))
         self.data.append(item)
 
     def insert(self, i, item):
         self._update_seq_counters(item)
+        self._track_operation(InsertOp(i, item))
         self.data.insert(i, item)
 
     def extend(self, others: Iterable[Union[LLMDocument, LLMResponse]], /):
         """Extend this MessageState with a list of other MessageStates."""
-        for item in others:
+        others_list = list(others)
+        for item in others_list:
             self._update_seq_counters(item)
-        self.data.extend(others)
+        self._track_operation(ExtendOp(others_list))
+        self.data.extend(others_list)
+
+    def pop(self, i: int = -1):
+        """Remove and return item at index (default last)."""
+        self._track_operation(PopOp(i))
+        return self.data.pop(i)
+
+    def remove(self, item: Union[LLMDocument, LLMResponse]):
+        """Remove first occurrence of item."""
+        self._track_operation(RemoveOp(item))
+        self.data.remove(item)
+
+    def clear(self):
+        """Remove all items from list."""
+        self._track_operation(ClearOp())
+        self.data.clear()
+
+    def reverse(self):
+        """Reverse list in place."""
+        self._track_operation(ReverseOp())
+        self.data.reverse()
+
+    def sort(self, *, key=None, reverse=False):
+        """Sort list in place."""
+        self._track_operation(SortOp(key, reverse))
+        self.data.sort(key=key, reverse=reverse)
 
     def ask_llm(
         self,

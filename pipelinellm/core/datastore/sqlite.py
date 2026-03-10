@@ -183,6 +183,17 @@ class SQLiteDatastore(Datastore):
                     )
                 """)
 
+                # Create memoize table for storing operation logs
+                conn.execute("""
+                    CREATE TABLE IF NOT EXISTS memoize (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        state_hash TEXT NOT NULL UNIQUE,
+                        operation_log BLOB NOT NULL,
+                        final_state TEXT,
+                        timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
+                    )
+                """)
+
                 # Migrate existing schema if needed
                 _migrate_sql_schema(conn, None)
 
@@ -923,3 +934,44 @@ class SQLiteDatastore(Datastore):
 
         # Export the database
         return export_sqlite_to_folder(db_path, export_dir, filetype=filetype)
+
+    def store_memoize(
+        self,
+        state_hash: str,
+        operation_log: bytes,
+        *,
+        final_state: Optional[str] = None,
+    ) -> None:
+        """
+        Store memoized operation log for a given state hash.
+
+        :param state_hash: The hash of the initial MessageState.
+        :param operation_log: Serialized operation log (pickled).
+        :param final_state: Optional JSON representation of final state for debugging.
+        """
+        conn = self._get_connection(None)
+        self._is_dirty = True
+
+        conn.execute(
+            """
+            INSERT OR REPLACE INTO memoize (state_hash, operation_log, final_state, timestamp)
+            VALUES (?, ?, ?, CURRENT_TIMESTAMP)
+            """,
+            (state_hash, operation_log, final_state),
+        )
+
+    def retrieve_memoize(self, state_hash: str) -> Optional[bytes]:
+        """
+        Retrieve memoized operation log for a given state hash.
+
+        :param state_hash: The hash of the initial MessageState.
+        :return: Serialized operation log (pickled) or None if not found.
+        """
+        conn = self._get_connection(None)
+
+        cursor = conn.execute(
+            "SELECT operation_log FROM memoize WHERE state_hash = ?",
+            (state_hash,),
+        )
+        row = cursor.fetchone()
+        return row["operation_log"] if row else None

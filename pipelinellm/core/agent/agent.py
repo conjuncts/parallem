@@ -138,7 +138,7 @@ class AgentContext(Askable):
         # Compute salt
         salt_terms: list[str] = []
         if salt is not None:
-            salt_terms.append(salt)
+            salt_terms.append(str(salt))
         if hash_by is not None:
             for term in hash_by:
                 if term == "llm":
@@ -275,8 +275,18 @@ class AgentContext(Askable):
         if self._orch._dashlog.display:
             self._orch._dashlog.update_hash(hash_value, status)
 
-    def memoize(self) -> MemoizeContext:
+    def memoize(self, salt=None) -> MemoizeContext:
         """
-        Context manager for memoization. When entered, it enables memoization for the duration of the context.
+        Context manager for memoizing.
+        When entered, it enables memoization for a **block of logic** the duration of the context.
+        This is helpful for expensive or non-deterministic operations:
+        this context block will only execute once, and on subsequent runs,
+        the results will be replayed from the first execution.
+        But note: ONLY changes to MessageState will be recorded.
+        You will not be able to access local variables in this block the 2nd time around.
+
+
+        :param salt: Optional salt value to differentiate memoization contexts.
+            Different salt values will create separate memoization caches.
         """
-        return MemoizeContext(self)
+        return MemoizeContext(self, salt=salt)

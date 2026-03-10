@@ -168,3 +168,30 @@ class Datastore(ABC):
         :param format: Export format - "polars" or "parquet" for parquet files, "csv" for CSV, "tsv" for TSV.
         """
         raise NotImplementedError
+
+    # === begin memoize methods ===
+
+    def store_memoize(
+        self,
+        state_hash: str,
+        operation_log: bytes,
+        *,
+        final_state: Optional[str] = None,
+    ) -> None:
+        """
+        Store memoized operation log for a given state hash.
+
+        :param state_hash: The hash of the initial MessageState.
+        :param operation_log: Serialized operation log (pickled).
+        :param final_state: Optional JSON representation of final state for debugging.
+        """
+        pass
+
+    def retrieve_memoize(self, state_hash: str) -> Optional[bytes]:
+        """
+        Retrieve memoized operation log for a given state hash.
+
+        :param state_hash: The hash of the initial MessageState.
+        :return: Serialized operation log (pickled) or None if not found.
+        """
+        return None

@@ -150,15 +150,14 @@ class ParquetUniqueWriter(ParquetWriter):
                 {self._unique_column_name: key, **value}
                 for key, value in self._log_kv.items()
             ]
-            for key, value in self._log_kv.items():
-                ret = write_to_parquet(
-                    self.parquet_fpath,
-                    _log,
-                    mode=mode,
-                    on=on,
-                    schema=self.schema,
-                    receipt_col=receipt_col,
-                )
+            ret = write_to_parquet(
+                self.parquet_fpath,
+                _log,
+                mode=mode,
+                on=on,
+                schema=self.schema,
+                receipt_col=receipt_col,
+            )
             self._log = []
             return ret
         return None
