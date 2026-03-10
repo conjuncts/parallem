@@ -2,6 +2,7 @@ import hashlib
 from typing import List, Optional
 from io import BytesIO
 from PIL import Image
+import warnings
 
 from pipelinellm.types import LLMDocument, FunctionCallRequest, FunctionCallOutput
 
@@ -12,15 +13,33 @@ def _updateh(hasher, val: Optional[str]):
 
 
 def compute_hash(
-    instructions: Optional[str], documents: List[LLMDocument], *, salt=None
+    instructions: Optional[str],
+    documents: List[LLMDocument],
+    *,
+    salt: Optional[str] = None,
+    _legacy_salt: Optional[List[str]] = None,
 ) -> str:
     """
     Compute a hash for the given instructions and documents.
 
     :param instructions: The instructions to hash.
     :param documents: The documents to hash.
+    :param salt: An optional salt string. Applied via a second SHA-256 pass over the
+        base hash, so it cannot collide with document content.
+    :param _legacy_salt: Deprecated. For migration only. Reproduces the old
+        (collision-prone) behaviour where salt terms were appended directly to the
+        document list. Pass the same list that was formerly concatenated onto the
+        documents argument to recover legacy hashes.
     :returns: A SHA-256 hash representing the combined content, in hexadecimal format.
     """
+    if _legacy_salt is not None:
+        warnings.warn(
+            "_legacy_salt is deprecated and exists only for migration purposes. "
+            "Switch to the `salt` parameter to avoid hash collisions.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        return compute_hash(instructions, list(documents) + _legacy_salt)
     hasher = hashlib.sha256()
     if instructions:
         hasher.update(instructions.encode("utf-8"))

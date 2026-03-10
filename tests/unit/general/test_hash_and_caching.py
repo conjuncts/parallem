@@ -93,6 +93,55 @@ class TestComputeHash:
         result = compute_hash(instructions, documents)
         assert result == expected
 
+    def test_salt_does_not_collide_with_documents(self):
+        """Salt must not be mistaken for document content (was the old bug)."""
+        # Without the fix, compute_hash(None, ["ab", "cd"]) ==
+        # compute_hash(None, ["a"], salt="bcd")  because SHA-256 just concatenates.
+        # With the re-hash fix these must differ.
+        hash_no_salt = compute_hash(None, ["ab", "cd"])
+        hash_with_salt = compute_hash(None, ["ab"], salt="cd")
+        assert hash_no_salt != hash_with_salt
+
+    def test_salt_changes_hash(self):
+        """Providing a salt must change the hash."""
+        h1 = compute_hash(None, ["hello"])
+        h2 = compute_hash(None, ["hello"], salt="v1")
+        h3 = compute_hash(None, ["hello"], salt="v2")
+        assert h1 != h2
+        assert h1 != h3
+        assert h2 != h3
+
+    def test_salt_is_deterministic(self):
+        """Same inputs with the same salt must always return the same hash."""
+        h1 = compute_hash("instr", ["doc"], salt="s1")
+        h2 = compute_hash("instr", ["doc"], salt="s1")
+        assert h1 == h2
+
+    def test_legacy_salt_reproduces_old_behaviour(self):
+        """_legacy_salt must produce the same hash as the old collision-prone approach."""
+        instructions = "test"
+        docs = ["doc_content"]
+        salt_terms = ["v1"]
+
+        # Old behaviour: append salt strings directly to the document list
+        expected = compute_hash(instructions, docs + salt_terms)
+
+        with pytest.warns(DeprecationWarning):
+            result = compute_hash(instructions, docs, _legacy_salt=salt_terms)
+
+        assert result == expected
+
+    def test_legacy_salt_differs_from_new_salt(self):
+        """New salt and legacy_salt must produce different hashes (different schemes)."""
+        docs = ["hello"]
+        salt_term = "world"
+
+        with pytest.warns(DeprecationWarning):
+            legacy = compute_hash(None, docs, _legacy_salt=[salt_term])
+        new = compute_hash(None, docs, salt=salt_term)
+
+        assert legacy != new
+
 
 @pytest.mark.skip("Not very informative")
 class TestDashboardLogger:

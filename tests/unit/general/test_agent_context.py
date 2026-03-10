@@ -128,7 +128,27 @@ class TestAskLLMMethod:
             agent.ask_llm("Test prompt", instructions="Test instructions")
 
             mock_compute_hash.assert_called_once_with(
-                "Test instructions", ["Test prompt"]
+                "Test instructions", ["Test prompt"], salt=None
+            )
+
+    @patch("pipelinellm.core.agent.agent.compute_hash")
+    def test_ask_llm_legacy_salt_uses_legacy_path(
+        self, mock_compute_hash, mock_orchestrator
+    ):
+        """Test that _legacy_salt routes through _legacy_salt= on compute_hash"""
+        mock_compute_hash.return_value = "legacy_hash_456"
+
+        agent = AgentContext("test_agent", mock_orchestrator)
+
+        with agent:
+            import warnings
+
+            with warnings.catch_warnings(record=True):
+                warnings.simplefilter("always")
+                agent.ask_llm("Test prompt", _legacy_salt="v1")
+
+            mock_compute_hash.assert_called_once_with(
+                None, ["Test prompt"], _legacy_salt=["v1"]
             )
 
     def test_context_manager_preserves_anonymous_counter(self, mock_orchestrator):
