@@ -248,6 +248,47 @@ class TestBatchBackendExecuteBatch:
         # Should not call provider
         assert mock_provider.submit_batch_to_provider.call_count == 0
 
+    def test_pending_requests_counting(self, batch_backend, mock_provider):
+        """Test that pending requests are counted"""
+        from pipelinellm.core.exception import PendingNotAvailable
+
+        llm = LLMIdentity(
+            "gpt-4o-mini", provider_type="openai", model_name="gpt-4o-mini"
+        )
+
+        # Add some calls
+        call_ids = [create_call_id("agent1", i) for i in range(3)]
+        for call_id in call_ids:
+            batch_backend.bookkeep_call(call_id, llm, {"data": "test"})
+
+        # Execute batch to store them as pending
+        batch_backend.execute_batch(
+            mock_provider, PrimitiveDashboardLogger(), max_batch_size=10
+        )
+
+        # Mock datastore to return True for pending checks
+        batch_backend._ds.is_call_in_pending_batch.return_value = True
+
+        # Try to submit the same calls again (they're now pending)
+        for call_id in call_ids:
+            try:
+                batch_backend.submit_query(
+                    mock_provider,
+                    {
+                        "instructions": None,
+                        "strict_documents": [],
+                        "llm": llm,
+                        "text_format": None,
+                        "tools": None,
+                    },
+                    call_id=call_id,
+                )
+            except PendingNotAvailable:
+                pass  # Expected
+
+        # Check that the counter was incremented
+        assert batch_backend._pending_count == 3
+
     @pytest.mark.skip(
         reason="This test doesn't work because of the way that the provider is mocked"
     )

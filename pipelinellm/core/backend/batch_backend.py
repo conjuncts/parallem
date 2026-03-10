@@ -73,6 +73,8 @@ class BatchBackend(BaseBackend):
         self.session_id = session_id
 
         self._private_increment = 0
+        self._pending_count = 0
+        """Count of requests that were already in pending batches"""
 
     def _get_datastore(self):
         return self._ds
@@ -92,6 +94,7 @@ class BatchBackend(BaseBackend):
 
         # Check if the call is already in a pending batch
         if self._ds.is_call_in_pending_batch(call_id):
+            self._pending_count += 1
             raise PendingNotAvailable()
 
         # Get the batch call data from the provider
@@ -289,6 +292,11 @@ class BatchBackend(BaseBackend):
 
     def persist(self):
         """Persist any remaining data and datastore"""
+        # Print summary of pending requests if any were encountered
+        if self._pending_count > 0:
+            self.dashlog.print(
+                f"Skipped {self._pending_count} request(s) already in pending batches."
+            )
         self._ds.persist()
 
     def persist_to_zip(
