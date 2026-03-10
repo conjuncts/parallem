@@ -46,7 +46,16 @@ def openai_metadata_sinker(metas: List[tuple[str, str]]):
             messages.append(openai_message_sinker(msg, remove_content=True))
             my_msg_ids.append(msg.get("id"))
         obj["output"] = my_msg_ids
-    messages_df = pl.DataFrame(messages)
+    messages_df = pl.DataFrame(
+        messages,
+        schema={
+            "id": pl.Utf8,
+            "type": pl.Utf8,
+            "status": pl.Utf8,
+            "role": pl.Utf8,
+            "rest": pl.Utf8,
+        },
+    )
 
     df = pl.json_normalize(objs)
 
