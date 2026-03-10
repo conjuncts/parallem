@@ -42,6 +42,7 @@ class MessageState(UserList[Union[LLMDocument, LLMResponse]], Askable):
         self.anon_ctr = anon_ctr
         self.chkp_ctr = chkp_ctr
         self._true_agent = true_agent
+        self._memoize_enabled = False
 
     def copy(self) -> "MessageState":
         """Create a copy of this MessageState."""
