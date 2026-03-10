@@ -152,3 +152,19 @@ class AgentOrchestrator:
     def batch(self) -> BatchNamespace:
         """Namespace for batch operations."""
         return self._batch
+
+    def export_tables(
+        self,
+        directory: Optional[str],
+        *,
+        filetype: Literal["csv", "tsv", "parquet"] = "parquet",
+    ):
+        """
+        Export all tables from the backend to files.
+
+        :param directory: Directory to export tables to. If None, uses the default datastore directory.
+        :param filetype: Export file type - "polars" or "parquet" for parquet files, "csv" for CSV, "tsv" for TSV.
+        """
+        return self._backend._get_datastore().export_tables(
+            directory, filetype=filetype
+        )

@@ -1,5 +1,5 @@
 from abc import ABC
-from typing import List, Optional, Union
+from typing import List, Literal, Optional, Union
 
 from pipelinellm.types import (
     BatchIdentifier,
@@ -152,5 +152,19 @@ class Datastore(ABC):
 
         :param call_id: The call identifier to check
         :returns: True if the call_id is in an active pending batch, False otherwise
+        """
+        raise NotImplementedError
+
+    def export_tables(
+        self,
+        directory: Optional[str],
+        *,
+        format: Literal["polars", "csv", "tsv", "parquet"] = "polars",
+    ) -> None:
+        """
+        Export all tables from the datastore to files.
+
+        :param directory: Directory to export tables to. If None, uses a default location.
+        :param format: Export format - "polars" or "parquet" for parquet files, "csv" for CSV, "tsv" for TSV.
         """
         raise NotImplementedError

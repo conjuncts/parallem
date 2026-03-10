@@ -2,7 +2,8 @@ import sqlite3
 import json
 import threading
 import polars as pl
-from typing import List, Optional, Union
+from pathlib import Path
+from typing import List, Literal, Optional, Union
 
 from pipelinellm.core.cast.doc_to_str import cast_document_to_bytes
 from pipelinellm.core.cast.fix_tools import dump_function_calls, load_function_calls
@@ -11,6 +12,7 @@ from pipelinellm.core.datastore.sql_migrate import (
     _check_and_migrate,
     _migrate_sql_schema,
 )
+from pipelinellm.core.io.sqlite_to_parquet import export_sqlite_to_folder
 from pipelinellm.core.sink.sequester import sequester_metadata
 from pipelinellm.core.sink.to_parquet import ParquetUniqueWriter, ParquetWriter
 from pipelinellm.core.file_manager import FileManager
@@ -896,3 +898,28 @@ class SQLiteDatastore(Datastore):
         )
         row = cursor.fetchone()
         return row["count"] > 0 if row else False
+
+    def export_tables(
+        self,
+        directory: Optional[str],
+        *,
+        filetype: Literal["csv", "tsv", "parquet"] = "parquet",
+    ) -> None:
+        """
+        Export all tables from the datastore to files.
+
+        :param directory: Directory to export tables to. If None, uses the default datastore directory.
+        :param filetype: Export file type - "polars" or "parquet" for parquet files, "csv" for CSV, "tsv" for TSV.
+        """
+
+        # Get the database path
+        db_path = self.file_manager.path_datastore() / "datastore.db"
+
+        # Determine export directory
+        if directory is None:
+            export_dir = self.file_manager.path_datastore() / "export"
+        else:
+            export_dir = Path(directory)
+
+        # Export the database
+        return export_sqlite_to_folder(db_path, export_dir, filetype=filetype)
