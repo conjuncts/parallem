@@ -384,71 +384,67 @@ class SQLiteDatastore(Datastore):
             # Ignore any errors during cleanup in destructor
             pass
 
-    def retrieve(
-        self, call_id: CallIdentifier, metadata=False
-    ) -> Optional[ParsedResponse]:
+    def _fetch_oldest_row(
+        self,
+        conn: sqlite3.Connection,
+        table: str,
+        where: str,
+        params: list,
+    ) -> Optional[sqlite3.Row]:
         """
-        Retrieve a response from SQLite.
-        Selects the oldest entry.
+        Fetch the oldest (lowest id) row matching a WHERE clause.
 
-        :param call_id: The task identifier containing agent_name, doc_hash, and seq_id.
-        :returns: The retrieved response content.
+        :param conn: SQLite connection.
+        :param table: Table name to query.
+        :param where: SQL WHERE clause fragment (no leading WHERE keyword).
+        :param params: Positional parameters for the WHERE clause.
+        :returns: The matching row, or None.
         """
-        # It needs to be the oldest entry, because
-        # we want it to be deterministic (we don't want future requests to mess up the order)
-
-        doc_hash = call_id["doc_hash"]
-        seq_id = call_id["seq_id"]
-        agent_name = call_id["agent_name"]
-
-        conn = self._get_connection(None)
-        table_name = "anon_responses"
-
-        where_conditions = "agent_name = ? AND doc_hash = ?"
-        params = [agent_name, doc_hash]
-
-        # Ideally, seq_id should match. Get oldest entry
-        full_where = where_conditions + " AND seq_id = ?"
-        full_params = params + [seq_id]
-
         cursor = conn.execute(
-            f"SELECT response, session_id, tool_calls FROM {table_name} WHERE {full_where} ORDER BY id ASC LIMIT 1",
-            full_params,
+            f"SELECT response, seq_id, session_id, tool_calls"
+            f" FROM {table} WHERE {where} ORDER BY id ASC LIMIT 1",
+            params,
         )
-        old_seq_id = seq_id
-        row = cursor.fetchone()
-        if not row:
-            # Fallback: allow seq_id to differ. Get oldest entry
-            cursor = conn.execute(
-                f"SELECT response, seq_id, session_id, tool_calls FROM {table_name} WHERE {where_conditions} ORDER BY id ASC LIMIT 1",
-                params,
-            )
-            row = cursor.fetchone()
+        return cursor.fetchone()
 
-            if row is None:
-                return None
+    def _parse_tool_calls_from_row(self, row: sqlite3.Row) -> Optional[list]:
+        """
+        Parse tool_calls JSON from a row, returning None on failure.
 
-            old_seq_id = row["seq_id"]
+        :param row: A SQLite row that contains a ``tool_calls`` column.
+        :returns: Parsed function-call list, or None.
+        """
+        raw = row["tool_calls"]
+        if not raw:
+            return None
+        try:
+            return load_function_calls(raw)
+        except (json.JSONDecodeError, TypeError):
+            return None
+
+    def _row_to_parsed_response(
+        self,
+        row: sqlite3.Row,
+        agent_name: str,
+        *,
+        include_metadata: bool = False,
+    ) -> ParsedResponse:
+        """
+        Convert a raw SQLite row to a :class:`ParsedResponse`.
+
+        :param row: Row containing ``response``, ``seq_id``, ``session_id``, and ``tool_calls``.
+        :param agent_name: Agent name used to look up metadata.
+        :param include_metadata: When True, attach retrieved metadata.
+        :returns: Populated :class:`ParsedResponse`.
+        """
+        old_seq_id = row["seq_id"]
         old_session_id = row["session_id"]
-
-        # Parse tool_calls from JSON if present
-        tool_calls = None
-        if row["tool_calls"]:
-            try:
-                tool_calls = load_function_calls(row["tool_calls"])
-            except (json.JSONDecodeError, TypeError):
-                tool_calls = None
-
-        if metadata:
-            # Retrieve metadata
-            metadata_value = self.retrieve_metadata(
-                call_id["agent_name"],
-                old_seq_id,
-                old_session_id,
-            )
-        else:
-            metadata_value = None
-
+        tool_calls = self._parse_tool_calls_from_row(row)
+        metadata_value = (
+            self.retrieve_metadata(agent_name, old_seq_id, old_session_id)
+            if include_metadata
+            else None
+        )
         return ParsedResponse(
             text=row["response"],
             response_id=None,
@@ -457,6 +453,61 @@ class SQLiteDatastore(Datastore):
             old_session_id=old_session_id,
             old_seq_id=old_seq_id,
         )
+
+    def retrieve(
+        self, call_id: CallIdentifier, metadata=False
+    ) -> Optional[ParsedResponse]:
+        """
+        Retrieve a response from SQLite.
+        Selects the oldest (lowest id) matching entry.
+
+        When ``doc_hash`` is None the lookup is performed solely on
+        ``(agent_name, session_id, seq_id)``.  Otherwise the primary lookup
+        uses ``(agent_name, doc_hash, seq_id)`` and falls back to
+        ``(agent_name, doc_hash)`` if nothing is found.
+
+        :param call_id: The task identifier containing agent_name, doc_hash, seq_id,
+            and optionally session_id.
+        :param metadata: When True, attach usage metadata to the response.
+        :returns: The retrieved response, or None.
+        """
+        # Oldest entry is chosen to keep retrieval deterministic across concurrent writes.
+        doc_hash = call_id["doc_hash"]
+        seq_id = call_id["seq_id"]
+        agent_name = call_id["agent_name"]
+
+        conn = self._get_connection(None)
+        table = "anon_responses"
+
+        if doc_hash is None:
+            session_id = call_id.get("session_id")
+            row = self._fetch_oldest_row(
+                conn,
+                table,
+                "agent_name = ? AND session_id = ? AND seq_id = ?",
+                [agent_name, session_id, seq_id],
+            )
+        else:
+            # Primary: exact doc_hash + seq_id match
+            row = self._fetch_oldest_row(
+                conn,
+                table,
+                "agent_name = ? AND doc_hash = ? AND seq_id = ?",
+                [agent_name, doc_hash, seq_id],
+            )
+            if row is None:
+                # Fallback: ignore seq_id mismatch
+                row = self._fetch_oldest_row(
+                    conn,
+                    table,
+                    "agent_name = ? AND doc_hash = ?",
+                    [agent_name, doc_hash],
+                )
+
+        if row is None:
+            return None
+
+        return self._row_to_parsed_response(row, agent_name, include_metadata=metadata)
 
     def retrieve_metadata_legacy(self, response_id: str) -> Optional[dict]:
         """

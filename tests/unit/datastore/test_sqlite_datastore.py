@@ -141,6 +141,80 @@ class TestSQLite:
         assert retrieved is not None
         assert retrieved.text == "Fallback response"
 
+    def test_retrieve_by_session_seq_when_doc_hash_none(self, temp_datastore):
+        """When doc_hash is None, retrieve matches on (agent_name, session_id, seq_id)."""
+        call_id: CallIdentifier = {
+            "agent_name": "agent_a",
+            "doc_hash": "some_hash",
+            "seq_id": 7,
+            "session_id": 42,
+            "meta": {"provider_type": "openai", "tag": None},
+        }
+        temp_datastore.store(
+            call_id, ParsedResponse(text="found it", response_id=None, metadata={})
+        )
+
+        lookup: CallIdentifier = {
+            "agent_name": "agent_a",
+            "doc_hash": None,
+            "seq_id": 7,
+            "session_id": 42,
+            "meta": {},
+        }
+        retrieved = temp_datastore.retrieve(lookup)
+        assert retrieved is not None
+        assert retrieved.text == "found it"
+
+    def test_retrieve_doc_hash_none_no_match(self, temp_datastore):
+        """When doc_hash is None and (session_id, seq_id) don't match, returns None."""
+        call_id: CallIdentifier = {
+            "agent_name": "agent_b",
+            "doc_hash": "some_hash",
+            "seq_id": 1,
+            "session_id": 10,
+            "meta": {"provider_type": "openai", "tag": None},
+        }
+        temp_datastore.store(
+            call_id, ParsedResponse(text="stored", response_id=None, metadata={})
+        )
+
+        lookup: CallIdentifier = {
+            "agent_name": "agent_b",
+            "doc_hash": None,
+            "seq_id": 99,  # wrong seq_id
+            "session_id": 10,
+            "meta": {},
+        }
+        assert temp_datastore.retrieve(lookup) is None
+
+    def test_retrieve_doc_hash_none_ignores_different_session(self, temp_datastore):
+        """When doc_hash is None, a row with a different session_id is not returned."""
+        for session_id in (10, 20):
+            call_id: CallIdentifier = {
+                "agent_name": "agent_c",
+                "doc_hash": "hash_x",
+                "seq_id": 3,
+                "session_id": session_id,
+                "meta": {"provider_type": "openai", "tag": None},
+            }
+            temp_datastore.store(
+                call_id,
+                ParsedResponse(
+                    text=f"session {session_id}", response_id=None, metadata={}
+                ),
+            )
+
+        lookup: CallIdentifier = {
+            "agent_name": "agent_c",
+            "doc_hash": None,
+            "seq_id": 3,
+            "session_id": 20,
+            "meta": {},
+        }
+        retrieved = temp_datastore.retrieve(lookup)
+        assert retrieved is not None
+        assert retrieved.text == "session 20"
+
     def test_tag_storage_and_retrieval(self, temp_datastore, generic_call_id):
         """Test that tag is correctly stored and retrieved"""
         call_id = generic_call_id
