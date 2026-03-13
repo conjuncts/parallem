@@ -180,22 +180,29 @@ class BaseDatastore(BaseRetriever, ABC):
 
     def store_memoize(
         self,
+        agent_name: str,
         state_hash: str,
         operation_log: "OperationLog",
     ) -> None:
         """
         Store memoized operation log for a given state hash.
 
+        :param agent_name: The name of the agent owning the memoized state.
         :param state_hash: The hash of the initial MessageState.
         :param operation_log: The :class:`~pipelinellm.core.memoize.operations.OperationLog`
             to persist.
         """
         pass
 
-    def retrieve_memoize(self, state_hash: str) -> "Optional[OperationLog]":
+    def retrieve_memoize(
+        self,
+        agent_name: str,
+        state_hash: str,
+    ) -> "Optional[OperationLog]":
         """
         Retrieve memoized operation log for a given state hash.
 
+        :param agent_name: The name of the agent owning the memoized state.
         :param state_hash: The hash of the initial MessageState.
         :return: The :class:`~pipelinellm.core.memoize.operations.OperationLog`, or
             ``None`` if not found.

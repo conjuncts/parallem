@@ -69,13 +69,20 @@ class MemoizeContext:
             # No need to prepare for serialization, since only call_id is written
 
             datastore = self.agent._orch._backend._get_datastore()
-            datastore.store_memoize(self._conv_hash, self._operation_log)
+            datastore.store_memoize(
+                self.agent.agent_name,
+                self._conv_hash,
+                self._operation_log,
+            )
 
     def begin(self):
         """Required to start tracking for memoization. Must be called within the context."""
         # Check if there's a cached operation log for this state
         datastore = self.agent._orch._backend._get_datastore()
-        operation_log = datastore.retrieve_memoize(self._conv_hash)
+        operation_log = datastore.retrieve_memoize(
+            self.agent.agent_name,
+            self._conv_hash,
+        )
 
         if operation_log is not None:
             # Found cached operations - replay them

@@ -285,9 +285,11 @@ class SQLiteDatastore(BaseDatastore):
                 conn.execute("""
                     CREATE TABLE IF NOT EXISTS memoize (
                         id INTEGER PRIMARY KEY AUTOINCREMENT,
-                        state_hash TEXT NOT NULL UNIQUE,
+                        agent_name TEXT NOT NULL,
+                        state_hash TEXT NOT NULL,
                         final_state TEXT,
-                        timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
+                        timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
+                        UNIQUE(agent_name, state_hash)
                     )
                 """)
 
@@ -295,6 +297,7 @@ class SQLiteDatastore(BaseDatastore):
                 conn.execute("""
                     CREATE TABLE IF NOT EXISTS memoize_ops (
                         id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        agent_name TEXT NOT NULL,
                         state_hash TEXT NOT NULL,
                         op_seq INTEGER NOT NULL,
                         item_seq INTEGER NOT NULL DEFAULT 0,
@@ -308,8 +311,12 @@ class SQLiteDatastore(BaseDatastore):
                 """)
                 self._ensure_memoize_ops_schema(conn)
                 conn.execute("""
-                    CREATE INDEX IF NOT EXISTS idx_memoize_ops_hash
-                    ON memoize_ops(state_hash)
+                    CREATE INDEX IF NOT EXISTS idx_memoize_agent_hash
+                    ON memoize(agent_name, state_hash)
+                """)
+                conn.execute("""
+                    CREATE INDEX IF NOT EXISTS idx_memoize_ops_agent_hash
+                    ON memoize_ops(agent_name, state_hash)
                 """)
 
                 # Migrate existing schema if needed
@@ -1106,6 +1113,7 @@ class SQLiteDatastore(BaseDatastore):
 
     def store_memoize(
         self,
+        agent_name: str,
         state_hash: str,
         operation_log: "OperationLog",
     ) -> None:
@@ -1115,6 +1123,7 @@ class SQLiteDatastore(BaseDatastore):
         Each operation is stored as one or more rows in ``memoize_ops``; no pickle
         is used.
 
+        :param agent_name: The name of the agent owning the memoized state.
         :param state_hash: The hash of the initial MessageState.
         :param operation_log: The :class:`~pipelinellm.core.memoize.operations.OperationLog`
             to persist.
@@ -1126,14 +1135,17 @@ class SQLiteDatastore(BaseDatastore):
         # Upsert the sentinel row in `memoize` so state_hash is indexed
         conn.execute(
             """
-            INSERT OR REPLACE INTO memoize (state_hash, timestamp)
-            VALUES (?, CURRENT_TIMESTAMP)
+            INSERT OR REPLACE INTO memoize (agent_name, state_hash, timestamp)
+            VALUES (?, ?, CURRENT_TIMESTAMP)
             """,
-            (state_hash,),
+            (agent_name, state_hash),
         )
 
         # Remove any previously stored ops for this hash
-        conn.execute("DELETE FROM memoize_ops WHERE state_hash = ?", (state_hash,))
+        conn.execute(
+            "DELETE FROM memoize_ops WHERE agent_name = ? AND state_hash = ?",
+            (agent_name, state_hash),
+        )
 
         rows: list[tuple] = []
         supported_op_types = {
@@ -1185,6 +1197,7 @@ class SQLiteDatastore(BaseDatastore):
 
                 rows.append(
                     (
+                        agent_name,
                         state_hash,
                         op_seq,
                         item_seq,
@@ -1200,16 +1213,21 @@ class SQLiteDatastore(BaseDatastore):
         conn.executemany(
             """
             INSERT INTO memoize_ops
-                (state_hash, op_seq, item_seq, op_type, item_value, item_type, item_extra, target, list_index)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                (agent_name, state_hash, op_seq, item_seq, op_type, item_value, item_type, item_extra, target, list_index)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
             rows,
         )
 
-    def retrieve_memoize(self, state_hash: str) -> "Optional[OperationLog]":
+    def retrieve_memoize(
+        self,
+        agent_name: str,
+        state_hash: str,
+    ) -> "Optional[OperationLog]":
         """
         Retrieve memoized operation log for a given state hash.
 
+        :param agent_name: The name of the agent owning the memoized state.
         :param state_hash: The hash of the initial MessageState.
         :return: The reconstructed :class:`~pipelinellm.core.memoize.operations.OperationLog`,
             or ``None`` if not found.
@@ -1219,14 +1237,15 @@ class SQLiteDatastore(BaseDatastore):
 
         # Check whether any ops exist for this hash
         cursor = conn.execute(
-            "SELECT COUNT(*) FROM memoize_ops WHERE state_hash = ?",
-            (state_hash,),
+            "SELECT COUNT(*) FROM memoize_ops WHERE agent_name = ? AND state_hash = ?",
+            (agent_name, state_hash),
         )
         # count = cursor.fetchone()[0]
 
         # Also verify the sentinel row exists
         sentinel = conn.execute(
-            "SELECT id FROM memoize WHERE state_hash = ?", (state_hash,)
+            "SELECT id FROM memoize WHERE agent_name = ? AND state_hash = ?",
+            (agent_name, state_hash),
         ).fetchone()
         if sentinel is None:
             return None
@@ -1235,10 +1254,10 @@ class SQLiteDatastore(BaseDatastore):
             """
             SELECT op_seq, item_seq, op_type, item_value, item_type, item_extra, list_index
             FROM memoize_ops
-            WHERE state_hash = ?
+            WHERE agent_name = ? AND state_hash = ?
             ORDER BY op_seq, item_seq
             """,
-            (state_hash,),
+            (agent_name, state_hash),
         )
         rows_fetched = cursor.fetchall()
 

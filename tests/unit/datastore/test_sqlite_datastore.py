@@ -245,18 +245,19 @@ class TestSQLite:
         operation_log.record(AppendOp("hello"))
         operation_log.record(SetNonMsgItemOp("k", {"nested": True}))
 
+        agent_name = "agent-target-test"
         state_hash = "hash_target_test"
-        temp_datastore.store_memoize(state_hash, operation_log)
+        temp_datastore.store_memoize(agent_name, state_hash, operation_log)
 
         conn = temp_datastore._get_connection(None)
         rows = conn.execute(
             """
             SELECT op_type, target
             FROM memoize_ops
-            WHERE state_hash = ?
+            WHERE agent_name = ? AND state_hash = ?
             ORDER BY op_seq, item_seq
             """,
-            (state_hash,),
+            (agent_name, state_hash),
         ).fetchall()
 
         assert len(rows) == 2
@@ -264,6 +265,20 @@ class TestSQLite:
         assert rows[0]["target"] == ".msg"
         assert rows[1]["op_type"] == "setnonmsgitem"
         assert rows[1]["target"] == ".nmsg"
+
+    def test_memoize_isolated_by_agent_name(self, temp_datastore):
+        operation_log = OperationLog()
+        operation_log.record(AppendOp("hello"))
+
+        state_hash = "hash_shared"
+        temp_datastore.store_memoize("agent-a", state_hash, operation_log)
+
+        retrieved_same_agent = temp_datastore.retrieve_memoize("agent-a", state_hash)
+        retrieved_other_agent = temp_datastore.retrieve_memoize("agent-b", state_hash)
+
+        assert retrieved_same_agent is not None
+        assert len(retrieved_same_agent.operations) == 1
+        assert retrieved_other_agent is None
 
 
 # @pytest.mark.skip("Takes extra time")
