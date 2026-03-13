@@ -3,7 +3,7 @@ from pipelinellm.core.backend import BaseBackend
 from pipelinellm.core.backend.concurrent_backend import ConcurrentBackend
 from pipelinellm.core.backend.sync_backend import SyncBackend
 from pipelinellm.core.calls import _call_to_concise_dict
-from pipelinellm.core.datastore.base import Datastore
+from pipelinellm.core.datastore.base import BaseDatastore
 from pipelinellm.types import CallIdentifier, ParsedResponse
 
 
@@ -36,7 +36,7 @@ class MockBackend(BaseBackend):
         self._dict[tuple(_call_to_concise_dict(call_id).values())] = response
 
 
-class MockDatastore(Datastore):
+class MockDatastore(BaseDatastore):
     """
     Simple in-memory datastore for testing purposes.
     """

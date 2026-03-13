@@ -16,7 +16,7 @@ if TYPE_CHECKING:
     from pipelinellm.core.memoize.operations import OperationLog
 
 
-class Datastore(BaseRetriever, ABC):
+class BaseDatastore(BaseRetriever, ABC):
     """
     Stores responses
     """

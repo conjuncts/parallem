@@ -12,7 +12,7 @@ from pipelinellm.core.cast.doc_to_str import (
 )
 from pipelinellm.core.cast.fix_tools import dump_function_calls, load_function_calls
 
-from pipelinellm.core.datastore.base import Datastore
+from pipelinellm.core.datastore.base import BaseDatastore
 from pipelinellm.core.datastore.sql_migrate import (
     _check_and_migrate,
     _migrate_sql_schema,
@@ -44,7 +44,7 @@ from pipelinellm.types import (
 )
 
 
-class SQLiteDatastore(Datastore):
+class SQLiteDatastore(BaseDatastore):
     """
     SQLite-backed Datastore implementation
     """

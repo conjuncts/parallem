@@ -1,6 +1,7 @@
 import json
-from typing import TYPE_CHECKING, Optional, Union
+from typing import Optional, Union
 from io import BytesIO
+from pipelinellm.core.exception import IntegrityError
 from pipelinellm.core.response import PendingLLMResponse
 from pipelinellm.types import (
     BaseRetriever,
@@ -14,9 +15,6 @@ from pipelinellm.types import (
 )
 from pipelinellm.utils.image import is_image
 
-
-if TYPE_CHECKING:
-    from pipelinellm.core.backend import BaseBackend
 
 
 def cast_document_to_bytes(
@@ -95,7 +93,7 @@ def cast_bytes_to_document(
         full_call_id = retriever.populate_call_id(short_call_id)
         req = retriever.retrieve(full_call_id)
         if not req:
-            raise ValueError(
+            raise IntegrityError(
                 f"Expected FunctionCallRequest for call_id {full_call_id}, got {type(req)}"
             )
         return FunctionCallRequest(
@@ -111,26 +109,6 @@ def cast_bytes_to_document(
         return PendingLLMResponse(call_id=full_call_id, backend=retriever)
     else:
         raise NotImplementedError(f"Unknown document type: {doc_type!r}")
-
-
-def hydrate_document(
-    item: Union[FunctionCallRequest, LLMResponse],
-    backend: "BaseBackend",
-):
-    if isinstance(item, FunctionCallRequest):
-        # Hydrate FunctionCallRequest from backend
-        req = backend.retrieve(call_id=item.call_id)
-        if not req:
-            raise ValueError(
-                f"Expected FunctionCallRequest for call_id {item.call_id}, got {type(req)}"
-            )
-        return FunctionCallRequest(
-            text_content=req.text, calls=req.function_calls or [], call_id=item.call_id
-        )
-    elif isinstance(item, LLMResponse):
-        # Hydrate LLMResponse from backend
-        full_call_id = backend._get_datastore().populate_call_id(item.call_id)
-        return PendingLLMResponse(call_id=full_call_id, backend=backend)
 
 
 # ---------------------------------------------------------------------------

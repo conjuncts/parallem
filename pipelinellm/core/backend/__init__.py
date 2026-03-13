@@ -8,7 +8,7 @@ from pipelinellm.types import (
 )
 
 if TYPE_CHECKING:
-    from pipelinellm.core.datastore.base import Datastore
+    from pipelinellm.core.datastore.base import BaseDatastore
 
 
 class BaseBackend(BaseRetriever):
@@ -16,7 +16,7 @@ class BaseBackend(BaseRetriever):
     A backend is a data store, but also a way to poll
     """
 
-    def _get_datastore(self) -> "Datastore":
+    def _get_datastore(self) -> "BaseDatastore":
         raise NotImplementedError
 
     async def _poll_changes(self, call_id: CallIdentifier):
