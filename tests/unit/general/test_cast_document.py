@@ -7,6 +7,8 @@ Tests the document casting functionality including:
 - Handling of metadata/extra fields
 """
 
+import json
+
 import pytest
 from PIL import Image
 from io import BytesIO
@@ -150,15 +152,45 @@ class TestCastDocumentToBytes:
         assert doc_type == "llm_response"
         assert doc_extra is None
 
+    @pytest.mark.parametrize(
+        "value,expected_bytes",
+        [
+            (42, b"42"),
+            (-7, b"-7"),
+            (3.14, b"3.14"),
+            (True, b"true"),
+            (False, b"false"),
+            (None, b"null"),
+        ],
+    )
+    def test_cast_json_primitive(self, value, expected_bytes):
+        doc_bytes, doc_type, doc_extra = cast_document_to_bytes(value)
+        assert doc_bytes == expected_bytes
+        assert doc_type == "json"
+        assert doc_extra is None
+
+    @pytest.mark.parametrize(
+        "doc",
+        [
+            {"key": "value", "num": 1},
+            [1, "two", 3.0, False],
+        ],
+    )
+    def test_cast_json_container(self, doc):
+        doc_bytes, doc_type, doc_extra = cast_document_to_bytes(doc)
+        assert json.loads(doc_bytes) == doc
+        assert doc_type == "json"
+        assert doc_extra is None
+
     def test_cast_unknown_type(self):
         """Test that unknown types raise NotImplementedError"""
-        doc = {"some": "dict"}  # Dictionary is not a supported type
+        doc = print  # Function is not a supported type
 
         with pytest.raises(NotImplementedError) as exc_info:
             cast_document_to_bytes(doc)
 
         assert "Unknown document type" in str(exc_info.value)
-        assert "dict" in str(exc_info.value)
+        assert "builtin_function_or_method" in str(exc_info.value)
 
 
 class TestCastBytesToDocument:
@@ -254,6 +286,26 @@ class TestCastBytesToDocument:
         retriever.populate_call_id.assert_called_once_with(
             {"agent_name": "a", "seq_id": 1, "session_id": 0}
         )
+
+    @pytest.mark.parametrize("value", [42, -7, 0, 3.14, True, False, None])
+    def test_roundtrip_json_primitive(self, value):
+        byt, dtype, dextra = cast_document_to_bytes(value)
+        assert dtype == "json"
+        result = cast_bytes_to_document(byt, dtype, dextra)
+        assert result == value
+        assert type(result) is type(value)
+
+    def test_roundtrip_json_dict(self):
+        doc = {"a": 1, "b": [2, 3], "c": None}
+        byt, dtype, dextra = cast_document_to_bytes(doc)
+        assert dtype == "json"
+        assert cast_bytes_to_document(byt, dtype, dextra) == doc
+
+    def test_roundtrip_json_list(self):
+        doc = [1, "two", 3.0, False, None, {"nested": True}]
+        byt, dtype, dextra = cast_document_to_bytes(doc)
+        assert dtype == "json"
+        assert cast_bytes_to_document(byt, dtype, dextra) == doc
 
     def test_unknown_type_raises(self):
         with pytest.raises(NotImplementedError):

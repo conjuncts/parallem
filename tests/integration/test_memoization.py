@@ -10,7 +10,6 @@ These tests validate that:
 
 from pipelinellm.core.gateway import resume_directory
 from pipelinellm.testing.simple_mock import mock_openai_client
-import pytest
 
 
 def test_basic_memoization(temp_integration_dir):
@@ -279,21 +278,32 @@ def test_non_msg_state_memoized_replay(temp_integration_dir):
             assert conv[-1].final_answer == "first answer"
 
 
-def test_non_msg_state_rejects_nested_values(temp_integration_dir):
+def test_non_msg_state_accepts_nested_json_values(temp_integration_dir):
     test_dir = temp_integration_dir / "non_msg_type_guard"
 
-    mock_client = mock_openai_client(responses=[])
+    nested_value = {"a": "b", "nested": {"x": 1}, "items": ["x", {"y": 2}]}
+    nested_list = ["x", {"k": "v"}, [1, 2, 3]]
+
+    mock_client = mock_openai_client(responses=["nested accepted"])
     with resume_directory(
         test_dir, provider="openai", strategy="sync", client=mock_client
     ) as orch:
-        with pytest.raises(TypeError):
-            orch.userdata["nested"] = {"a": "b"}
+        with orch.agent() as agent:
+            conv = agent.get_msg_state()
 
-        with pytest.raises(TypeError):
-            orch.userdata["nested_list"] = ["x"]
+            with agent.memoize() as mem:
+                mem.begin()
+                orch.userdata["nested"] = nested_value
+                orch.userdata["nested_list"] = nested_list
+                conv.append(orch.userdata["nested"]["a"])
+                conv.ask_llm()
 
-    # Second run - should also have no operations
-    mock_client2 = mock_openai_client(responses=[])
+            assert orch.userdata["nested"] == nested_value
+            assert orch.userdata["nested_list"] == nested_list
+            assert len(mock_client.calls) == 1
+            assert conv[-1].final_answer == "nested accepted"
+
+    mock_client2 = mock_openai_client(responses=["should not be called"])
     with resume_directory(
         test_dir, provider="openai", strategy="sync", client=mock_client2
     ) as orch2:
@@ -302,6 +312,12 @@ def test_non_msg_state_rejects_nested_values(temp_integration_dir):
 
             with agent.memoize() as mem:
                 mem.begin()
-                # No operations
+                orch2.userdata["nested"] = nested_value
+                orch2.userdata["nested_list"] = nested_list
+                conv.append(orch2.userdata["nested"]["a"])
+                conv.ask_llm()
 
-            assert len(conv) == 0
+            assert orch2.userdata["nested"] == nested_value
+            assert orch2.userdata["nested_list"] == nested_list
+            assert len(mock_client2.calls) == 0
+            assert conv[-1].final_answer == "nested accepted"

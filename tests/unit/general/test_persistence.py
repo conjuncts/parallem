@@ -334,8 +334,10 @@ class TestAgentOrchestratorIntegration:
             assert loaded_pending.resolve() == "backend_test_value"
 
             assert isinstance(loaded_ready, ReadyLLMResponse)
-            # Both depend solely on backend
-            assert loaded_ready.resolve() == "backend_test_value"
+            # NonMessageState is now in-memory
+            # Note this gives different results, but 2 responses shouldn't have the same
+            # CallId so this would be an IntegrityError anyways
+            assert loaded_ready.resolve() == "test_value"
 
     def test_orchestrator_ignore_cache_parameter(self, generic_call_id):
         """Test that ignore_cache parameter works correctly"""

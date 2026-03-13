@@ -36,6 +36,9 @@ class NonMessageState(UserDict):
                 and isinstance(value[1], str)
             ):
                 return
+        if isinstance(value, (int, float, bool, dict, list)):
+            # OK (json method)
+            return
         raise TypeError(
             f"NonMessageState values must be LLMDocument or LLMResponse, but got {type(value)}. "
             "Nested/container values are not supported."

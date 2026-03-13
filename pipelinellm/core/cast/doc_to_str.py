@@ -46,6 +46,8 @@ def cast_document_to_bytes(
         # Serialize based on LLMResponse ID rather than content
         serial_id = to_serial_id(doc.call_id)
         return serial_id.encode("utf-8"), "llm_response", None
+    elif doc is None or isinstance(doc, (int, float, bool, dict, list)):
+        return json.dumps(doc).encode("utf-8"), "json", None
     else:
         raise NotImplementedError(f"Unknown document type: {type(doc)}")
 
@@ -106,6 +108,8 @@ def cast_bytes_to_document(
 
         full_call_id = retriever.populate_call_id(short_call_id)
         return PendingLLMResponse(call_id=full_call_id, backend=retriever)
+    elif doc_type == "json":
+        return json.loads(doc_value.decode("utf-8"))
     else:
         raise NotImplementedError(f"Unknown document type: {doc_type!r}")
 
