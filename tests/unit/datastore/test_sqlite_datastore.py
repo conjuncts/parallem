@@ -12,6 +12,7 @@ from unittest.mock import patch
 
 from pipelinellm.core.datastore.sqlite import SQLiteDatastore
 from pipelinellm.core.file_manager import FileManager
+from pipelinellm.core.memoize.operations import AppendOp, OperationLog, SetNonMsgItemOp
 from pipelinellm.types import (
     CallIdentifier,
     ParsedResponse,
@@ -237,6 +238,32 @@ class TestSQLite:
         row = cursor.fetchone()
         assert row is not None
         assert row["tag"] == "test_tag_value"
+
+    def test_store_memoize_sets_target_by_state_type(self, temp_datastore):
+        """Memoize rows store .msg for MessageState ops and .nmsg for NonMessageState ops."""
+        operation_log = OperationLog()
+        operation_log.record(AppendOp("hello"))
+        operation_log.record(SetNonMsgItemOp("k", {"nested": True}))
+
+        state_hash = "hash_target_test"
+        temp_datastore.store_memoize(state_hash, operation_log)
+
+        conn = temp_datastore._get_connection(None)
+        rows = conn.execute(
+            """
+            SELECT op_type, target
+            FROM memoize_ops
+            WHERE state_hash = ?
+            ORDER BY op_seq, item_seq
+            """,
+            (state_hash,),
+        ).fetchall()
+
+        assert len(rows) == 2
+        assert rows[0]["op_type"] == "append"
+        assert rows[0]["target"] == ".msg"
+        assert rows[1]["op_type"] == "setnonmsgitem"
+        assert rows[1]["target"] == ".nmsg"
 
 
 # @pytest.mark.skip("Takes extra time")

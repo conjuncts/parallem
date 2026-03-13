@@ -114,6 +114,10 @@ class SQLiteDatastore(BaseDatastore):
             conn.execute("ALTER TABLE memoize_ops ADD COLUMN item_type TEXT")
         if "item_extra" not in cols:
             conn.execute("ALTER TABLE memoize_ops ADD COLUMN item_extra TEXT")
+        if "target" not in cols:
+            conn.execute(
+                "ALTER TABLE memoize_ops ADD COLUMN target TEXT NOT NULL DEFAULT '.msg'"
+            )
 
     def populate_call_id(
         self, short_call_id: dict, *, metadata=False
@@ -298,6 +302,7 @@ class SQLiteDatastore(BaseDatastore):
                         item_value BLOB,
                         item_type TEXT,
                         item_extra TEXT,
+                        target TEXT NOT NULL DEFAULT '.msg',
                         list_index INTEGER
                     )
                 """)
@@ -1147,6 +1152,8 @@ class SQLiteDatastore(BaseDatastore):
             if op.op_type not in supported_op_types:
                 raise ValueError(f"Unsupported memoize op_type: {op.op_type}")
 
+            target = ".nmsg" if op.op_type == "setnonmsgitem" else ".msg"
+
             if op.op_type == "setnonmsgitem":
                 serialized_items = [cast_document_to_bytes(op.value)]
             elif op.op_type == "extend":
@@ -1185,6 +1192,7 @@ class SQLiteDatastore(BaseDatastore):
                         item_value,
                         item_type,
                         extra_payload,
+                        target,
                         list_index,
                     )
                 )
@@ -1192,8 +1200,8 @@ class SQLiteDatastore(BaseDatastore):
         conn.executemany(
             """
             INSERT INTO memoize_ops
-                (state_hash, op_seq, item_seq, op_type, item_value, item_type, item_extra, list_index)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                (state_hash, op_seq, item_seq, op_type, item_value, item_type, item_extra, target, list_index)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
             rows,
         )
