@@ -3,7 +3,6 @@ Unit tests for userdata persistence and FileManager
 
 Tests the userdata persistence functionality including:
 - FileManager initialization and metadata handling
-- save_userdata and load_userdata operations
 - Agent metadata management
 - File sanitization and directory allocation
 - Session counter and lock file handling
@@ -161,81 +160,6 @@ class TestSanitization:
 
             result = fm._sanitize("")
             assert "empty" in result  # Default fallback
-
-
-class TestUserdataPersistence:
-    """Test userdata save/load functionality"""
-
-    def test_save_and_load_simple_data(self):
-        """Test saving and loading simple data types"""
-        with tempfile.TemporaryDirectory() as temp_dir:
-            fm = FileManager(temp_dir)
-
-            # Test different data types
-            test_data = {
-                "string": "Hello World",
-                "number": 42,
-                "list": [1, 2, 3],
-                "dict": {"key": "value"},
-            }
-
-            for key, value in test_data.items():
-                fm.save_userdata(key, value)
-                loaded_value = fm.load_userdata(key)
-                assert loaded_value == value
-
-    def test_save_userdata_creates_directory(self):
-        """Test that save_userdata creates userdata directory"""
-        with tempfile.TemporaryDirectory() as temp_dir:
-            fm = FileManager(temp_dir)
-
-            userdata_dir = fm.directory / "userdata"
-            assert not userdata_dir.exists()
-
-            fm.save_userdata("test_key", "test_value")
-
-            assert userdata_dir.exists()
-            assert userdata_dir.is_dir()
-
-    def test_load_nonexistent_data(self):
-        """Test loading nonexistent data raises FileNotFoundError"""
-        with tempfile.TemporaryDirectory() as temp_dir:
-            fm = FileManager(temp_dir)
-
-            with pytest.raises(FileNotFoundError):
-                fm.load_userdata("nonexistent_key")
-
-    def test_save_userdata_overwrite_protection(self):
-        """Test overwrite protection in save_userdata"""
-        with tempfile.TemporaryDirectory() as temp_dir:
-            fm = FileManager(temp_dir)
-
-            # Save initial data
-            fm.save_userdata("test_key", "original_value")
-
-            # No overwrite (should not change)
-            fm.save_userdata("test_key", "new_value", overwrite=False)
-            loaded_value = fm.load_userdata("test_key")
-            assert loaded_value == "original_value"
-
-            # Overwrite (should change)
-            fm.save_userdata("test_key", "new_value", overwrite=True)
-            loaded_value = fm.load_userdata("test_key")
-            assert loaded_value == "new_value"
-
-    def test_userdata_file_naming(self):
-        """Test that userdata files are named correctly"""
-        with tempfile.TemporaryDirectory() as temp_dir:
-            fm = FileManager(temp_dir)
-
-            fm.save_userdata("test/key", "test_value")
-
-            # Check that file was created with sanitized name
-            userdata_dir = fm.directory / "userdata"
-            pkl_files = list(userdata_dir.glob("*.pkl"))
-
-            assert len(pkl_files) == 1
-            assert "test_key" in pkl_files[0].name  # Should be sanitized
 
 
 class TestDatastoreAllocation:

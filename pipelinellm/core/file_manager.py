@@ -151,48 +151,6 @@ class FileManager:
             if tmp_file.exists():
                 tmp_file.unlink(missing_ok=True)
 
-    def save_userdata(self, key: str, value, overwrite=True):
-        """
-        Internally persist data
-
-        :param key: The data key
-        :param value: The data value to save
-        :param overwrite: Whether to overwrite existing data
-        """
-
-        # Create userdata directory
-        userdata_dir = self.directory / "userdata"
-        userdata_dir.mkdir(exist_ok=True)
-
-        # Save data using pickle for complex objects
-        fname = self._sanitize(key)
-        data_file = userdata_dir / f"{fname}.pkl"
-
-        if data_file.exists() and not overwrite:
-            return
-
-        with open(data_file, "wb") as f:
-            pickle.dump(value, f)
-
-    def load_userdata(self, key: str):
-        """
-        Internally load data
-
-        :param key: The data key to load
-        :returns: The loaded data
-        :raises FileNotFoundError: If the data file is not found
-        """
-        userdata_dir = self.directory / "userdata"
-
-        fname = self._sanitize(key)
-        data_file = userdata_dir / f"{fname}.pkl"
-
-        if not data_file.exists():
-            raise FileNotFoundError(f"Data file not found: {data_file}")
-
-        with open(data_file, "rb") as f:
-            return pickle.load(f)
-
     def path_datastore(self) -> Path:
         """
         Get the base datastore directory.
