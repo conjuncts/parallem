@@ -1349,9 +1349,6 @@ class SQLiteDatastore(BaseDatastore):
                 else:
                     items.append(None)
             if op_type == "extend":
-                items = [
-                    (r["item_value"], r["item_type"], r["item_extra"]) for r in group
-                ]
                 log.record(ExtendOp(items))
                 continue
 
@@ -1387,3 +1384,8 @@ class SQLiteDatastore(BaseDatastore):
                 log.record(SortOp(reverse=bool(group_0_index)))
 
         return log
+
+    def _vacuum(self):
+        """Performs vacuum on the SQLite database."""
+        with self._get_connection() as conn:
+            conn.execute("VACUUM")

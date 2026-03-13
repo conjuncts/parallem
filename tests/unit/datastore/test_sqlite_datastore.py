@@ -12,7 +12,12 @@ from unittest.mock import patch
 
 from pipelinellm.core.datastore.sqlite import SQLiteDatastore
 from pipelinellm.core.file_manager import FileManager
-from pipelinellm.core.memoize.operations import AppendOp, OperationLog, SetNonMsgItemOp
+from pipelinellm.core.memoize.operations import (
+    AppendOp,
+    ExtendOp,
+    OperationLog,
+    SetNonMsgItemOp,
+)
 from pipelinellm.types import (
     CallIdentifier,
     ParsedResponse,
@@ -361,6 +366,18 @@ class TestSQLite:
         assert retrieved_same_agent is not None
         assert len(retrieved_same_agent.operations) == 1
         assert retrieved_other_agent is None
+
+    def test_retrieve_memoize_extend_items_round_trip(self, temp_datastore):
+        operation_log = OperationLog()
+        operation_log.record(ExtendOp(["a", {"k": 1}]))
+
+        temp_datastore.store_memoize("agent-extend", "hash-extend", operation_log)
+        retrieved = temp_datastore.retrieve_memoize("agent-extend", "hash-extend")
+
+        assert retrieved is not None
+        extend_op = retrieved.operations[0]
+        assert extend_op.op_type == "extend"
+        assert extend_op.items == ["a", {"k": 1}]
 
 
 # @pytest.mark.skip("Takes extra time")
