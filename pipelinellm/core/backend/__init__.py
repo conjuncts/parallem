@@ -1,6 +1,7 @@
 from typing import TYPE_CHECKING, Optional
 from pipelinellm.provider.base import BaseProvider
 from pipelinellm.types import (
+    BaseRetriever,
     CallIdentifier,
     CommonQueryParameters,
     ParsedResponse,
@@ -10,7 +11,7 @@ if TYPE_CHECKING:
     from pipelinellm.core.datastore.base import Datastore
 
 
-class BaseBackend:
+class BaseBackend(BaseRetriever):
     """
     A backend is a data store, but also a way to poll
     """
@@ -37,7 +38,12 @@ class BaseBackend:
         :param call_id: The task identifier containing agent_name, doc_hash, and seq_id.
         :returns: The retrieved ParsedResponse.
         """
-        raise NotImplementedError
+        return self._get_datastore().retrieve(call_id, metadata=metadata)
+
+    def populate_call_id(
+        self, call_id: CallIdentifier, *, metadata=False
+    ) -> CallIdentifier:
+        return self._get_datastore().populate_call_id(call_id, metadata=metadata)
 
     def submit_query(
         self,

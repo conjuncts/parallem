@@ -84,4 +84,5 @@ High priority:
 - [ ] demonstrate that traditional workflows (ie. a simple ChatGPT wrapper) is also possible with pipelinellm (albeit not the intended purpose). Probably needs to use some message uuid as the agent_name.
 - [ ] demonstrate that subagents (nested agents) is possible.
 - [x] instead of locking up, do not resend responses that are known to already be pending. So create a PendingBatchResponse() interrupt.
-- [ ] hash_by is susceptible to hash collisions (applies to salt, hash_by). twice hash? Probably need to hash the base_hash plus the salt then. maybe it's fine, but that's quite annoying because all of my stored data is now messed up. Add a _legacy_salt parameter fofr conversion then.
+- [x] hash_by is susceptible to hash collisions (applies to salt, hash_by). twice hash? Probably need to hash the base_hash plus the salt then. maybe it's fine, but that's quite annoying because all of my stored data is now messed up. Add a _legacy_salt parameter fofr conversion then.
+- [ ] In memory datastore.

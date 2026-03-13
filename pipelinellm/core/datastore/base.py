@@ -4,6 +4,7 @@ from typing import TYPE_CHECKING, List, Literal, Optional, Union
 from pipelinellm.types import (
     BatchIdentifier,
     BatchResult,
+    BaseRetriever,
     CallIdentifier,
     LLMDocument,
     LLMResponse,
@@ -15,7 +16,7 @@ if TYPE_CHECKING:
     from pipelinellm.core.memoize.operations import OperationLog
 
 
-class Datastore(ABC):
+class Datastore(BaseRetriever, ABC):
     """
     Stores responses
     """
@@ -36,6 +37,9 @@ class Datastore(ABC):
         :param metadata: Whether to include metadata in the response.
         :returns: The retrieved response content.
         """
+        raise NotImplementedError
+
+    def populate_call_id(self, call_id: CallIdentifier) -> CallIdentifier:
         raise NotImplementedError
 
     def retrieve_metadata_legacy(self, response_id: str) -> Optional[dict]:

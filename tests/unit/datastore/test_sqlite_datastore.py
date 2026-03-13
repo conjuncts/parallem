@@ -781,7 +781,7 @@ class TestSQLiteStoreInput:
 
         msg_row = df_msg.filter(pl.col("msg_hash") == "hash_9").row(0, named=True)
         assert msg_row["msg_type"] == "function_call_output"
-        assert msg_row["msg_extra"] == "call_123"
+        assert msg_row["msg_extra"] == '{"c":"call_123","n":"test_function"}'
         assert msg_row["msg_value"] == b"Function result"
 
     def test_store_input_mismatched_lengths(self, temp_datastore):

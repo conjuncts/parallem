@@ -183,7 +183,11 @@ class MessageState(UserList[Union[LLMDocument, LLMResponse]], Askable):
 
     def sort(self, *, key=None, reverse=False):
         """Sort list in place."""
-        self._track_operation(SortOp(key, reverse))
+        if key is not None:
+            raise ValueError(
+                "MessageState.sort(key=...) is not supported because key functions are not serializable safely"
+            )
+        self._track_operation(SortOp(reverse))
         self.data.sort(key=key, reverse=reverse)
 
     def ask_llm(

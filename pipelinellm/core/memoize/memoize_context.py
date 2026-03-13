@@ -56,8 +56,7 @@ class MemoizeContext:
 
         # Store the operation log if there were any operations
         if self._operation_log and len(self._operation_log) > 0:
-            # Prepare for serialization (resolve lazy values)
-            self._operation_log._prepare_for_serialization()
+            # No need to prepare for serialization, since only call_id is written
 
             datastore = self.agent._orch._backend._get_datastore()
             datastore.store_memoize(self._conv_hash, self._operation_log)

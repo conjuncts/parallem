@@ -1,14 +1,14 @@
 from typing import TYPE_CHECKING
 from pipelinellm.core.calls import _call_to_concise_dict
-from pipelinellm.types import LLMResponse
 from pipelinellm.core.exception import NotAvailable
 from pipelinellm.types import (
     CallIdentifier,
+    LLMResponse,
     ParsedResponse,
 )
 
 if TYPE_CHECKING:
-    from pipelinellm.core.backend import BaseBackend
+    from pipelinellm.types import BaseRetriever
 
 
 class PendingLLMResponse(LLMResponse):
@@ -19,7 +19,7 @@ class PendingLLMResponse(LLMResponse):
     def __init__(
         self,
         call_id: CallIdentifier,
-        backend: "BaseBackend",
+        backend: "BaseRetriever",
     ):
         super().__init__(value=None, call_id=call_id)
         self._backend = backend

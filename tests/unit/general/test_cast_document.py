@@ -10,12 +10,11 @@ Tests the document casting functionality including:
 import pytest
 from PIL import Image
 from io import BytesIO
+from unittest.mock import Mock
 
 from pipelinellm.core.cast.doc_to_str import (
     cast_bytes_to_document,
     cast_document_to_bytes,
-    deserialize_document,
-    serialize_document,
 )
 from pipelinellm.types import (
     FunctionCallRequest,
@@ -100,7 +99,7 @@ class TestCastDocumentToBytes:
 
         assert doc_bytes == b"Function output result"
         assert doc_type == "function_call_output"
-        assert doc_extra == "func_123"
+        assert doc_extra == '{"c":"func_123","n":"test_function"}'
 
     def test_cast_tuple(self):
         """Test casting a tuple (role, content)"""
@@ -184,17 +183,18 @@ class TestCastBytesToDocument:
         assert isinstance(result, Image.Image)
         assert result.size == (8, 8)
 
-    def test_function_call_output_partial(self):
-        """FunctionCallOutput is partially reconstructed (name not stored)."""
+    def test_function_call_output(self):
+        """FunctionCallOutput is reconstructed."""
         doc = FunctionCallOutput(content="result", call_id="cid_99", name="my_fn")
         byt, dtype, dextra = cast_document_to_bytes(doc)
         result = cast_bytes_to_document(byt, dtype, dextra)
         assert isinstance(result, FunctionCallOutput)
         assert result.content == "result"
         assert result.call_id == "cid_99"
+        assert result.name == "my_fn"
 
-    def test_function_call_raises(self):
-        """FunctionCallRequest is lossy — should raise."""
+    def test_function_call_stub(self):
+        """FunctionCallRequest round-trips to a stub with only call_id."""
         call_id = {
             "agent_name": "a",
             "doc_hash": "h",
@@ -204,11 +204,31 @@ class TestCastBytesToDocument:
         }
         doc = FunctionCallRequest(text_content="t", calls=[], call_id=call_id)
         byt, dtype, dextra = cast_document_to_bytes(doc)
-        with pytest.raises(NotImplementedError):
-            cast_bytes_to_document(byt, dtype, dextra)
+        retriever = Mock()
+        full_call_id = {
+            "agent_name": "a",
+            "doc_hash": "h",
+            "seq_id": 1,
+            "session_id": 0,
+        }
+        retriever.populate_call_id.return_value = full_call_id
+        retrieved = Mock()
+        retrieved.text = "hydrated text"
+        retrieved.function_calls = []
+        retriever.retrieve.return_value = retrieved
 
-    def test_llm_response_raises(self):
-        """LLMResponse is lossy — should raise."""
+        result = cast_bytes_to_document(byt, dtype, dextra, retriever=retriever)
+        assert isinstance(result, FunctionCallRequest)
+        assert result.call_id == full_call_id
+        assert result.text_content == "hydrated text"
+        assert result.calls == []
+        retriever.populate_call_id.assert_called_once_with(
+            {"agent_name": "a", "seq_id": 1, "session_id": 0}
+        )
+        retriever.retrieve.assert_called_once_with(full_call_id)
+
+    def test_llm_response_stub(self):
+        """LLMResponse round-trips to a stub with only call_id."""
         call_id = {
             "agent_name": "a",
             "doc_hash": "h",
@@ -218,74 +238,23 @@ class TestCastBytesToDocument:
         }
         doc = LLMResponse("hello", call_id=call_id)
         byt, dtype, dextra = cast_document_to_bytes(doc)
-        with pytest.raises(NotImplementedError):
-            cast_bytes_to_document(byt, dtype, dextra)
+        retriever = Mock()
+        full_call_id = {
+            "agent_name": "a",
+            "doc_hash": "h",
+            "seq_id": 1,
+            "session_id": 0,
+        }
+        retriever.populate_call_id.return_value = full_call_id
+
+        result = cast_bytes_to_document(byt, dtype, dextra, retriever=retriever)
+        assert isinstance(result, LLMResponse)
+        assert result.call_id == full_call_id
+        assert result.value is None
+        retriever.populate_call_id.assert_called_once_with(
+            {"agent_name": "a", "seq_id": 1, "session_id": 0}
+        )
 
     def test_unknown_type_raises(self):
         with pytest.raises(NotImplementedError):
             cast_bytes_to_document(b"x", "unknown_type", None)
-
-
-class TestSerializeDeserializeDocument:
-    """Tests for serialize_document / deserialize_document (full round-trip)."""
-
-    @pytest.fixture
-    def call_id(self) -> CallIdentifier:
-        return {
-            "agent_name": "agent",
-            "doc_hash": "abc123",
-            "seq_id": 7,
-            "session_id": 2,
-            "meta": {"provider_type": "openai", "tag": None},
-        }
-
-    def test_roundtrip_string(self):
-        doc = "Hello 世界 🌍"
-        assert deserialize_document(serialize_document(doc)) == doc
-
-    def test_roundtrip_tuple(self):
-        doc = ("assistant", "I can help you.")
-        assert deserialize_document(serialize_document(doc)) == doc
-
-    def test_roundtrip_function_call_output(self):
-        doc = FunctionCallOutput(content="42", call_id="cid_1", name="get_answer")
-        result = deserialize_document(serialize_document(doc))
-        assert isinstance(result, FunctionCallOutput)
-        assert result.content == "42"
-        assert result.call_id == "cid_1"
-        assert result.name == "get_answer"
-
-    def test_roundtrip_function_call_request(self, call_id):
-        fn = FunctionCall(name="search", arguments={"q": "test"}, call_id="fc1")
-        doc = FunctionCallRequest(text_content="searching", calls=[fn], call_id=call_id)
-        result = deserialize_document(serialize_document(doc))
-        assert isinstance(result, FunctionCallRequest)
-        assert result.text_content == "searching"
-        assert len(result.calls) == 1
-        assert result.calls[0].name == "search"
-        assert result.calls[0].args == {"q": "test"}
-        assert result.calls[0].call_id == "fc1"
-
-    def test_roundtrip_llm_response(self, call_id):
-        doc = LLMResponse("The answer is 42.", call_id=call_id)
-        result = deserialize_document(serialize_document(doc))
-        assert isinstance(result, LLMResponse)
-        assert result.value == "The answer is 42."
-
-    def test_roundtrip_image(self):
-        img = Image.new("RGB", (4, 4), color="green")
-        result = deserialize_document(serialize_document(img))
-        assert isinstance(result, Image.Image)
-        assert result.size == (4, 4)
-
-    def test_roundtrip_llm_response_no_call_id(self):
-        doc = LLMResponse("bare response", call_id=None)
-        result = deserialize_document(serialize_document(doc))
-        assert result.value == "bare response"
-
-    def test_unknown_type_raises(self):
-        import json
-
-        data = json.dumps({"type": "mystery"})
-        with pytest.raises(NotImplementedError):
-            deserialize_document(data)

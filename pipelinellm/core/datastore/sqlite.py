@@ -1,19 +1,17 @@
+from itertools import groupby
 import sqlite3
 import json
 import threading
 import polars as pl
 from pathlib import Path
-from typing import TYPE_CHECKING, List, Literal, Optional, Union
+from typing import List, Literal, Optional, Union
 
 from pipelinellm.core.cast.doc_to_str import (
+    cast_bytes_to_document,
     cast_document_to_bytes,
-    deserialize_document,
-    serialize_document,
 )
 from pipelinellm.core.cast.fix_tools import dump_function_calls, load_function_calls
 
-if TYPE_CHECKING:
-    from pipelinellm.core.memoize.operations import OperationLog
 from pipelinellm.core.datastore.base import Datastore
 from pipelinellm.core.datastore.sql_migrate import (
     _check_and_migrate,
@@ -23,6 +21,18 @@ from pipelinellm.core.io.sqlite_to_parquet import export_sqlite_to_folder
 from pipelinellm.core.sink.sequester import sequester_metadata
 from pipelinellm.core.sink.to_parquet import ParquetUniqueWriter, ParquetWriter
 from pipelinellm.core.file_manager import FileManager
+from pipelinellm.core.memoize.operations import (
+    AppendOp,
+    ClearOp,
+    ExtendOp,
+    InsertOp,
+    OperationLog,
+    PopOp,
+    RemoveOp,
+    ReverseOp,
+    SetItemOp,
+    SortOp,
+)
 from pipelinellm.types import (
     BatchIdentifier,
     BatchResult,
@@ -86,6 +96,83 @@ class SQLiteDatastore(Datastore):
 
         # Check if migration is needed (only on first initialization)
         self._check_and_migrate()
+
+    def _ensure_memoize_ops_schema(self, conn: sqlite3.Connection) -> None:
+        """Ensure memoize_ops contains split item columns.
+
+        :param conn: SQLite connection.
+        :return: None.
+        """
+        cols = {
+            row["name"]
+            for row in conn.execute("PRAGMA table_info(memoize_ops)").fetchall()
+        }
+        if "item_value" not in cols:
+            conn.execute("ALTER TABLE memoize_ops ADD COLUMN item_value BLOB")
+        if "item_type" not in cols:
+            conn.execute("ALTER TABLE memoize_ops ADD COLUMN item_type TEXT")
+        if "item_extra" not in cols:
+            conn.execute("ALTER TABLE memoize_ops ADD COLUMN item_extra TEXT")
+
+    def populate_call_id(
+        self, short_call_id: dict, *, metadata=False
+    ) -> CallIdentifier:
+        """Populate a short call_id with doc_hash from the database.
+
+        :param short_call_id: Dict with agent_name, seq_id, session_id
+        :return: Full CallIdentifier with doc_hash and meta
+        """
+        conn = self._get_connection(None)
+        cursor = conn.execute(
+            """SELECT doc_hash FROM anon_responses 
+               WHERE agent_name = ? AND seq_id = ? AND session_id = ?
+               ORDER BY id DESC LIMIT 1""",
+            (
+                short_call_id["agent_name"],
+                short_call_id["seq_id"],
+                short_call_id["session_id"],
+            ),
+        )
+        row = cursor.fetchone()
+        if not row:
+            # If not found, return the short call_id
+            result = {
+                "doc_hash": None,
+                "meta": None,
+                "agent_name": None,
+                "seq_id": None,
+                "session_id": None,
+            }
+            result.update(short_call_id)
+            return result
+
+        # Get metadata if available
+        meta = None
+        if metadata:
+            meta_cursor = conn.execute(
+                """SELECT provider_type, tag FROM metadata
+                WHERE agent_name = ? AND seq_id = ? AND session_id = ?
+                LIMIT 1""",
+                (
+                    short_call_id["agent_name"],
+                    short_call_id["seq_id"],
+                    short_call_id["session_id"],
+                ),
+            )
+            meta_row = meta_cursor.fetchone()
+            if meta_row:
+                meta = {
+                    "provider_type": meta_row["provider_type"],
+                    "tag": meta_row["tag"],
+                }
+
+        return {
+            "agent_name": short_call_id["agent_name"],
+            "doc_hash": row["doc_hash"],
+            "seq_id": short_call_id["seq_id"],
+            "session_id": short_call_id["session_id"],
+            "meta": meta,
+        }
 
     def _check_and_migrate(self) -> None:
         """
@@ -207,11 +294,13 @@ class SQLiteDatastore(Datastore):
                         op_seq INTEGER NOT NULL,
                         item_seq INTEGER NOT NULL DEFAULT 0,
                         op_type TEXT NOT NULL,
-                        item_json TEXT,
-                        list_index INTEGER,
-                        sort_reverse INTEGER DEFAULT 0
+                        item_value BLOB,
+                        item_type TEXT,
+                        item_extra TEXT,
+                        list_index INTEGER
                     )
                 """)
+                self._ensure_memoize_ops_schema(conn)
                 conn.execute("""
                     CREATE INDEX IF NOT EXISTS idx_memoize_ops_hash
                     ON memoize_ops(state_hash)
@@ -1024,17 +1113,6 @@ class SQLiteDatastore(Datastore):
         :param operation_log: The :class:`~pipelinellm.core.memoize.operations.OperationLog`
             to persist.
         """
-        from pipelinellm.core.memoize.operations import (
-            AppendOp,
-            ClearOp,
-            ExtendOp,
-            InsertOp,
-            PopOp,
-            RemoveOp,
-            ReverseOp,
-            SetItemOp,
-            SortOp,
-        )
 
         conn = self._get_connection(None)
         self._is_dirty = True
@@ -1052,84 +1130,56 @@ class SQLiteDatastore(Datastore):
         conn.execute("DELETE FROM memoize_ops WHERE state_hash = ?", (state_hash,))
 
         rows: list[tuple] = []
+        supported_op_types = {
+            "append",
+            "remove",
+            "clear",
+            "reverse",
+            "extend",
+            "insert",
+            "setitem",
+            "pop",
+            "sort",
+        }
         for op_seq, op in enumerate(operation_log.operations):
-            if isinstance(op, AppendOp):
+            if op.op_type not in supported_op_types:
+                raise ValueError(f"Unsupported memoize op_type: {op.op_type}")
+
+            if op.op_type == "extend":
+                serialized_items = [cast_document_to_bytes(item) for item in op.items]
+            elif op.item is not None:
+                serialized_items = [cast_document_to_bytes(op.item)]
+            else:
+                serialized_items = [(None, None, None)]
+
+            if op.op_type == "sort":
+                list_index = 1 if op.reverse else 0
+            elif op.op_type in {"insert", "setitem", "pop"}:
+                list_index = op.index
+            else:
+                list_index = None
+
+            for item_seq, (item_value, item_type, item_extra) in enumerate(
+                serialized_items
+            ):
                 rows.append(
                     (
                         state_hash,
                         op_seq,
-                        0,
-                        "append",
-                        serialize_document(op.item),
-                        None,
-                        0,
+                        item_seq,
+                        op.op_type,
+                        item_value,
+                        item_type,
+                        item_extra,
+                        list_index,
                     )
-                )
-            elif isinstance(op, ExtendOp):
-                for item_seq, item in enumerate(op.items):
-                    rows.append(
-                        (
-                            state_hash,
-                            op_seq,
-                            item_seq,
-                            "extend",
-                            serialize_document(item),
-                            None,
-                            0,
-                        )
-                    )
-            elif isinstance(op, InsertOp):
-                rows.append(
-                    (
-                        state_hash,
-                        op_seq,
-                        0,
-                        "insert",
-                        serialize_document(op.item),
-                        op.index,
-                        0,
-                    )
-                )
-            elif isinstance(op, SetItemOp):
-                rows.append(
-                    (
-                        state_hash,
-                        op_seq,
-                        0,
-                        "setitem",
-                        serialize_document(op.item),
-                        op.index,
-                        0,
-                    )
-                )
-            elif isinstance(op, PopOp):
-                rows.append((state_hash, op_seq, 0, "pop", None, op.index, 0))
-            elif isinstance(op, RemoveOp):
-                rows.append(
-                    (
-                        state_hash,
-                        op_seq,
-                        0,
-                        "remove",
-                        serialize_document(op.item),
-                        None,
-                        0,
-                    )
-                )
-            elif isinstance(op, ClearOp):
-                rows.append((state_hash, op_seq, 0, "clear", None, None, 0))
-            elif isinstance(op, ReverseOp):
-                rows.append((state_hash, op_seq, 0, "reverse", None, None, 0))
-            elif isinstance(op, SortOp):
-                rows.append(
-                    (state_hash, op_seq, 0, "sort", None, None, 1 if op.reverse else 0)
                 )
 
         conn.executemany(
             """
             INSERT INTO memoize_ops
-                (state_hash, op_seq, item_seq, op_type, item_json, list_index, sort_reverse)
-            VALUES (?, ?, ?, ?, ?, ?, ?)
+                (state_hash, op_seq, item_seq, op_type, item_value, item_type, item_extra, list_index)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
             """,
             rows,
         )
@@ -1142,18 +1192,6 @@ class SQLiteDatastore(Datastore):
         :return: The reconstructed :class:`~pipelinellm.core.memoize.operations.OperationLog`,
             or ``None`` if not found.
         """
-        from pipelinellm.core.memoize.operations import (
-            AppendOp,
-            ClearOp,
-            ExtendOp,
-            InsertOp,
-            OperationLog,
-            PopOp,
-            RemoveOp,
-            ReverseOp,
-            SetItemOp,
-            SortOp,
-        )
 
         conn = self._get_connection(None)
 
@@ -1173,7 +1211,7 @@ class SQLiteDatastore(Datastore):
 
         cursor = conn.execute(
             """
-            SELECT op_seq, item_seq, op_type, item_json, list_index, sort_reverse
+            SELECT op_seq, item_seq, op_type, item_value, item_type, item_extra, list_index
             FROM memoize_ops
             WHERE state_hash = ?
             ORDER BY op_seq, item_seq
@@ -1183,41 +1221,60 @@ class SQLiteDatastore(Datastore):
         rows_fetched = cursor.fetchall()
 
         # Group rows by op_seq
-        from itertools import groupby
-
         log = OperationLog()
         for op_seq, group in groupby(rows_fetched, key=lambda r: r["op_seq"]):
             group = list(group)
             op_type = group[0]["op_type"]
 
-            if op_type == "append":
-                log.record(AppendOp(deserialize_document(group[0]["item_json"])))
-            elif op_type == "extend":
-                items = [deserialize_document(r["item_json"]) for r in group]
+            items = []
+            # Hydrate if needed
+            for r in group:
+                if r["item_value"] is not None:
+                    item = cast_bytes_to_document(
+                        r["item_value"],
+                        r["item_type"],
+                        r["item_extra"],
+                        retriever=self,
+                    )
+                    items.append(item)
+                else:
+                    items.append(None)
+            if op_type == "extend":
+                items = [
+                    (r["item_value"], r["item_type"], r["item_extra"]) for r in group
+                ]
                 log.record(ExtendOp(items))
+                continue
+
+            # The other op-types are always one row/op.
+            group_0_item = items[0]
+            group_0_index = group[0]["list_index"]
+
+            if op_type == "append":
+                log.record(AppendOp(group_0_item))
             elif op_type == "insert":
                 log.record(
                     InsertOp(
-                        index=group[0]["list_index"],
-                        item=deserialize_document(group[0]["item_json"]),
+                        index=group_0_index,
+                        item=group_0_item,
                     )
                 )
             elif op_type == "setitem":
                 log.record(
                     SetItemOp(
-                        index=group[0]["list_index"],
-                        item=deserialize_document(group[0]["item_json"]),
+                        index=group_0_index,
+                        item=group_0_item,
                     )
                 )
             elif op_type == "pop":
-                log.record(PopOp(index=group[0]["list_index"]))
+                log.record(PopOp(index=group_0_index))
             elif op_type == "remove":
-                log.record(RemoveOp(deserialize_document(group[0]["item_json"])))
+                log.record(RemoveOp(item=group_0_item))
             elif op_type == "clear":
                 log.record(ClearOp())
             elif op_type == "reverse":
                 log.record(ReverseOp())
             elif op_type == "sort":
-                log.record(SortOp(reverse=bool(group[0]["sort_reverse"])))
+                log.record(SortOp(reverse=bool(group_0_index)))
 
         return log

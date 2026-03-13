@@ -1,6 +1,6 @@
 """Data structures for tracking and replaying MessageState operations."""
 
-from typing import TYPE_CHECKING, Any, List, Union
+from typing import TYPE_CHECKING, List, Optional, Union
 
 from pipelinellm.types import LLMDocument, LLMResponse
 
@@ -8,83 +8,95 @@ if TYPE_CHECKING:
     from pipelinellm.core.state.msg_state import MessageState
 
 
+OperationItem = Union[LLMDocument, LLMResponse]
+
+
 class Operation:
     """Base class for operations on MessageState."""
 
     op_type: str
+    item: Optional[OperationItem]
+    items: List[OperationItem]
+    index: Optional[int]
+    reverse: bool
+
+    def __init__(
+        self,
+        op_type: str,
+        *,
+        item: Optional[OperationItem] = None,
+        items: Optional[List[OperationItem]] = None,
+        index: Optional[int] = None,
+        reverse: bool = False,
+    ):
+        self.op_type = op_type
+        self.item = item
+        self.items = list(items) if items is not None else []
+        self.index = index
+        self.reverse = reverse
 
 
 class AppendOp(Operation):
     """Append operation."""
 
-    def __init__(self, item: Union[LLMDocument, LLMResponse]):
-        self.op_type = "append"
-        self.item = item
+    def __init__(self, item: OperationItem):
+        super().__init__("append", item=item)
 
 
 class ExtendOp(Operation):
     """Extend operation."""
 
-    def __init__(self, items: List[Union[LLMDocument, LLMResponse]]):
-        self.op_type = "extend"
-        self.items = items
+    def __init__(self, items: List[OperationItem]):
+        super().__init__("extend", items=items)
 
 
 class InsertOp(Operation):
     """Insert operation."""
 
-    def __init__(self, index: int, item: Union[LLMDocument, LLMResponse]):
-        self.op_type = "insert"
-        self.index = index
-        self.item = item
+    def __init__(self, index: int, item: OperationItem):
+        super().__init__("insert", index=index, item=item)
 
 
 class SetItemOp(Operation):
     """SetItem operation."""
 
-    def __init__(self, index: int, item: Union[LLMDocument, LLMResponse]):
-        self.op_type = "setitem"
-        self.index = index
-        self.item = item
+    def __init__(self, index: int, item: OperationItem):
+        super().__init__("setitem", index=index, item=item)
 
 
 class PopOp(Operation):
     """Pop operation."""
 
     def __init__(self, index: int = -1):
-        self.op_type = "pop"
-        self.index = index
+        super().__init__("pop", index=index)
 
 
 class RemoveOp(Operation):
     """Remove operation."""
 
-    def __init__(self, item: Union[LLMDocument, LLMResponse]):
-        self.op_type = "remove"
-        self.item = item
+    def __init__(self, item: OperationItem):
+        super().__init__("remove", item=item)
 
 
 class ClearOp(Operation):
     """Clear operation."""
 
     def __init__(self):
-        self.op_type = "clear"
+        super().__init__("clear")
 
 
 class ReverseOp(Operation):
     """Reverse operation."""
 
     def __init__(self):
-        self.op_type = "reverse"
+        super().__init__("reverse")
 
 
 class SortOp(Operation):
     """Sort operation."""
 
-    def __init__(self, key: Any = None, reverse: bool = False):
-        self.op_type = "sort"
-        self.key = key
-        self.reverse = reverse
+    def __init__(self, reverse: bool = False):
+        super().__init__("sort", reverse=reverse)
 
 
 class OperationLog:
@@ -97,43 +109,11 @@ class OperationLog:
         """Record an operation."""
         self.operations.append(operation)
 
-    def _prepare_for_serialization(self):
-        """Prepare operation log for serialization by resolving all lazy values.
-
-        This ensures that LLMResponse objects have their values resolved
-        before pickling, so they can be properly restored during replay.
-        """
-
-        for op in self.operations:
-            if op.op_type == "append":
-                if isinstance(op.item, LLMResponse):
-                    # Resolve and create a simple LLMResponse with the value
-                    resolved_value = op.item.resolve()
-                    op.item = LLMResponse(value=resolved_value, call_id=op.item.call_id)
-            elif op.op_type == "extend":
-                resolved_items = []
-                for item in op.items:
-                    if isinstance(item, LLMResponse):
-                        resolved_value = item.resolve()
-                        resolved_items.append(
-                            LLMResponse(value=resolved_value, call_id=item.call_id)
-                        )
-                    else:
-                        resolved_items.append(item)
-                op.items = resolved_items
-            elif op.op_type == "insert":
-                if isinstance(op.item, LLMResponse):
-                    resolved_value = op.item.resolve()
-                    op.item = LLMResponse(value=resolved_value, call_id=op.item.call_id)
-            elif op.op_type == "setitem":
-                if isinstance(op.item, LLMResponse):
-                    resolved_value = op.item.resolve()
-                    op.item = LLMResponse(value=resolved_value, call_id=op.item.call_id)
-
     def replay(self, msg_state: "MessageState"):
         """Replay all recorded operations on a MessageState without tracking.
 
         :param msg_state: The MessageState to replay operations on.
+        :param backend: Backend used to hydrate serialized call-id-based items.
         """
         # Temporarily disable tracking to avoid recursion
         prev_tracking = getattr(msg_state, "_tracking_operations", False)
@@ -141,29 +121,31 @@ class OperationLog:
 
         try:
             for op in self.operations:
+                item = op.item
+                items = op.items
                 if op.op_type == "append":
-                    msg_state.data.append(op.item)
-                    msg_state._update_seq_counters(op.item)
+                    msg_state.data.append(item)
+                    msg_state._update_seq_counters(item)
                 elif op.op_type == "extend":
-                    msg_state.data.extend(op.items)
-                    for item in op.items:
+                    msg_state.data.extend(items)
+                    for item in items:
                         msg_state._update_seq_counters(item)
                 elif op.op_type == "insert":
-                    msg_state.data.insert(op.index, op.item)
-                    msg_state._update_seq_counters(op.item)
+                    msg_state.data.insert(op.index, item)
+                    msg_state._update_seq_counters(item)
                 elif op.op_type == "setitem":
-                    msg_state.data[op.index] = op.item
-                    msg_state._update_seq_counters(op.item)
+                    msg_state.data[op.index] = item
+                    msg_state._update_seq_counters(item)
                 elif op.op_type == "pop":
                     msg_state.data.pop(op.index)
                 elif op.op_type == "remove":
-                    msg_state.data.remove(op.item)
+                    msg_state.data.remove(item)
                 elif op.op_type == "clear":
                     msg_state.data.clear()
                 elif op.op_type == "reverse":
                     msg_state.data.reverse()
                 elif op.op_type == "sort":
-                    msg_state.data.sort(key=op.key, reverse=op.reverse)
+                    msg_state.data.sort(reverse=op.reverse)
         finally:
             msg_state._tracking_operations = prev_tracking
 

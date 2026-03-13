@@ -57,6 +57,15 @@ def to_serial_id(call_id: CallIdentifier, *, add_sess=True) -> str:
     return f"{call_id['agent_name']}:{call_id['seq_id']}:{call_id['session_id']}"
 
 
+def undo_serial_id(serial_id: str):
+    agent_name, seq_id, session_id = serial_id.rsplit(":", 2)
+    return {
+        "agent_name": agent_name,
+        "seq_id": int(seq_id),
+        "session_id": int(session_id),
+    }
+
+
 @dataclass
 class BatchIdentifier:
     call_ids: List[CallIdentifier]
@@ -431,3 +440,32 @@ class HumanResponse(LLMResponse):
 
     Like LLMResponse, you must call resolve() to obtain the final value. TODO.
     """
+
+
+class BaseRetriever(ABC):
+    """
+    Class where retrieve(call_id) and populate_call_id(call_id) is defined
+    """
+
+    def retrieve(
+        self, call_id: CallIdentifier, metadata=False
+    ) -> Optional[ParsedResponse]:
+        """
+        Retrieve a response.
+
+        :param call_id: The task identifier containing agent_name, doc_hash, and seq_id.
+        :returns: The retrieved ParsedResponse.
+        """
+        raise NotImplementedError
+
+    def populate_call_id(
+        self, call_id: CallIdentifier, *, metadata=False
+    ) -> CallIdentifier:
+        """
+        Given a call_id with potentially missing fields (like doc_hash), populate those fields based on the backend's data.
+
+        :param call_id: The input CallIdentifier with some fields potentially missing.
+        :param metadata: Whether to include metadata in the populated call_id.
+        :returns: A fully populated CallIdentifier with all necessary fields filled in.
+        """
+        raise NotImplementedError
