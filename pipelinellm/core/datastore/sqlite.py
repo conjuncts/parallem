@@ -17,7 +17,7 @@ from pipelinellm.core.datastore.sql_migrate import (
     _check_and_migrate,
     _migrate_sql_schema,
 )
-from pipelinellm.core.io.sqlite_to_parquet import export_sqlite_to_folder
+from pipelinellm.core.io.sqlite_to_parquet import export_sqlite_to_folder, sqlite_to_df
 from pipelinellm.core.sink.sequester import sequester_metadata
 from pipelinellm.core.sink.to_parquet import ParquetUniqueWriter, ParquetWriter
 from pipelinellm.core.file_manager import FileManager
@@ -1110,6 +1110,60 @@ class SQLiteDatastore(BaseDatastore):
 
         # Export the database
         return export_sqlite_to_folder(db_path, export_dir, filetype=filetype)
+
+    def export_polars(
+        self,
+    ) -> dict[str, pl.DataFrame]:
+        """
+        Export all tables from the datastore as Polars DataFrames.
+
+        :returns: A dictionary mapping table names to Polars DataFrames.
+        """
+
+        # Get the database path
+        db_path = self.file_manager.path_datastore() / "datastore.db"
+
+        col = sqlite_to_df(db_path)
+        return {table_name: df for table_name, df in col}
+
+    def import_polars(
+        self,
+        tables: dict[str, pl.DataFrame],
+        *,
+        update: bool = True,
+    ) -> None:
+        """
+        Set the datastore state from the provided Polars DataFrames.
+
+        Each key in ``tables`` must match an existing table name.
+
+        When ``update=True`` (default), rows are upserted via ``INSERT OR REPLACE``,
+        so existing rows whose primary key matches are replaced in-place while rows
+        with new primary keys are simply inserted. The rest of the table is left
+        untouched.
+
+        When ``update=False``, existing rows in each named table are deleted before
+        inserting the new rows (full overwrite).
+
+        :param tables: A dict mapping table names to Polars DataFrames.
+        :param update: If True (default), upsert rows instead of overwriting the table.
+        """
+        conn = self._get_connection(None)
+        try:
+            for table_name, df in tables.items():
+                if not update:
+                    conn.execute(f"DELETE FROM {table_name}")
+                if df.is_empty():
+                    continue
+                cols = df.columns
+                col_names = ", ".join(cols)
+                placeholders = ", ".join("?" for _ in cols)
+                verb = "INSERT OR REPLACE" if update else "INSERT"
+                sql = f"{verb} INTO {table_name} ({col_names}) VALUES ({placeholders})"
+                conn.executemany(sql, df.rows())
+            conn.commit()
+        except sqlite3.Error as e:
+            raise RuntimeError(f"SQLite error during import: {e}")
 
     def store_memoize(
         self,

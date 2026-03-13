@@ -239,6 +239,88 @@ class TestSQLite:
         assert row is not None
         assert row["tag"] == "test_tag_value"
 
+    def test_export_polars_returns_table_data(self, temp_datastore, generic_call_id):
+        """Export should return Polars tables including stored response rows."""
+        temp_datastore.store(
+            generic_call_id,
+            ParsedResponse(text="hello", response_id="resp_export_1", metadata={}),
+        )
+
+        tables = temp_datastore.export_polars()
+
+        assert "anon_responses" in tables
+        assert isinstance(tables["anon_responses"], pl.DataFrame)
+        assert tables["anon_responses"].height == 1
+
+    def test_import_polars_replaces_anon_responses(
+        self, temp_datastore, generic_call_id
+    ):
+        """Import should replace selected table contents."""
+        temp_datastore.store(
+            generic_call_id,
+            ParsedResponse(text="before", response_id="resp_import_1", metadata={}),
+        )
+
+        exported = temp_datastore.export_polars()
+        anon = exported["anon_responses"].with_columns(
+            pl.lit("after").alias("response")
+        )
+
+        temp_datastore.import_polars({"anon_responses": anon}, update=False)
+
+        retrieved = temp_datastore.retrieve(generic_call_id)
+        assert retrieved is not None
+        assert retrieved.text == "after"
+
+    def test_import_polars_empty_dataframe_clears_table(
+        self, temp_datastore, generic_call_id
+    ):
+        """Import with an empty DataFrame clears that table."""
+        temp_datastore.store(
+            generic_call_id,
+            ParsedResponse(text="to-clear", response_id="resp_import_2", metadata={}),
+        )
+
+        exported = temp_datastore.export_polars()
+        empty_anon = exported["anon_responses"].clear()
+
+        temp_datastore.import_polars({"anon_responses": empty_anon}, update=False)
+
+        assert temp_datastore.retrieve(generic_call_id) is None
+
+    def test_import_polars_update_mode_preserves_other_rows(
+        self, temp_datastore, generic_call_id
+    ):
+        """update=True upserts rows without deleting unmentioned rows."""
+        other_call_id = {**generic_call_id, "doc_hash": "other_hash", "seq_id": 99}
+        temp_datastore.store(
+            generic_call_id,
+            ParsedResponse(text="original", response_id=None, metadata={}),
+        )
+        temp_datastore.store(
+            other_call_id,
+            ParsedResponse(text="untouched", response_id=None, metadata={}),
+        )
+
+        exported = temp_datastore.export_polars()
+        # modify just the first row
+        anon = (
+            exported["anon_responses"]
+            .with_columns(
+                pl.when(pl.col("doc_hash") == generic_call_id["doc_hash"])
+                .then(pl.lit("updated"))
+                .otherwise(pl.col("response"))
+                .alias("response")
+            )
+            .filter(pl.col("doc_hash") == generic_call_id["doc_hash"])
+        )
+
+        temp_datastore.import_polars({"anon_responses": anon}, update=True)
+
+        assert temp_datastore.retrieve(generic_call_id).text == "updated"
+        # the other row was not touched
+        assert temp_datastore.retrieve(other_call_id).text == "untouched"
+
     def test_store_memoize_sets_target_by_state_type(self, temp_datastore):
         """Memoize rows store .msg for MessageState ops and .nmsg for NonMessageState ops."""
         operation_log = OperationLog()

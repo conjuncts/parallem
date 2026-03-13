@@ -12,6 +12,8 @@ from pipelinellm.core.file_manager import FileManager
 from pipelinellm.logging.dash_logger import DashboardLogger
 from pipelinellm.types import AskParameters, LLMResponse
 
+import polars as pl
+
 
 class AgentOrchestrator:
     """The AgentOrchestrator manages and creates agents. It's how you begin using pipelinellm."""
@@ -168,3 +170,37 @@ class AgentOrchestrator:
         return self._backend._get_datastore().export_tables(
             directory, filetype=filetype
         )
+
+    def export_polars(
+        self,
+    ) -> dict[str, "pl.DataFrame"]:
+        """
+        Export all tables from the backend as Polars DataFrames.
+
+        :returns: A dictionary mapping table names to Polars DataFrames.
+        """
+        return self._backend._get_datastore().export_polars()
+
+    def import_polars(
+        self,
+        tables: dict[str, "pl.DataFrame"],
+        *,
+        update: bool = True,
+    ) -> None:
+        """
+        Set the datastore state from the provided Polars DataFrames.
+
+        Each key in ``tables`` must match an existing table name.
+
+        When ``update=True`` (default), rows are upserted via ``INSERT OR REPLACE``,
+        so existing rows whose primary key matches are replaced in-place while rows
+        with new primary keys are simply inserted. The rest of the table is left
+        untouched.
+
+        When ``update=False``, existing rows in each named table are deleted before
+        inserting the new rows (full overwrite).
+
+        :param tables: A dict mapping table names to Polars DataFrames.
+        :param update: If True (default), upsert rows instead of overwriting the table.
+        """
+        return self._backend._get_datastore().import_polars(tables, update=update)

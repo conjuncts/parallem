@@ -12,6 +12,8 @@ from pipelinellm.types import (
     ParsedResponse,
 )
 
+import polars as pl
+
 if TYPE_CHECKING:
     from pipelinellm.core.memoize.operations import OperationLog
 
@@ -166,13 +168,47 @@ class BaseDatastore(BaseRetriever, ABC):
         self,
         directory: Optional[str],
         *,
-        format: Literal["polars", "csv", "tsv", "parquet"] = "polars",
+        format: Literal["csv", "tsv", "parquet"] = "parquet",
     ) -> None:
         """
         Export all tables from the datastore to files.
 
         :param directory: Directory to export tables to. If None, uses a default location.
-        :param format: Export format - "polars" or "parquet" for parquet files, "csv" for CSV, "tsv" for TSV.
+        :param format: Export format - "parquet" for parquet files, "csv" for CSV, "tsv" for TSV.
+        """
+        raise NotImplementedError
+
+    def export_polars(
+        self,
+    ) -> dict[str, "pl.DataFrame"]:
+        """
+        Export all tables from the datastore as Polars DataFrames.
+
+        :returns: A dictionary mapping table names to Polars DataFrames.
+        """
+        raise NotImplementedError
+
+    def import_polars(
+        self,
+        tables: dict[str, "pl.DataFrame"],
+        *,
+        update: bool = True,
+    ) -> None:
+        """
+        Set the datastore state from the provided Polars DataFrames.
+
+        Each key in ``tables`` must match an existing table name.
+
+        When ``update=True`` (default), rows are upserted via ``INSERT OR REPLACE``,
+        so existing rows whose primary key matches are replaced in-place while rows
+        with new primary keys are simply inserted. The rest of the table is left
+        untouched.
+
+        When ``update=False``, existing rows in each named table are deleted before
+        inserting the new rows (full overwrite).
+
+        :param tables: A dict mapping table names to Polars DataFrames.
+        :param update: If True (default), upsert rows instead of overwriting the table.
         """
         raise NotImplementedError
 

@@ -404,7 +404,7 @@ class LLMResponse:
         :rtype: dict
         """
         try:
-            return json.loads(self.value)
+            return json.loads(self.resolve())
         except json.JSONDecodeError:
             return None
 
