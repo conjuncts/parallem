@@ -30,6 +30,7 @@ from pipelinellm.core.memoize.operations import (
     PopOp,
     RemoveOp,
     ReverseOp,
+    SetNonMsgItemOp,
     SetItemOp,
     SortOp,
 )
@@ -1138,6 +1139,7 @@ class SQLiteDatastore(BaseDatastore):
             "extend",
             "insert",
             "setitem",
+            "setnonmsgitem",
             "pop",
             "sort",
         }
@@ -1145,7 +1147,9 @@ class SQLiteDatastore(BaseDatastore):
             if op.op_type not in supported_op_types:
                 raise ValueError(f"Unsupported memoize op_type: {op.op_type}")
 
-            if op.op_type == "extend":
+            if op.op_type == "setnonmsgitem":
+                serialized_items = [cast_document_to_bytes(op.value)]
+            elif op.op_type == "extend":
                 serialized_items = [cast_document_to_bytes(item) for item in op.items]
             elif op.item is not None:
                 serialized_items = [cast_document_to_bytes(op.item)]
@@ -1162,6 +1166,16 @@ class SQLiteDatastore(BaseDatastore):
             for item_seq, (item_value, item_type, item_extra) in enumerate(
                 serialized_items
             ):
+                extra_payload = item_extra
+                if op.op_type == "setnonmsgitem":
+                    extra_payload = json.dumps(
+                        {
+                            "key": op.key,
+                            "item_extra": item_extra,
+                        },
+                        separators=(",", ":"),
+                    )
+
                 rows.append(
                     (
                         state_hash,
@@ -1170,7 +1184,7 @@ class SQLiteDatastore(BaseDatastore):
                         op.op_type,
                         item_value,
                         item_type,
-                        item_extra,
+                        extra_payload,
                         list_index,
                     )
                 )
@@ -1225,6 +1239,20 @@ class SQLiteDatastore(BaseDatastore):
         for op_seq, group in groupby(rows_fetched, key=lambda r: r["op_seq"]):
             group = list(group)
             op_type = group[0]["op_type"]
+
+            if op_type == "setnonmsgitem":
+                extra = (
+                    json.loads(group[0]["item_extra"]) if group[0]["item_extra"] else {}
+                )
+                key = extra.get("key")
+                value = cast_bytes_to_document(
+                    group[0]["item_value"],
+                    group[0]["item_type"],
+                    extra.get("item_extra"),
+                    retriever=self,
+                )
+                log.record(SetNonMsgItemOp(key=key, value=value))
+                continue
 
             items = []
             # Hydrate if needed

@@ -314,7 +314,7 @@ class AgentContext(Askable):
         This is helpful for expensive or non-deterministic operations:
         this context block will only execute once, and on subsequent runs,
         the results will be replayed from the first execution.
-        But note: ONLY changes to MessageState will be recorded.
+        But note: ONLY changes to MessageState and NonMessageState will be recorded.
         You will not be able to access local variables in this block the 2nd time around.
 
 

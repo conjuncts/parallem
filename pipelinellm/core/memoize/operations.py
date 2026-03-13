@@ -1,24 +1,27 @@
 """Data structures for tracking and replaying MessageState operations."""
 
-from typing import TYPE_CHECKING, List, Optional, Union
+from typing import TYPE_CHECKING, Any, List, Optional, Union
 
 from pipelinellm.types import LLMDocument, LLMResponse
 
 if TYPE_CHECKING:
     from pipelinellm.core.state.msg_state import MessageState
+    from pipelinellm.core.state.non_msg_state import NonMessageState
 
 
 OperationItem = Union[LLMDocument, LLMResponse]
 
 
 class Operation:
-    """Base class for operations on MessageState."""
+    """Base class for operations on MessageState or NonMessageState."""
 
     op_type: str
     item: Optional[OperationItem]
     items: List[OperationItem]
     index: Optional[int]
     reverse: bool
+    key: Optional[str]
+    value: Optional[Any]
 
     def __init__(
         self,
@@ -28,12 +31,16 @@ class Operation:
         items: Optional[List[OperationItem]] = None,
         index: Optional[int] = None,
         reverse: bool = False,
+        key: Optional[str] = None,
+        value: Optional[Any] = None,
     ):
         self.op_type = op_type
         self.item = item
         self.items = list(items) if items is not None else []
         self.index = index
         self.reverse = reverse
+        self.key = key
+        self.value = value
 
 
 class AppendOp(Operation):
@@ -99,6 +106,13 @@ class SortOp(Operation):
         super().__init__("sort", reverse=reverse)
 
 
+class SetNonMsgItemOp(Operation):
+    """SetItem operation for NonMessageState."""
+
+    def __init__(self, key: str, value: OperationItem):
+        super().__init__("setnonmsgitem", key=key, value=value)
+
+
 class OperationLog:
     """Track all operations performed on a MessageState."""
 
@@ -109,18 +123,34 @@ class OperationLog:
         """Record an operation."""
         self.operations.append(operation)
 
-    def replay(self, msg_state: "MessageState"):
-        """Replay all recorded operations on a MessageState without tracking.
+    def replay(
+        self,
+        msg_state: "MessageState",
+        non_msg_state: "Optional[NonMessageState]" = None,
+    ):
+        """Replay all recorded operations without tracking.
 
         :param msg_state: The MessageState to replay operations on.
-        :param backend: Backend used to hydrate serialized call-id-based items.
+        :param non_msg_state: Optional NonMessageState for non-message operations.
         """
         # Temporarily disable tracking to avoid recursion
         prev_tracking = getattr(msg_state, "_tracking_operations", False)
         msg_state._tracking_operations = False
+        prev_non_msg_tracking = False
+        if non_msg_state is not None:
+            prev_non_msg_tracking = getattr(
+                non_msg_state, "_tracking_operations", False
+            )
+            non_msg_state._tracking_operations = False
 
         try:
             for op in self.operations:
+                if op.op_type == "setnonmsgitem":
+                    if non_msg_state is None:
+                        continue
+                    non_msg_state.data[op.key] = op.value
+                    continue
+
                 item = op.item
                 items = op.items
                 if op.op_type == "append":
@@ -148,6 +178,8 @@ class OperationLog:
                     msg_state.data.sort(reverse=op.reverse)
         finally:
             msg_state._tracking_operations = prev_tracking
+            if non_msg_state is not None:
+                non_msg_state._tracking_operations = prev_non_msg_tracking
 
     def clear(self):
         """Clear all recorded operations."""

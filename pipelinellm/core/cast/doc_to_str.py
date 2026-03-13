@@ -16,7 +16,6 @@ from pipelinellm.types import (
 from pipelinellm.utils.image import is_image
 
 
-
 def cast_document_to_bytes(
     doc: Union[LLMDocument, LLMResponse],
 ) -> tuple[bytes, DocumentType, str]:

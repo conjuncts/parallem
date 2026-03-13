@@ -10,6 +10,7 @@ These tests validate that:
 
 from pipelinellm.core.gateway import resume_directory
 from pipelinellm.testing.simple_mock import mock_openai_client
+import pytest
 
 
 def test_basic_memoization(temp_integration_dir):
@@ -239,6 +240,57 @@ def test_memoization_with_no_operations(temp_integration_dir):
                 # No operations
 
             assert len(conv) == 0
+
+
+def test_non_msg_state_memoized_replay(temp_integration_dir):
+    test_dir = temp_integration_dir / "non_msg_memoize"
+
+    mock_client1 = mock_openai_client(responses=["first answer"])
+    with resume_directory(
+        test_dir, provider="openai", strategy="sync", client=mock_client1
+    ) as orch1:
+        with orch1.agent() as agent:
+            conv = agent.get_msg_state()
+
+            with agent.memoize() as mem:
+                mem.begin()
+                orch1.userdata["saved_prompt"] = "What is memoization?"
+                conv.append(orch1.userdata["saved_prompt"])
+                conv.ask_llm()
+
+            assert len(mock_client1.calls) == 1
+            assert orch1.userdata["saved_prompt"] == "What is memoization?"
+
+    mock_client2 = mock_openai_client(responses=["should not be called"])
+    with resume_directory(
+        test_dir, provider="openai", strategy="sync", client=mock_client2
+    ) as orch2:
+        with orch2.agent() as agent:
+            conv = agent.get_msg_state()
+
+            with agent.memoize() as mem:
+                mem.begin()
+                orch2.userdata["saved_prompt"] = "What is memoization?"
+                conv.append(orch2.userdata["saved_prompt"])
+                conv.ask_llm()
+
+            assert len(mock_client2.calls) == 0
+            assert orch2.userdata["saved_prompt"] == "What is memoization?"
+            assert conv[-1].final_answer == "first answer"
+
+
+def test_non_msg_state_rejects_nested_values(temp_integration_dir):
+    test_dir = temp_integration_dir / "non_msg_type_guard"
+
+    mock_client = mock_openai_client(responses=[])
+    with resume_directory(
+        test_dir, provider="openai", strategy="sync", client=mock_client
+    ) as orch:
+        with pytest.raises(TypeError):
+            orch.userdata["nested"] = {"a": "b"}
+
+        with pytest.raises(TypeError):
+            orch.userdata["nested_list"] = ["x"]
 
     # Second run - should also have no operations
     mock_client2 = mock_openai_client(responses=[])

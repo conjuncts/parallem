@@ -44,7 +44,7 @@ class AgentOrchestrator:
         self._provider = provider
         self._logger = logger
         self._batch = BatchNamespace(self)
-        self._userdata = NonMessageState(self._fm, self._backend)
+        self._userdata = NonMessageState(self._backend)
 
         # dashlog's display is disabled by default
         self._dashlog: DashboardLogger = dashlog

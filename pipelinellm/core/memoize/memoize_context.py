@@ -27,6 +27,7 @@ class MemoizeContext:
 
         self._conv_hash = None
         self._memoize_enabled_prev = None
+        self._non_msg_tracking_prev = False
         self._operation_log = None
 
     def __enter__(self):
@@ -42,6 +43,11 @@ class MemoizeContext:
         self._operation_log = OperationLog()
         msg_state._operation_log = self._operation_log
 
+        # Share operation log with NonMessageState tracking
+        non_msg_state = self.agent._orch._userdata
+        self._non_msg_tracking_prev = non_msg_state._tracking_operations
+        non_msg_state._operation_log = self._operation_log
+
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
@@ -49,6 +55,10 @@ class MemoizeContext:
         msg_state._memoize_enabled = self._memoize_enabled_prev
         msg_state._tracking_operations = False
         msg_state._operation_log = None
+
+        non_msg_state = self.agent._orch._userdata
+        non_msg_state._tracking_operations = self._non_msg_tracking_prev
+        non_msg_state._operation_log = None
 
         # swallow MemoizedSignal
         if exc_type is MemoizedSignal:
@@ -70,7 +80,8 @@ class MemoizeContext:
         if operation_log is not None:
             # Found cached operations - replay them
             msg_state = self.agent.get_msg_state()
-            operation_log.replay(msg_state)
+            non_msg_state = self.agent._orch._userdata
+            operation_log.replay(msg_state, non_msg_state)
 
             # Raise signal to short-circuit execution
             raise MemoizedSignal(self._conv_hash)
@@ -78,3 +89,5 @@ class MemoizeContext:
         # No cached operations found - start tracking
         msg_state = self.agent.get_msg_state()
         msg_state._tracking_operations = True
+        non_msg_state = self.agent._orch._userdata
+        non_msg_state._tracking_operations = True
