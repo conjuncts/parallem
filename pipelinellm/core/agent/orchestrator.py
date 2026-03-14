@@ -3,8 +3,6 @@ from typing import List, Literal, Optional
 from pipelinellm.core.agent.agent import AgentContext
 from pipelinellm.core.backend import BaseBackend
 from pipelinellm.core.batch_namespace import BatchNamespace
-from pipelinellm.core.state.msg_state import MessageState
-from pipelinellm.core.hydrate import hydrate_msg_state
 from pipelinellm.core.state.non_msg_state import NonMessageState
 from pipelinellm.logging.dashlog_context import DashboardLoggerContext
 from pipelinellm.provider.base import BaseProvider
@@ -88,21 +86,6 @@ class AgentOrchestrator:
             ask_params=ask_params,
             ignore_cache=self.ignore_cache,
         )
-
-    def get_msg_state(self, agent: AgentContext) -> MessageState:
-        """
-        Load the MessageState for a specific agent.
-        """
-        msg_state = self._fm.load_agent_msg_state(agent.agent_name)
-        msg_state._true_agent = agent
-        msg_state = hydrate_msg_state(msg_state, self._backend)
-        return msg_state
-
-    def save_msg_state(self, agent: AgentContext, msg_state: MessageState):
-        """
-        Save the MessageState for a specific agent.
-        """
-        self._fm.save_agent_msg_state(agent.agent_name, msg_state)
 
     @property
     def userdata(self):

@@ -4,6 +4,7 @@ from pipelinellm.core.ask import Askable
 from pipelinellm.core.cast.fix_docs import cast_documents, reduce_to_list
 from pipelinellm.core.exception import NotAvailable, PendingNotAvailable
 from pipelinellm.core.hash import compute_hash
+from pipelinellm.core.hydrate import hydrate_msg_state
 from pipelinellm.core.memoize.memoize_context import MemoizeContext
 from pipelinellm.core.state.msg_state import MessageState
 from pipelinellm.core.response import (
@@ -274,15 +275,10 @@ class AgentContext(Askable):
         :returns: The current message state.
         """
         if self._msg_state is None:
-            self._msg_state = self._orch.get_msg_state(self)
-
+            msg_state = MessageState(agent_name=self.agent_name, true_agent=self)
+            msg_state = hydrate_msg_state(msg_state, self._orch._backend)
+            self._msg_state = msg_state
         return self._msg_state
-
-    def _try_persist_msg_state(self, msg_state):
-        self._orch.save_msg_state(
-            self,
-            msg_state,
-        )
 
     def update_hash_status(self, hash_value: str, status: HashStatus):
         """

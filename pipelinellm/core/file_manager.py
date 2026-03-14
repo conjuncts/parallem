@@ -1,13 +1,11 @@
 import os
 import json
-import pickle
 import atexit
 import re
 import hashlib
 from pathlib import Path
 from typing import Optional
 
-from pipelinellm.core.state.msg_state import MessageState
 from pipelinellm.types import WorkingMetadata
 
 
@@ -122,34 +120,6 @@ class FileManager:
         """Save metadata to JSON file"""
         with open(self.metadata_file, "w") as f:
             json.dump(metadata, f)
-
-    def load_agent_msg_state(self, agent_name: str) -> MessageState:
-        msg_state_dir = self.directory / "agents" / self._sanitize(agent_name)
-        msg_state_file = msg_state_dir / "msg_state.pkl"
-
-        if not msg_state_file.exists():
-            return MessageState(agent_name=agent_name)
-
-        with open(msg_state_file, "rb") as f:
-            return pickle.load(f)
-
-    def save_agent_msg_state(self, agent_name: str, msg_state: MessageState):
-        msg_state_dir = self.directory / "agents" / self._sanitize(agent_name)
-        tmp_file = msg_state_dir / "msg_state.tmp.pkl"
-
-        if not tmp_file.parent.exists():
-            tmp_file.parent.mkdir(parents=True, exist_ok=True)
-        try:
-            with open(tmp_file, "wb") as f:
-                pickle.dump(msg_state, f)
-            # Atomic rename
-            os.replace(tmp_file, msg_state_dir / "msg_state.pkl")
-        except Exception as e:
-            print(f"Failed to save agent message state: {e}")
-            raise e
-        finally:
-            if tmp_file.exists():
-                tmp_file.unlink(missing_ok=True)
 
     def path_datastore(self) -> Path:
         """
