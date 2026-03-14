@@ -22,4 +22,4 @@ with pllm.resume_directory(
             resp = agt.ask_llm(msgs)
             agt.print("Response:", resp.resolve())
             msgs.append(resp)
-            msgs.persist()
+            msgs.save()

@@ -38,7 +38,7 @@ with agent:
         )
         agent.print(convo)
 
-        convo.persist()
+        convo.save()
     else:
         # Allow user questions, which are not saved along with the conversation
         for item in convo:

@@ -197,6 +197,30 @@ class TestDatastoreAllocation:
 class TestAgentOrchestratorIntegration:
     """Test integration with AgentOrchestrator"""
 
+    def test_msg_state_persist_snapshot_replay_overwrites_local_changes(self):
+        """Test non-continued persist stores a snapshot log that can be replayed safely."""
+        with tempfile.TemporaryDirectory() as temp_dir:
+            fm = FileManager(temp_dir)
+            backend = SyncBackend(fm)
+            orchestrator = AgentOrchestrator(
+                file_manager=fm,
+                backend=backend,
+                provider=Mock(),
+                logger=Mock(),
+                dashlog=Mock(),
+            )
+
+            with orchestrator.agent("snapshot_persist") as agent:
+                msg_state = agent.get_msg_state()
+                msg_state.append("saved")
+                msg_state.save()
+                msg_state.append("unsaved")
+
+                loaded = msg_state.load()
+                assert list(loaded) == ["saved"]
+
+            orchestrator.persist()
+
     def test_msg_state_load_requires_manual_persist(self):
         """Test load mode state persists only when MessageState.persist() is called."""
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -213,7 +237,7 @@ class TestAgentOrchestratorIntegration:
             with orchestrator.agent("continued_persist") as agent:
                 msg_state = agent.get_msg_state().load()
                 msg_state.append("hello")
-                msg_state.persist()
+                msg_state.save()
 
             with orchestrator.agent("continued_persist") as agent:
                 loaded = agent.get_msg_state().load()
@@ -240,19 +264,19 @@ class TestAgentOrchestratorIntegration:
                 msg_state = agent.get_msg_state().load()
                 msg_state.append("x")
                 lengths.append(len(msg_state))
-                msg_state.persist()
+                msg_state.save()
 
             with orchestrator.agent("continued_replay") as agent:
                 msg_state = agent.get_msg_state().load()
                 msg_state.append("x")
                 lengths.append(len(msg_state))
-                msg_state.persist()
+                msg_state.save()
 
             with orchestrator.agent("continued_replay") as agent:
                 msg_state = agent.get_msg_state().load()
                 msg_state.append("x")
                 lengths.append(len(msg_state))
-                msg_state.persist()
+                msg_state.save()
 
             assert lengths == [1, 2, 3]
 

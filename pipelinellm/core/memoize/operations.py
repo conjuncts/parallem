@@ -123,6 +123,10 @@ class OperationLog:
         """Record an operation."""
         self.operations.append(operation)
 
+    def extend(self, other: "OperationLog"):
+        """Extend this log with another OperationLog."""
+        self.operations.extend(other.operations)
+
     def replay(
         self,
         msg_state: "MessageState",

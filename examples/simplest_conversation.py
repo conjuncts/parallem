@@ -23,4 +23,4 @@ with pllm.resume_directory(
             agt.print("Response:", msgs[-1].resolve())
             out = input("Send a message: ")
 
-        msgs.persist()
+        msgs.save()

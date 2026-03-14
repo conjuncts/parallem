@@ -264,25 +264,20 @@ class MessageState(UserList[Union[LLMDocument, LLMResponse]], Askable):
         del state["_true_agent"]
         return state
 
-    def persist(self):
+    def save(self):
         """Persist the current message state to the agent's storage."""
         if self._true_agent is None:
             return
 
-        if self._continued_mode and self._continued_operation_log is not None:
-            datastore = self._true_agent._orch._backend._get_datastore()
-            datastore.store_memoize(
-                self._true_agent.agent_name,
-                self._CONTINUED_STATE_HASH,
-                self._continued_operation_log,
-            )
-            return
-        else:
-            # TODO: in this case you can also use the OperationLog.
-            # For instance, you can do .clear() and then .extend(...)
-            # and that is sufficient for if the MessageState's step by step
-            # history is not cached.
-            pass
+        datastore = self._true_agent._orch._backend._get_datastore()
+        snapshot_log = OperationLog()
+        snapshot_log.record(ClearOp())
+        snapshot_log.record(ExtendOp(list(self.data)))
+        datastore.store_memoize(
+            self._true_agent.agent_name,
+            self._CONTINUED_STATE_HASH,
+            snapshot_log,
+        )
 
     def load(self) -> "MessageState":
         """Enable continued mode for this MessageState.
@@ -295,26 +290,18 @@ class MessageState(UserList[Union[LLMDocument, LLMResponse]], Askable):
 
         :returns: The same MessageState instance in continued mode.
         """
-        if self._continued_mode:
-            return self
 
-        self._continued_mode = True
+        if self._true_agent is not None:
+            # Can proceed with loading state
+            self.clear()
 
-        if self._continued_operation_log is None:
-            self._continued_operation_log = None
-            if self._true_agent is not None:
-                datastore = self._true_agent._orch._backend._get_datastore()
-                self._continued_operation_log = datastore.retrieve_memoize(
-                    self._true_agent.agent_name,
-                    self._CONTINUED_STATE_HASH,
-                )
-
-            if self._continued_operation_log is None:
-                self._continued_operation_log = OperationLog()
-
-        self._operation_log = self._continued_operation_log
-        self._tracking_operations = True
-        self._continued_operation_log.replay(self)
+            datastore = self._true_agent._orch._backend._get_datastore()
+            oplog = datastore.retrieve_memoize(
+                self._true_agent.agent_name,
+                self._CONTINUED_STATE_HASH,
+            )
+            if oplog is not None:
+                oplog.replay(self)
 
         return self
 
