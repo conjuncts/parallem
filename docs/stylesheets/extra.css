@@ -1,0 +1,19 @@
+.md-typeset .session-log .hll {
+  color: var(--md-code-hl-string-color);
+}
+
+.md-typeset .session-log-html code {
+  display: block;
+}
+
+.md-typeset .session-log-html .log-bracket {
+  color: var(--md-code-hl-punctuation-color);
+}
+
+.md-typeset .session-log-html .log-tag {
+  color: var(--md-code-hl-keyword-color);
+}
+
+.md-typeset .session-log-html .log-hash {
+  color: var(--md-code-hl-string-color);
+}
