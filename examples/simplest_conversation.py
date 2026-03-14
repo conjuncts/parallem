@@ -13,7 +13,7 @@ with pllm.resume_directory(
     # ignore_cache=True,
 ) as orch:
     with orch.agent() as agt:
-        msgs = agt.get_msg_state(continuation=True)
+        msgs = agt.get_msg_state().load()
 
         agt.print("Current messages:", msgs)
         out = input("Send a message: ")
@@ -22,3 +22,5 @@ with pllm.resume_directory(
             msgs.ask_llm()
             agt.print("Response:", msgs[-1].resolve())
             out = input("Send a message: ")
+
+        msgs.persist()

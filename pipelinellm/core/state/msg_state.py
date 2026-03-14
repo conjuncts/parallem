@@ -16,6 +16,7 @@ from pipelinellm.core.memoize.operations import (
     ClearOp,
     ExtendOp,
     InsertOp,
+    OperationLog,
     PopOp,
     RemoveOp,
     ReverseOp,
@@ -41,6 +42,8 @@ class MessageState(UserList[Union[LLMDocument, LLMResponse]], Askable):
     Simply a list of messages.
     """
 
+    _CONTINUED_STATE_HASH = "__continued_msg_state__"  # safe, since not 64 chars
+
     def __init__(
         self,
         initlist=None,
@@ -58,6 +61,8 @@ class MessageState(UserList[Union[LLMDocument, LLMResponse]], Askable):
         self._memoize_enabled = False
         self._tracking_operations = False
         self._operation_log: Optional["OperationLog"] = None
+        self._continued_operation_log: Optional["OperationLog"] = None
+        self._continued_mode = False
 
     def copy(self) -> "MessageState":
         """Create a copy of this MessageState."""
@@ -261,8 +266,57 @@ class MessageState(UserList[Union[LLMDocument, LLMResponse]], Askable):
 
     def persist(self):
         """Persist the current message state to the agent's storage."""
-        if self._true_agent:
-            self._true_agent._try_persist_msg_state(self)
+        if self._true_agent is None:
+            return
+
+        if self._continued_mode and self._continued_operation_log is not None:
+            datastore = self._true_agent._orch._backend._get_datastore()
+            datastore.store_memoize(
+                self._true_agent.agent_name,
+                self._CONTINUED_STATE_HASH,
+                self._continued_operation_log,
+            )
+            return
+        else:
+            # TODO: in this case you can also use the OperationLog.
+            # For instance, you can do .clear() and then .extend(...)
+            # and that is sufficient for if the MessageState's step by step
+            # history is not cached.
+            pass
+
+    def load(self) -> "MessageState":
+        """Enable continued mode for this MessageState.
+
+        Continued mode automatically replays previously recorded operations,
+        and starts recording new operations.
+
+        Saving is explicit: call ``persist()`` when you want to store
+        accumulated operations.
+
+        :returns: The same MessageState instance in continued mode.
+        """
+        if self._continued_mode:
+            return self
+
+        self._continued_mode = True
+
+        if self._continued_operation_log is None:
+            self._continued_operation_log = None
+            if self._true_agent is not None:
+                datastore = self._true_agent._orch._backend._get_datastore()
+                self._continued_operation_log = datastore.retrieve_memoize(
+                    self._true_agent.agent_name,
+                    self._CONTINUED_STATE_HASH,
+                )
+
+            if self._continued_operation_log is None:
+                self._continued_operation_log = OperationLog()
+
+        self._operation_log = self._continued_operation_log
+        self._tracking_operations = True
+        self._continued_operation_log.replay(self)
+
+        return self
 
     def ask_functions(
         self,

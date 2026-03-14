@@ -1,30 +1,52 @@
 """Unit tests for nested dict/list support in NonMessageState."""
 
+from typing import TYPE_CHECKING
 from unittest.mock import MagicMock
 
 import pytest
 
 from pipelinellm.core.memoize.operations import (
-    AppendNestedListOp,
-    ClearNestedDictOp,
-    ClearNestedListOp,
-    DelNestedDictItemOp,
-    DelNestedListItemOp,
-    ExtendNestedListOp,
-    InsertNestedListOp,
+    # AppendNestedListOp,
+    # ClearNestedDictOp,
+    # ClearNestedListOp,
+    # DelNestedDictItemOp,
+    # DelNestedListItemOp,
+    # ExtendNestedListOp,
+    # InsertNestedListOp,
     OperationLog,
-    PopNestedListOp,
-    RemoveNestedListOp,
-    ReverseNestedListOp,
-    SetNestedDictItemOp,
-    SetNestedListItemOp,
-    SortNestedListOp,
+    # PopNestedListOp,
+    # RemoveNestedListOp,
+    # ReverseNestedListOp,
+    # SetNestedDictItemOp,
+    # SetNestedListItemOp,
+    # SortNestedListOp,
 )
 from pipelinellm.core.state.non_msg_state import (
     NonMessageState,
-    TrackedDict,
-    TrackedList,
+    # TrackedDict,
+    # TrackedList,
 )
+
+if TYPE_CHECKING:
+    from pipelinellm.core.memoize.operations import (
+        AppendNestedListOp,
+        ClearNestedDictOp,
+        ClearNestedListOp,
+        DelNestedDictItemOp,
+        DelNestedListItemOp,
+        ExtendNestedListOp,
+        InsertNestedListOp,
+        PopNestedListOp,
+        RemoveNestedListOp,
+        ReverseNestedListOp,
+        SetNestedDictItemOp,
+        SetNestedListItemOp,
+        SortNestedListOp,
+    )
+    from pipelinellm.core.state.non_msg_state import (
+        TrackedDict,
+        TrackedList,
+    )
 
 
 # ---------------------------------------------------------------------------

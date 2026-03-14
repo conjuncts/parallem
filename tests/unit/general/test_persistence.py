@@ -16,6 +16,7 @@ from unittest.mock import Mock
 from pipelinellm.core.file_manager import FileManager
 from pipelinellm.core.agent.orchestrator import AgentOrchestrator
 from pipelinellm.core.response import ReadyLLMResponse, PendingLLMResponse
+from pipelinellm.core.backend.sync_backend import SyncBackend
 from pipelinellm.testing.simple_backend import MockBackend
 from pipelinellm.types import (
     ParsedResponse,
@@ -195,6 +196,67 @@ class TestDatastoreAllocation:
 
 class TestAgentOrchestratorIntegration:
     """Test integration with AgentOrchestrator"""
+
+    def test_msg_state_load_requires_manual_persist(self):
+        """Test load mode state persists only when MessageState.persist() is called."""
+        with tempfile.TemporaryDirectory() as temp_dir:
+            fm = FileManager(temp_dir)
+            backend = SyncBackend(fm)
+            orchestrator = AgentOrchestrator(
+                file_manager=fm,
+                backend=backend,
+                provider=Mock(),
+                logger=Mock(),
+                dashlog=Mock(),
+            )
+
+            with orchestrator.agent("continued_persist") as agent:
+                msg_state = agent.get_msg_state().load()
+                msg_state.append("hello")
+                msg_state.persist()
+
+            with orchestrator.agent("continued_persist") as agent:
+                loaded = agent.get_msg_state().load()
+                assert list(loaded) == ["hello"]
+
+            orchestrator.persist()
+
+    def test_msg_state_continued_replay_accumulates(self):
+        """Test continued mode replays recorded operations each separate run."""
+        with tempfile.TemporaryDirectory() as temp_dir:
+            fm = FileManager(temp_dir)
+            backend = SyncBackend(fm)
+            orchestrator = AgentOrchestrator(
+                file_manager=fm,
+                backend=backend,
+                provider=Mock(),
+                logger=Mock(),
+                dashlog=Mock(),
+            )
+
+            lengths = []
+
+            with orchestrator.agent("continued_replay") as agent:
+                msg_state = agent.get_msg_state().load()
+                msg_state.append("x")
+                lengths.append(len(msg_state))
+                msg_state.persist()
+
+            with orchestrator.agent("continued_replay") as agent:
+                msg_state = agent.get_msg_state().load()
+                msg_state.append("x")
+                lengths.append(len(msg_state))
+                msg_state.persist()
+
+            with orchestrator.agent("continued_replay") as agent:
+                msg_state = agent.get_msg_state().load()
+                msg_state.append("x")
+                lengths.append(len(msg_state))
+                msg_state.persist()
+
+            assert lengths == [1, 2, 3]
+
+            orchestrator.persist()
 
     def test_orchestrator_userdata_operations(self):
         """Test userdata operations through AgentOrchestrator"""

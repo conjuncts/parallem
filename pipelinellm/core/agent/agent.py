@@ -53,17 +53,12 @@ class AgentContext(Askable):
 
         self._msg_state: Optional[MessageState] = None
         "MessageState for this agent. Some pipelines won't use this (so it will be None)."
-        self._persist_msg_state: bool = True
 
     def __enter__(self):
         # No setup needed
         return self
 
     def __exit__(self, exc_type, exc_value, traceback):
-        # Save message state
-        if self._msg_state is not None and self._persist_msg_state:
-            self._try_persist_msg_state(self._msg_state)
-
         if exc_type in (NotAvailable, PendingNotAvailable):
             # swallow NotAvailable and its subclasses (like PendingNotAvailable)
             return True
@@ -272,20 +267,14 @@ class AgentContext(Askable):
             )
         return fc_outs
 
-    def get_msg_state(self, continuation=False) -> MessageState:
+    def get_msg_state(self) -> MessageState:
         """
         Get the current MessageState for this agent.
 
-        :param continuation: Whether the MessageState should be continued upon exit.
-            This lets you save and resume conversations.
-            If True, the conversation will always resume where it left off.
-            If False, the conversation will be fresh every time. Either way,
-            responses still get cached in the backend.
         :returns: The current message state.
         """
         if self._msg_state is None:
             self._msg_state = self._orch.get_msg_state(self)
-            self._persist_msg_state = continuation
 
         return self._msg_state
 

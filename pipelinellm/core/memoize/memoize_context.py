@@ -31,7 +31,6 @@ class MemoizeContext:
         self._operation_log = None
 
     def __enter__(self):
-
         # Get the MessageState and compute its hash
         msg_state = self.agent.get_msg_state()
         self._conv_hash = msg_state.get_state_hash(salt=self.salt)
