@@ -49,7 +49,12 @@ markdown_extensions:
 nav:
   - Home: index.md
   - Quickstart: quickstart.md
-  - Philosophy: philosophy_.md
+  - Philosophy: philosophy.md
+  - Concepts:
+    - Ask: ask.md
+    - MessageState: msg_state.md
+    - Memoize: memoize.md
+    - Persistence: persistence.md
 
 extra_css:
   - stylesheets/extra.css

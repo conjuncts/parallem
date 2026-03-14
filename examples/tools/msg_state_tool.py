@@ -45,16 +45,15 @@ with pllm.resume_directory(
 ) as orch:
     with orch.agent() as agt:
         # Tools
-        convo = agt.get_msg_state()
-        resp = convo.ask_llm(
+        conv = agt.get_msg_state()
+        resp = conv.ask_llm(
             "How many files are in '~/examples'? Give the final answer in words.",
             tools=tools,
-            # llm="gpt-4o"
         )
 
         tool_calls = resp.resolve_function_calls()
         assert len(tool_calls) == 1
         assert tool_calls[0].name == "count_files"
-        convo.ask_functions(count_files=ls_tool)
-        convo.ask_llm()
-        agt.print(convo.resolve())
+        conv.ask_functions(count_files=ls_tool)
+        conv.ask_llm()
+        agt.print(conv.resolve())

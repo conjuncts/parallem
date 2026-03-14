@@ -32,15 +32,15 @@ with pllm.resume_directory(
 ) as orch:
     with orch.agent() as agt:
         # See docs on the MessageState abstraction.
-        convo = agt.get_msg_state()
-        last_msg = convo.ask_llm(
+        conv = agt.get_msg_state()
+        last_msg = conv.ask_llm(
             "Add 3 and 4.",
             tools=pllm.to_tool_schema([multiply, add, divide]),
         )
 
         while last_msg.resolve_function_calls():
-            convo.ask_functions(multiply=multiply, add=add, divide=divide)
-            last_msg = convo.ask_llm()
-            agt.print(convo.resolve())
+            conv.ask_functions(multiply=multiply, add=add, divide=divide)
+            last_msg = conv.ask_llm()
+            agt.print(conv.resolve())
 
         # ['Add 3 and 4.', '', FunctionCallOutput(name=add, call_id=, content=7...), '3 + 4 = 7']

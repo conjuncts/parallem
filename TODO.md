@@ -86,3 +86,4 @@ High priority:
 - [x] instead of locking up, do not resend responses that are known to already be pending. So create a PendingBatchResponse() interrupt.
 - [x] hash_by is susceptible to hash collisions (applies to salt, hash_by). twice hash? Probably need to hash the base_hash plus the salt then. maybe it's fine, but that's quite annoying because all of my stored data is now messed up. Add a _legacy_salt parameter fofr conversion then.
 - [ ] In memory datastore.
+- The "one-user" problem. "true" async / multiprocessing support.

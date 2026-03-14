@@ -90,18 +90,20 @@ FunctionCall(name=count_files, call_id=call_Xau, args={'directory': '~/examples'
 <span class="log-hash">C 2b55f032 C f7824348 C c9f2fcc4 C f13b65b2 C bc7f1641 C 2883bea6</span>
 </code></pre></div>
 
+
+!!! warning
+
+    Pipelinellm saves progress by hashing. However, **not all config settings are hashed.** For instance, tool definitions are not hashed. If available tools change, then the hashes are still considered identical, so the old cached value is still returned. See the [Persistence guide](persistence.md) for how to control this with `hash_by` and `salt`.
+
+
 ## Advanced Usage
 
 - See the docs for:
-    - The **MessageState** API: simply a **list** that automatically stores documents and responses as they get added. A good example is `examples/tools/msg_state_tool.py`. Helps track long conversations, reducing boilerplate.
-    - The **Ask** API: `ask_llm`, `ask_functions` (invoking user functions), and `ask_human` (human-in-the-loop).
-    - The **memoize** API: for storing expensive or non-deterministic function results.
+    - The [**MessageState** guide](msg_state.md): simply a **list** that automatically stores documents and responses as they get added. Helps track long conversations, reducing boilerplate.
+    - The [**Ask** guide](ask.md): `ask_llm`, `ask_functions` (invoking user functions).
+    - The [**memoize** guide](memoize.md): for caching expensive or non-deterministic blocks of code.
 
 ## Further examples
 
 A suite of examples (a "cookbook") is available under `examples/*`.
-
-## Caveats
-
-Pipelinellm saves progress by hashing. However, **not all config settings are hashed.** For instance, tool definitions are not hashed. So if available tools change, then the hashes are still considered identical, so the old cached value is still returned. This behavior can be tuned by setting the `hash_by` parameter. You can force avoid hash collisions by passing a `salt` parameter.
 

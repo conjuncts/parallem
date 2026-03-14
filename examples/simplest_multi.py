@@ -18,6 +18,3 @@ with pllm.resume_directory(
 
         resp2 = agt.ask_llm("What is your model name?", llm="gemini-2.5-flash")
         agt.print([resp.resolve(), resp2.resolve()])
-
-
-# pllm.persist()

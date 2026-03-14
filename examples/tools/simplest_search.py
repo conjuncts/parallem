@@ -16,12 +16,8 @@ with pllm.resume_directory(
     with orch.agent() as agt:
         resp = agt.ask_llm(
             "In 1 sentence, what is AAPL's current price?",
-            # llm="claude-haiku-4-5-20251001",
             tools=[pllm.tools.WebSearchTool()],
             hash_by=["llm"],
         )
 
         agt.print(resp.resolve())
-
-
-# pllm.persist()
