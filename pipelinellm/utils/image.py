@@ -16,12 +16,12 @@ def _get_image_type(obj: Image.Image):
     return f"image/{out.lower()}"
 
 
-def _image_to_b64(obj: Image.Image, format=None):
+def _image_to_b64(obj: Image.Image, image_type=None):
     """Convert a PIL Image to a base64-encoded string."""
-    if format is None:
-        format = obj.format
+    if image_type is None:
+        image_type = obj.format
     buffered = BytesIO()
-    obj.save(buffered, format=format)
+    obj.save(buffered, format=image_type)
     return base64.b64encode(buffered.getvalue()).decode("utf-8")
 
 
@@ -32,12 +32,12 @@ def get_type_and_b64(obj: Image.Image, *, allowed=None):
         it will be converted to the first type in the list. If None, all types are allowed.
     """
     image_type = _get_image_type(obj)
-    if not allowed:
-        # No whitelist = allow all types
-        return image_type, _image_to_b64(obj)
-    if image_type not in allowed:
-        # then we have to convert
+    if image_type is None:
+        # default to JPEG
+        image_type = "image/jpeg"
+    if allowed and image_type not in allowed:
+        # If there is a whitelist, we have to convert
         convert_to = allowed[0]
         # obj = obj.convert("RGB")  # Convert to RGB if needed
-        return convert_to, _image_to_b64(obj, format=convert_to.removeprefix("image/"))
-    return image_type, _image_to_b64(obj)
+        return convert_to, _image_to_b64(obj, convert_to.removeprefix("image/"))
+    return image_type, _image_to_b64(obj, image_type.removeprefix("image/"))

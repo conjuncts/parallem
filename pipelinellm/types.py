@@ -364,7 +364,7 @@ class MinorTweaks:
     batch_user_confirmation: bool = True
     "Whether to ask for user confirmation before submitting a batch."
 
-    batch_wait_until_complete: bool = True
+    batch_wait_until_complete: bool = False
     "Whether to wait for all batches to complete before proceeding."
 
 
