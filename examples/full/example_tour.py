@@ -19,13 +19,12 @@ def count_files(directory: str) -> int:
 
 with pllm.resume_directory(
     ".pllm/example/batch",
-    provider="openai",
-    strategy="sync",
+    provider="anthropic",
+    strategy="batch",
     log_level=logging.DEBUG,
     dashboard=True,
-    llm="gpt-5-mini-2025-08-07",
     hash_by=["llm"],
-    ignore_cache=True,
+    llm="claude-haiku-4-5-20251001",
 ) as orch:
     with orch.agent() as agt:
         # 1. Basic LLM call
@@ -58,4 +57,5 @@ with pllm.resume_directory(
         for i, resp in enumerate([resp1, resp2, resp3, resp4, resp5, resp6]):
             if fcs := resp.resolve_function_calls():
                 agt.print(fcs)
-            agt.print(f"{i + 1}. {resp.final_answer}")
+            final_answer = resp.final_answer.replace("\n", " ")
+            agt.print(f"{i + 1}. {final_answer}")

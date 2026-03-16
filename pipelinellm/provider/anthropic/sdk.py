@@ -1,8 +1,17 @@
+import json
+from pathlib import Path
 from typing import TYPE_CHECKING, List, Union
 from pydantic import BaseModel
-from pipelinellm.provider.base import ConcurrentProvider, BaseProvider, SyncProvider
+from pipelinellm.provider.base import (
+    BatchProvider,
+    ConcurrentProvider,
+    BaseProvider,
+    SyncProvider,
+)
 from pipelinellm.types import (
+    BatchResult,
     ParsedResponse,
+    ParsedError,
     CommonQueryParameters,
     FunctionCallRequest,
     FunctionCallOutput,
@@ -11,6 +20,7 @@ from pipelinellm.types import (
     LLMIdentity,
     ServerTool,
 )
+from pipelinellm.utils._batch_helper import _split_batch_response
 from pipelinellm.utils.image import (
     get_type_and_b64,
     is_image,
@@ -153,7 +163,7 @@ def _prepare_tool_schema(func_schemas: List[Union[dict, ServerTool]]) -> List[di
             if sch.server_tool_type == "web_search":
                 anthropic_tools.append(
                     {
-                        "type": "web_search_20250305",
+                        "type": "web_search_20260209",
                         "name": "web_search",
                         "max_uses": 5,
                         **sch.kwargs,
@@ -308,3 +318,170 @@ class ConcurrentAnthropicProvider(ConcurrentProvider, AnthropicProvider):
         )
 
         return coro
+
+
+class BatchAnthropicProvider(BatchProvider, AnthropicProvider):
+    def __init__(self, client: "Anthropic"):
+        self.client = client
+
+    def prepare_batch_call(
+        self,
+        params: CommonQueryParameters,
+        custom_id: str,
+        **kwargs,
+    ):
+        """Convert CommonQueryParameters to Anthropic Message Batch format."""
+        model_name, messages, config = _prepare_anthropic_config(params, **kwargs)
+
+        request_params = {
+            "model": model_name,
+            "max_tokens": config.pop("max_tokens", 4096),
+            "messages": messages,
+            **config,
+        }
+
+        return {
+            "custom_id": custom_id,
+            "params": request_params,
+        }
+
+    def get_batch_custom_ids(self, stuff: list[dict], provider_type: str) -> list[str]:
+        custom_ids = []
+        for item in stuff:
+            custom_id = item.get("custom_id")
+            if not custom_id:
+                raise ValueError("Missing custom_id in batch item")
+            custom_ids.append(custom_id)
+        return custom_ids
+
+    def submit_batch_to_provider(self, fpath: Path, llm: LLMIdentity) -> str:
+        """Submit JSONL requests as an Anthropic Message Batch and return batch ID."""
+        requests = []
+        with open(fpath, "r", encoding="utf-8") as f:
+            for line in f:
+                line = line.strip()
+                if not line:
+                    continue
+                requests.append(json.loads(line))
+
+        batch = self.client.messages.batches.create(requests=requests)
+        return batch.id
+
+    def _decode_anthropic_batch_success(self, line_data: dict) -> ParsedResponse:
+        custom_id = line_data.get("custom_id")
+        result = line_data.get("result") or {}
+        message_obj = result.get("message")
+
+        if not isinstance(message_obj, dict):
+            raise ValueError(
+                "Missing succeeded message payload in Anthropic batch line"
+            )
+
+        parsed = self.parse_response(message_obj)
+        parsed.custom_id = custom_id
+        return parsed
+
+    def _decode_anthropic_batch_error(self, line_data: dict) -> ParsedResponse:
+        custom_id = line_data.get("custom_id")
+        result = line_data.get("result") or {}
+        result_type = result.get("type") or "errored"
+
+        error_obj = result.get("error")
+        if not isinstance(error_obj, dict):
+            error_obj = {"type": result_type}
+
+        error_message = error_obj.get("message") or error_obj.get("type") or result_type
+
+        status_code = error_obj.get("status_code")
+        if isinstance(status_code, int):
+            error_code = status_code
+        elif isinstance(status_code, str) and status_code.isdigit():
+            error_code = int(status_code)
+        else:
+            error_code = 1
+
+        return ParsedResponse(
+            text=str(error_message),
+            response_id=None,
+            custom_id=custom_id,
+            metadata=error_obj,
+            error_code=error_code,
+        )
+
+    def decode_batch_content(self, content: str) -> List[BatchResult]:
+        """Decode Anthropic JSONL batch output into BatchResult objects."""
+        parsed_responses = []
+        parsed_errors = []
+        not_ok_i = []
+
+        for line_i, line in enumerate(content.strip().split("\n")):
+            if not line:
+                continue
+            try:
+                line_data = json.loads(line)
+                result_type = (line_data.get("result") or {}).get("type")
+
+                if result_type == "succeeded":
+                    parsed_responses.append(
+                        self._decode_anthropic_batch_success(line_data)
+                    )
+                else:
+                    parsed_errors.append(self._decode_anthropic_batch_error(line_data))
+                    not_ok_i.append(line_i)
+
+            except json.JSONDecodeError as e:
+                parsed_errors.append(
+                    ParsedError(
+                        text=f"JSON decode error: {str(e)}",
+                        response_id=None,
+                        custom_id="unknown",
+                        metadata={},
+                        error_code=1,
+                    )
+                )
+                not_ok_i.append(line_i)
+
+        return _split_batch_response(
+            parsed_responses=parsed_responses,
+            parsed_errors=parsed_errors,
+            content=content,
+            not_ok_i=not_ok_i,
+        )
+
+    def download_batch(
+        self,
+        batch_uuid: str,
+        provider_type: str,
+    ) -> List[BatchResult]:
+        """Download Anthropic Message Batch results.
+
+        :param batch_uuid: The UUID of the batch to download.
+        :return: List of BatchResult objects containing the results and errors (if any).
+            If nothing is ready yet, empty list is returned.
+        """
+
+        batch = self.client.messages.batches.retrieve(batch_uuid)
+        if batch.processing_status != "ended":
+            return []
+
+        lines = []
+        for item in self.client.messages.batches.results(batch_uuid):
+            if isinstance(item, dict):
+                lines.append(json.dumps(item))
+            elif isinstance(item, str):
+                lines.append(item)
+            else:
+                dump_json = getattr(item, "model_dump_json", None)
+                if callable(dump_json):
+                    lines.append(dump_json())
+                else:
+                    model_dump = getattr(item, "model_dump", None)
+                    if callable(model_dump):
+                        lines.append(json.dumps(model_dump(mode="json")))
+                    else:
+                        lines.append(json.dumps(item))
+
+        content = "\n".join(lines)
+        if not content:
+            return []
+        return self.decode_batch_content(content)

@@ -89,8 +89,8 @@ class DashboardLogger:
             return
         with self._lock:
             # Strip "batch_" prefix if present
-            if full_hash.startswith("batch_"):
-                full_hash = full_hash[6:]  # Remove "batch_" prefix
+            full_hash = full_hash.removeprefix("msgbatch_")  # Anthropic's
+            full_hash = full_hash.removeprefix("batch_")  # OpenAI's
 
             hash_id = full_hash[:8]  # Use first 8 characters as display ID
 

@@ -59,6 +59,7 @@ def dynamic_select_provider(
             provider = SyncGoogleProvider(client=client)
     elif provider_type == "anthropic":
         from pipelinellm.provider.anthropic.sdk import (
+            BatchAnthropicProvider,
             ConcurrentAnthropicProvider,
             SyncAnthropicProvider,
         )
@@ -69,6 +70,12 @@ def dynamic_select_provider(
 
                 client = AsyncAnthropic()
             provider = ConcurrentAnthropicProvider(client=client)
+        elif strategy == "batch":
+            if client is None:
+                from anthropic import Anthropic
+
+                client = Anthropic()
+            provider = BatchAnthropicProvider(client=client)
         else:
             if client is None:
                 from anthropic import Anthropic

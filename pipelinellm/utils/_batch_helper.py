@@ -23,13 +23,13 @@ def _split_batch_response(
             )
         ]
     else:
-        # ok_str = ""
-        # err_str = ""
-        # for i, line in enumerate(content.strip().split("\n")):
-        #     if i in not_ok_i:
-        #         err_str += line + "\n"
-        #     else:
-        #         ok_str += line + "\n"
+        not_ok_set = set(not_ok_i)
+        err_lines = [
+            line
+            for i, line in enumerate(content.strip().split("\n"))
+            if i in not_ok_set
+        ]
+        err_str = "\n".join(err_lines)
 
         return [
             BatchResult(
@@ -39,7 +39,7 @@ def _split_batch_response(
             ),
             BatchResult(
                 status="error",
-                raw_output=None,
+                raw_output=err_str,
                 parsed_responses=parsed_errors,
             ),
         ]

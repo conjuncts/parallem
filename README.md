@@ -10,33 +10,33 @@
 | Default | Sync | Concurrent* | Batch |
 | --- | --- | --- | --- |
 | OpenAI | ✅ | ✅ | ✅ |
-| Anthropic | ✅ | ✅ | TODO |
+| Anthropic | ✅ | ✅ | ✅ |
 | Google | ✅ | ✅ | ✅ |
 
 
 | Structured Output | Sync | Concurrent | Batch |
 | --- | --- | --- | --- |
-| OpenAI | ✅ | ✅ | ✅? |
+| OpenAI | ✅ | ✅ | ✅ |
 | Anthropic | ❌ | ❌ | ❌ |
 | Google | ✅ | ✅ | ✅ |
 
 | Function Calls | Sync | Concurrent | Batch |
 | --- | --- | --- | --- |
 | OpenAI | ✅ | ✅ | ✅ |
-| Anthropic | ✅ | ✅ | TODO |
+| Anthropic | ✅ | ✅ | ✅ |
 | Google | ✅ | ✅ | ✅ |
 
 | Web Search | Sync | Concurrent | Batch |
 | --- | --- | --- | --- |
 | OpenAI | ✅ | ✅ | ✅ |
-| Anthropic | ✅ | ✅ | TODO |
+| Anthropic | ✅ | ✅ | ✅ |
 | Google | ✅ | ✅ | ✅ |
 
 | Image Input | Sync | Concurrent | Batch |
 | --- | --- | --- | --- |
-| OpenAI | ✅ | ✅? | ✅? |
-| Anthropic | ✅ | ✅? | TODO |
-| Google | ✅ | ✅? | ✅? |
+| OpenAI | ✅ | ✅? | ✅ |
+| Anthropic | ✅ | ✅? | ✅ |
+| Google | ✅ | ✅? | ✅ |
 
 *Concurrent is similar to async, but it isn't true async because `await` and `.resolve()` doesn't actually yield control to other processes. It does allow parallelization and requests to be run concurrently.
 
