@@ -57,6 +57,7 @@ class BatchBackend(BaseBackend):
         datastore_cls=None,
         session_id: int,
         confirm_batch_submission: bool = False,
+        max_batch_size: int = 1000,
         rewrite_cache: bool = False,
     ):
         self._fm = fm
@@ -66,6 +67,9 @@ class BatchBackend(BaseBackend):
             self._ds = datastore_cls(fm)
         self.dashlog = dashlog
         self._confirm_batch_submission = confirm_batch_submission
+        if max_batch_size < 1:
+            raise ValueError("max_batch_size must be >= 1")
+        self._max_batch_size = max_batch_size
         self._rewrite_cache = rewrite_cache
 
         self._batch_buffer: list[BatchBufferItem] = []
@@ -177,10 +181,13 @@ class BatchBackend(BaseBackend):
         provider: "BatchProvider",
         dl: DashboardLogger,
         *,
-        max_batch_size=1000,
+        max_batch_size: Optional[int] = None,
         partition_by_model_name=True,
     ) -> CohortIdentifier:
         """Execute the batch of calls"""
+
+        if max_batch_size is None:
+            max_batch_size = self._max_batch_size
 
         if not self._batch_buffer:
             return CohortIdentifier(batch_ids=[], session_id=self.session_id)

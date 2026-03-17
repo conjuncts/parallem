@@ -156,6 +156,36 @@ class TestBatchBackendExecuteBatch:
         total_calls = sum(len(batch_id.call_ids) for batch_id in cohort.batch_ids)
         assert total_calls == 10
 
+    def test_uses_configured_default_max_batch_size(
+        self, file_manager, mock_datastore, mock_provider
+    ):
+        """Test execute_batch uses backend-configured max_batch_size when omitted"""
+        backend = BatchBackend(
+            fm=file_manager,
+            dashlog=PrimitiveDashboardLogger(),
+            session_id=1,
+            confirm_batch_submission=False,
+            max_batch_size=3,
+        )
+        backend._ds = mock_datastore
+
+        llm = LLMIdentity(
+            "gpt-4o-mini", provider_type="openai", model_name="gpt-4o-mini"
+        )
+
+        for i in range(8):
+            call_id = create_call_id("agent1", i)
+            backend.bookkeep_call(call_id, llm, {"data": f"call_{i}"})
+
+        cohort = backend.execute_batch(
+            mock_provider,
+            PrimitiveDashboardLogger(),
+            partition_by_model_name=True,
+        )
+
+        assert len(cohort.batch_ids) == 3
+        assert [len(batch_id.call_ids) for batch_id in cohort.batch_ids] == [3, 3, 2]
+
     def test_combined_grouping_and_chunking(self, batch_backend, mock_provider):
         """Test grouping by LLM and chunking together"""
         llm1 = LLMIdentity(

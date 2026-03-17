@@ -367,6 +367,9 @@ class MinorTweaks:
     batch_wait_until_complete: bool = False
     "Whether to wait for all batches to complete before proceeding."
 
+    batch_max_size: int = 1000
+    "Maximum number of calls submitted per provider batch request."
+
 
 class LLMResponse:
     """

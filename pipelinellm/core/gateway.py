@@ -115,6 +115,7 @@ def resume_directory(
             datastore_cls=datastore_cls,
             session_id=fm._get_session_counter(),
             confirm_batch_submission=tweaks.batch_user_confirmation,
+            max_batch_size=tweaks.batch_max_size,
             rewrite_cache=rewrite_cache,
         )
     else:
