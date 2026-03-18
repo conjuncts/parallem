@@ -13,8 +13,8 @@ class MyModel(BaseModel):
 
 with pllm.resume_directory(
     ".pllm/simplest-tool",
-    provider="google",
-    strategy="batch",
+    provider="anthropic",
+    strategy="sync",
     log_level=logging.DEBUG,
     dashboard=True,
     # ignore_cache=True,
@@ -25,4 +25,4 @@ with pllm.resume_directory(
             "Please name a power of 3.", hash_by=["llm"], text_format=MyModel
         )
 
-        agt.print(resp.resolve())
+        agt.print(resp.resolve_json())

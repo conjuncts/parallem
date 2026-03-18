@@ -25,6 +25,18 @@ class BaseProvider:
         """Returns a default LLMIdentity for this provider."""
         raise NotImplementedError
 
+    def validate_request_compatibility(
+        self,
+        params: CommonQueryParameters,
+        **kwargs,
+    ) -> None:
+        """Validate whether a request is compatible with this provider.
+
+        :param params: Common query parameters for the request.
+        :return: None. Raises when the request is not compatible.
+        """
+        raise NotImplementedError
+
     def parse_response(
         self, raw_response: Union["BaseModel", dict], provider_type: str = None
     ) -> ParsedResponse:

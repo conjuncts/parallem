@@ -95,6 +95,11 @@ class SyncBackend(BaseBackend):
 
         self.dashlog.update_hash(doc_hash, HashStatus.SENT)
 
+        provider.validate_request_compatibility(
+            params,
+            **kwargs,
+        )
+
         # The below function typically calls the LLM
         result = provider.prepare_sync_call(
             params,

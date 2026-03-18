@@ -34,6 +34,18 @@ if TYPE_CHECKING:
 class OpenAIProvider(BaseProvider):
     provider_type: str = "openai"
 
+    def validate_request_compatibility(
+        self,
+        params: CommonQueryParameters,
+        **kwargs,
+    ) -> None:
+        """Validate OpenAI request compatibility.
+
+        :param params: Common query parameters for the request.
+        :return: None.
+        """
+        return None
+
     def _fix_docs_for_openai(
         self,
         documents: List[LLMDocument],

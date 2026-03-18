@@ -1,7 +1,7 @@
 site_name: pipelinellm
 site_description: Batch-first Python workflows for LLM pipelines.
-repo_name: conjuncts/parallellm
-repo_url: https://github.com/conjuncts/parallellm
+repo_name: conjuncts/pipelinellm
+repo_url: https://github.com/conjuncts/pipelinellm
 docs_dir: docs
 
 theme:
@@ -55,6 +55,8 @@ nav:
     - MessageState: msg_state.md
     - Memoize: memoize.md
     - Persistence: persistence.md
+    - Strategies: strategies.md
+
 
 extra_css:
   - stylesheets/extra.css

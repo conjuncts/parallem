@@ -22,11 +22,11 @@ data_batch_full_openai = r"""
 """.replace("<img-data>", _img_data)
 
 data_batch_full_anthropic = r"""
-{"custom_id": "-0-0-0", "params": {"model": "claude-3-haiku-20240307", "max_tokens": 4096, "messages": [{"role": "user", "content": "Please name a power of 3."}]}}
-{"custom_id": "-0-1-1", "params": {"model": "claude-3-haiku-20240307", "max_tokens": 4096, "messages": [{"role": "user", "content": "In 1 sentence, what is AAPL's current price?"}], "tools": [{"type": "web_search_20260209", "name": "web_search", "max_uses": 5}]}}
-{"custom_id": "-0-2-2", "params": {"model": "claude-3-haiku-20240307", "max_tokens": 4096, "messages": [{"role": "user", "content": "How many files are in ~/examples? Give the final answer in words."}], "tools": [{"name": "count_files", "description": "Count the number of files in a directory.", "input_schema": {"type": "object", "properties": {"directory": {"type": "string", "description": "The path to the directory to count files in."}}, "required": ["directory"]}}]}}
-{"custom_id": "-0-3-3", "params": {"model": "claude-3-haiku-20240307", "max_tokens": 4096, "messages": [{"role": "user", "content": "What is the capital of France?"}]}}
-{"custom_id": "-0-4-4", "params": {"model": "claude-3-haiku-20240307", "max_tokens": 4096, "messages": [{"role": "user", "content": "What animal is this?"}, {"role": "user", "content": [{"type": "image", "source": {"type": "base64", "media_type": "image/jpeg", "data": "<img-data>"}}]}]}}
+{"custom_id": "-0-0-0", "params": {"model": "claude-haiku-4-5-20251001", "max_tokens": 4096, "messages": [{"role": "user", "content": "Please name a power of 3."}]}}
+{"custom_id": "-0-1-1", "params": {"model": "claude-haiku-4-5-20251001", "max_tokens": 4096, "messages": [{"role": "user", "content": "In 1 sentence, what is AAPL's current price?"}], "tools": [{"type": "web_search_20260209", "name": "web_search", "max_uses": 5}]}}
+{"custom_id": "-0-2-2", "params": {"model": "claude-haiku-4-5-20251001", "max_tokens": 4096, "messages": [{"role": "user", "content": "How many files are in ~/examples? Give the final answer in words."}], "tools": [{"name": "count_files", "description": "Count the number of files in a directory.", "input_schema": {"type": "object", "properties": {"directory": {"type": "string", "description": "The path to the directory to count files in."}}, "required": ["directory"]}}]}}
+{"custom_id": "-0-3-3", "params": {"model": "claude-haiku-4-5-20251001", "max_tokens": 4096, "messages": [{"role": "user", "content": "What is the capital of France?"}], "output_config": {"format": {"type": "json_schema", "schema": {"properties": {"final_answer": {"title": "Final Answer", "type": "string"}}, "required": ["final_answer"], "title": "MyModel", "type": "object", "additionalProperties": false}}}}}
+{"custom_id": "-0-4-4", "params": {"model": "claude-haiku-4-5-20251001", "max_tokens": 4096, "messages": [{"role": "user", "content": "What animal is this?"}, {"role": "user", "content": [{"type": "image", "source": {"type": "base64", "media_type": "image/jpeg", "data": "<img-data>"}}]}]}}
 """.replace("<img-data>", _img_data)
 
 data_batch_resp_anthropic = r"""

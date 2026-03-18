@@ -268,6 +268,18 @@ def _extract_text_from_gemini_dict(resp: dict):
 class GoogleProvider(BaseProvider):
     provider_type: str = "google"
 
+    def validate_request_compatibility(
+        self,
+        params: CommonQueryParameters,
+        **kwargs,
+    ) -> None:
+        """Validate Google request compatibility.
+
+        :param params: Common query parameters for the request.
+        :return: None.
+        """
+        return None
+
     def get_default_llm_identity(self) -> LLMIdentity:
         return LLMIdentity("gemini-2.5-flash", provider_type=self.provider_type)
 

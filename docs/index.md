@@ -37,4 +37,5 @@ with pllm.resume_directory(
 ## Read next
 
 - Start with the quickstart for the main workflow.
+- Compare sync, concurrent, and batch in the strategy guide.
 - Read the philosophy page for the design goals behind the library.

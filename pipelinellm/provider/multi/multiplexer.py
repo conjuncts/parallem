@@ -22,6 +22,20 @@ class MultiProvider(BaseProvider):
         self.providers: dict[str, BaseProvider] = {}
         self.base_strategy = base_strategy
 
+    def validate_request_compatibility(
+        self,
+        params: CommonQueryParameters,
+        **kwargs,
+    ) -> None:
+        """Validate request compatibility via the selected underlying provider.
+
+        :param params: Common query parameters for the request.
+        :return: None.
+        """
+        llm_identity = params["llm"]
+        provider = self._load_provider(llm_identity.provider_type, self.base_strategy)
+        provider.validate_request_compatibility(params, **kwargs)
+
     @overload
     def _load_provider(
         self, provider_name: str, strategy: Literal["sync"]

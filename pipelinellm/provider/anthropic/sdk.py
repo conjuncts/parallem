@@ -1,7 +1,10 @@
 import json
+import importlib.metadata as importlib_metadata
+import copy
 from pathlib import Path
 from typing import TYPE_CHECKING, List, Union
 from pydantic import BaseModel
+from pipelinellm.core.exception import ProviderCompatibilityError
 from pipelinellm.provider.base import (
     BatchProvider,
     ConcurrentProvider,
@@ -25,10 +28,62 @@ from pipelinellm.utils.image import (
     get_type_and_b64,
     is_image,
 )
+from pipelinellm.provider.openai.openai_tools import (
+    _ensure_strict_json_schema,
+    to_strict_json_schema,
+)
 
 if TYPE_CHECKING:
     from anthropic import Anthropic, AsyncAnthropic
     from anthropic.types import Message
+
+
+_ANTHROPIC_STRUCTURED_OUTPUT_MIN_VERSION = "0.77.0"
+
+
+def _numeric_version_triplet(version_text: str) -> tuple[int, int, int]:
+    numeric_parts = []
+    current = ""
+
+    for char in version_text:
+        if char.isdigit():
+            current += char
+            continue
+        if current:
+            numeric_parts.append(int(current))
+            current = ""
+            if len(numeric_parts) >= 3:
+                break
+
+    if current and len(numeric_parts) < 3:
+        numeric_parts.append(int(current))
+
+    while len(numeric_parts) < 3:
+        numeric_parts.append(0)
+
+    return tuple(numeric_parts[:3])
+
+
+def _enforce_anthropic_min_version_for_structured_output() -> None:
+    """Validate installed anthropic package supports output_config.format."""
+
+    try:
+        installed_version_text = importlib_metadata.version("anthropic")
+    except importlib_metadata.PackageNotFoundError as exc:
+        raise ImportError(
+            "Structured output with Anthropic requires the 'anthropic' package to be installed."
+        ) from exc
+
+    installed_version = _numeric_version_triplet(installed_version_text)
+    minimum_required = _numeric_version_triplet(
+        _ANTHROPIC_STRUCTURED_OUTPUT_MIN_VERSION
+    )
+    if installed_version < minimum_required:
+        raise ProviderCompatibilityError(
+            "Structured output with Anthropic requires anthropic>="
+            f"{_ANTHROPIC_STRUCTURED_OUTPUT_MIN_VERSION}, found {installed_version_text}. "
+            "Please upgrade the anthropic package."
+        )
 
 
 def _fix_docs_for_anthropic(
@@ -136,6 +191,7 @@ def _prepare_anthropic_config(params: CommonQueryParameters, **kwargs) -> tuple:
     """Prepare config and messages for Anthropic API calls"""
     instructions = params["instructions"]
     llm = params["llm"]
+    text_format = params.get("text_format")
     tools = params.get("tools")
 
     if tools:
@@ -147,11 +203,58 @@ def _prepare_anthropic_config(params: CommonQueryParameters, **kwargs) -> tuple:
     if instructions:
         config["system"] = instructions
 
+    if text_format is not None:
+        if (config.get("output_config") or {}).get("format") is not None:
+            raise AssertionError(
+                "Cannot supply both text_format and output_config.format"
+            )
+
+        config["output_config"] = config.get("output_config", {})
+        config["output_config"]["format"] = _prepare_anthropic_output_format(
+            text_format
+        )
+
     model_name = llm.model_name
 
     if tools is not None and len(tools) > 0:
         config["tools"] = tools
     return model_name, messages, config
+
+
+def _prepare_anthropic_output_format(text_format: object) -> dict:
+    """Prepare Anthropic output_config.format payload from text_format input."""
+
+    def _strict_schema(schema: dict) -> dict:
+        schema_copy = copy.deepcopy(schema)
+        return _ensure_strict_json_schema(schema_copy, path=(), root=schema_copy)
+
+    def _strict_format(format_dict: dict) -> dict:
+        strict_format = copy.deepcopy(format_dict)
+        schema = strict_format.get("schema")
+        if isinstance(schema, dict):
+            strict_format["schema"] = _strict_schema(schema)
+        return strict_format
+
+    if isinstance(text_format, dict):
+        if text_format.get("type") == "json_schema" and "schema" in text_format:
+            return _strict_format(text_format)
+        if "format" in text_format and isinstance(text_format["format"], dict):
+            return _strict_format(text_format["format"])
+        return {
+            "type": "json_schema",
+            "schema": _strict_schema(text_format),
+        }
+
+    model_json_schema = getattr(text_format, "model_json_schema", None)
+    if callable(model_json_schema):
+        return {
+            "type": "json_schema",
+            "schema": to_strict_json_schema(text_format),
+        }
+
+    raise ValueError(
+        "Unsupported text_format for Anthropic. Expected dict JSON schema or a Pydantic model/class with model_json_schema()."
+    )
 
 
 def _prepare_tool_schema(func_schemas: List[Union[dict, ServerTool]]) -> List[dict]:
@@ -203,8 +306,24 @@ def _prepare_tool_schema(func_schemas: List[Union[dict, ServerTool]]) -> List[di
 class AnthropicProvider(BaseProvider):
     provider_type: str = "anthropic"
 
+    def validate_request_compatibility(
+        self,
+        params: CommonQueryParameters,
+        **kwargs,
+    ) -> None:
+        """Validate Anthropic request compatibility.
+
+        :param params: Common query parameters for the request.
+        :return: None.
+        """
+        text_format = params.get("text_format")
+        if text_format is not None:
+            _enforce_anthropic_min_version_for_structured_output()
+
     def get_default_llm_identity(self) -> LLMIdentity:
-        return LLMIdentity("claude-haiku-4-5-20251001", provider_type=self.provider_type)
+        return LLMIdentity(
+            "claude-haiku-4-5-20251001", provider_type=self.provider_type
+        )
 
     def parse_response(
         self, raw_response: Union[BaseModel, dict], provider_type: str = None

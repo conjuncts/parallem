@@ -95,7 +95,9 @@ def _assert_batch_file_matches_expected(
         with open(test_debug_dir / f"expected_{provider}.jsonl", "w") as f:
             f.write("\n".join(expected_lines))
     assert not mismatch_in, (
-        f"Lines with mismatches: {mismatch_in}. See tests/data/diffs/generated_{provider}.jsonl"
+        f"Lines with mismatches: {mismatch_in}. "
+        + f"See tests/data/diffs/generated_{provider}.jsonl and "
+        + f"tests/data/diffs/expected_{provider}.jsonl for details."
     )
 
 

@@ -26,3 +26,11 @@ class IntegrityError(Exception):
     """
 
     pass
+
+
+class ProviderCompatibilityError(Exception):
+    """
+    Raised when a provider determines that a given request is not compatible with its capabilities.
+    """
+
+    pass

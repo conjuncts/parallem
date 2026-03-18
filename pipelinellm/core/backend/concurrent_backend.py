@@ -162,6 +162,11 @@ class ConcurrentBackend(BaseBackend):
         This inverts control from provider calling backend.
         """
 
+        provider.validate_request_compatibility(
+            params,
+            **kwargs,
+        )
+
         coro = provider.prepare_concurrent_call(
             params,
             **kwargs,

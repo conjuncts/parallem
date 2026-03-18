@@ -23,3 +23,5 @@ msg_state.ask_functions()
 - test max_batch_size
 - test Batch API (and all other - integration test) by comparing batch output but not sending it
 - test out max_batch_size (! convenience point!)
+
+- test error handling. One way to do this is with bad function call schema. You would get: anthropic.BadRequestError: Error code: 400 - {'type': 'error', 'error': {'type': 'invalid_request_error', 'message': "output_config.format.schema: For 'object' type, 'additionalProperties' must be explicitly set to false"}, 'request_id': 'req_011CZBRRKaFknecBYwUwc3vZ'}

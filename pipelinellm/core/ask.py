@@ -52,7 +52,7 @@ class Askable(ABC):
         :param text_format: Schema or format specification for structured output.
             For OpenAI: uses structured output via responses.parse().
             For Google: sets response_mime_type and response_schema.
-            For Anthropic: not supported.
+            For Anthropic: sets output_config.format.
         :param tools: A list of tools to make available to the LLM.
             Both user-defined tools (function tools) and server-defined tools
             (ie. web search, code interpreter) are supported.

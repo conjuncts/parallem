@@ -49,7 +49,7 @@ Issues = "https://github.com/conjuncts/parallellm/issues"
 
 [dependency-groups]
 dev = [
-    "anthropic>=0.69.0",
+    "anthropic>=0.77.0",
     "flit>=3.12.0",
     "mkdocs-material>=9.6.18",
     "google-genai>=1.41.0",

@@ -1,0 +1,109 @@
+import pytest
+from pydantic import BaseModel
+
+from pipelinellm.core.exception import ProviderCompatibilityError
+from pipelinellm.provider.anthropic import sdk
+from pipelinellm.provider.anthropic.sdk import (
+    AnthropicProvider,
+    _prepare_anthropic_config,
+)
+from pipelinellm.types import LLMIdentity
+
+
+class MyModel(BaseModel):
+    final_answer: str
+
+
+def _params(*, text_format=None):
+    return {
+        "instructions": None,
+        "strict_documents": ["What is the capital of France?"],
+        "llm": LLMIdentity("claude-3-haiku-20240307", provider_type="anthropic"),
+        "text_format": text_format,
+        "tools": None,
+    }
+
+
+def test_prepare_anthropic_config_with_pydantic_text_format():
+    model_name, messages, config = _prepare_anthropic_config(
+        _params(text_format=MyModel)
+    )
+
+    assert model_name == "claude-3-haiku-20240307"
+    assert messages == [{"role": "user", "content": "What is the capital of France?"}]
+    assert config["output_config"]["format"]["type"] == "json_schema"
+    assert config["output_config"]["format"]["schema"]["title"] == "MyModel"
+    assert config["output_config"]["format"]["schema"]["additionalProperties"] is False
+
+
+def test_prepare_anthropic_config_with_json_schema_dict():
+    schema = {
+        "type": "object",
+        "properties": {"capital": {"type": "string"}},
+        "required": ["capital"],
+    }
+
+    _, _, config = _prepare_anthropic_config(_params(text_format=schema))
+
+    format_payload = config["output_config"]["format"]
+    assert format_payload["type"] == "json_schema"
+    assert format_payload["schema"]["type"] == "object"
+    assert format_payload["schema"]["additionalProperties"] is False
+    assert format_payload["schema"]["properties"] == schema["properties"]
+
+
+def test_prepare_anthropic_config_rejects_conflicting_output_format():
+    with pytest.raises(AssertionError, match="Cannot supply both text_format"):
+        _prepare_anthropic_config(
+            _params(text_format=MyModel),
+            output_config={
+                "format": {
+                    "type": "json_schema",
+                    "schema": {"type": "object", "properties": {}},
+                }
+            },
+        )
+
+
+def test_prepare_anthropic_config_rejects_invalid_text_format():
+    with pytest.raises(ValueError, match="Unsupported text_format for Anthropic"):
+        _prepare_anthropic_config(_params(text_format="not-a-schema"))
+
+
+def test_validate_request_compatibility_enforces_min_version(monkeypatch):
+    monkeypatch.setattr(
+        sdk.importlib_metadata,
+        "version",
+        lambda package_name: "0.76.9",
+    )
+    provider = AnthropicProvider()
+
+    with pytest.raises(ProviderCompatibilityError, match="requires anthropic>=0.77.0"):
+        provider.validate_request_compatibility(_params(text_format=MyModel))
+
+
+def test_validate_request_compatibility_allows_minimum_supported_version(monkeypatch):
+    monkeypatch.setattr(
+        sdk.importlib_metadata,
+        "version",
+        lambda package_name: "0.77.0",
+    )
+    provider = AnthropicProvider()
+
+    provider.validate_request_compatibility(_params(text_format=MyModel))
+
+
+def test_validate_request_compatibility_skips_version_check_without_text_format(
+    monkeypatch,
+):
+    def _fail_if_called(package_name):
+        raise AssertionError("version() should not be called")
+
+    monkeypatch.setattr(
+        sdk.importlib_metadata,
+        "version",
+        _fail_if_called,
+    )
+
+    provider = AnthropicProvider()
+    provider.validate_request_compatibility(_params(text_format=None))

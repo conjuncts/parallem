@@ -101,6 +101,11 @@ class BatchBackend(BaseBackend):
             self._pending_count += 1
             raise PendingNotAvailable()
 
+        provider.validate_request_compatibility(
+            params,
+            **kwargs,
+        )
+
         # Get the batch call data from the provider
         stuff = provider.prepare_batch_call(
             params,
