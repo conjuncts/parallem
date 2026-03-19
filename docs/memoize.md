@@ -9,7 +9,8 @@ For example, `memoize` is well-suited for blocks that are:
 - **Non-deterministic** (e.g. `random`, live API calls)  
 - **Expensive** (long clock time, heavy computation)  
 
-When the conversation state (hash) at the point `begin()` is called matches a previous run, the block is short-circuited and all recorded `MessageState` mutations are replayed.
+!!! Important
+    Memoize only tracks changes to MessageState. It depends on the hash of MessageState to decide whether to reuse a previously stored value.
 
 ## Basic usage
 
@@ -17,16 +18,8 @@ When the conversation state (hash) at the point `begin()` is called matches a pr
 --8<-- "examples/advanced/simplest_memoize.py"
 ```
 
-## How it works
-
-1. `agt.memoize()` returns a context manager that starts watching `MessageState` (and non-message state) for mutations.  
-2. `mem.begin()` checks the datastore for a cached `OperationLog` keyed on the current conversation hash. If one exists, it replays all recorded operations and raises an internal signal that short-circuits the rest of the block.  
-3. On first run, all `MessageState` mutations performed inside the `with` block are recorded. On exit, the `OperationLog` is persisted.
-
-```
-First run:   begin() → no cache → track operations → exit → save log
-Later runs:  begin() → cache hit → replay log → skip rest of block
-```
+!!! warning
+    Only changes to MessageState is saved. That means you will **not** have access to local variables within the `memoize()` block.
 
 ## `memoize` signature
 
@@ -50,6 +43,19 @@ with agt.memoize() as mem:
 
 !!! warning
     If you omit `mem.begin()`, memoization will not occur.
+
+
+## How it works
+
+1. `agt.memoize()` returns a context manager that starts watching `MessageState` (and non-message state) for mutations.  
+2. If the conversation state (hash) at the point `mem.begin()` matches a previous run, the block is short-circuited and all recorded `MessageState` mutations are replayed. Otherwise, execution proceeds.
+3. On first run, all `MessageState` mutations performed inside the `with` block are recorded to disk.
+
+
+```
+First run:   begin() → no cache → track operations → exit → save log
+Later runs:  begin() → cache hit → replay log → skip rest of block
+```
 
 ## Interaction with MessageState
 

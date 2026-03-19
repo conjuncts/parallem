@@ -21,6 +21,32 @@ def divide(a: int, b: int) -> float:
     return a / b
 
 
+def agent_with_permission(agt: pllm.AgentContext):
+    """Demonstrates how `ask_human` enables the human-in-the-loop pattern."""
+    conv = agt.get_msg_state()
+    last_msg = conv.ask_llm(
+        "Add 3 and 4.",
+        tools=pllm.to_tool_schema([multiply, add, divide]),
+    )
+
+    while last_msg.resolve_function_calls():
+        # Pass all conversation messages to allow caching
+        # But do not add it to the conversation history
+        permission = agt.ask_human(
+            f"Permit function calls: {last_msg.resolve_function_calls()}? (y/n)",
+            conv,
+        )
+        if permission.final_answer.strip().lower() != "y":
+            agt.print("Function calls denied by human.")
+            continue
+        else:
+            agt.print("Function calls permitted.")
+
+        conv.ask_functions(multiply=multiply, add=add, divide=divide)
+        last_msg = conv.ask_llm()
+        agt.print(conv.resolve())
+
+
 with pllm.resume_directory(
     ".pllm/simplest-tool",
     provider="google",
@@ -30,27 +56,6 @@ with pllm.resume_directory(
     hash_by=["llm"],
 ) as orch:
     with orch.agent() as agt:
-        conv = agt.get_msg_state()
-        last_msg = conv.ask_llm(
-            "Add 3 and 4.",
-            tools=pllm.to_tool_schema([multiply, add, divide]),
-        )
+        agent_with_permission(agt)
 
-        while last_msg.resolve_function_calls():
-            # Pass all conversation messages to allow caching
-            # But do not add it to the conversation history
-            permission = agt.ask_human(
-                f"Permit function calls: {last_msg.resolve_function_calls()}? (y/n)",
-                conv,
-            )
-            if permission.final_answer.strip().lower() != "y":
-                agt.print("Function calls denied by human.")
-                continue
-            else:
-                agt.print("Function calls permitted.")
-
-            conv.ask_functions(multiply=multiply, add=add, divide=divide)
-            last_msg = conv.ask_llm()
-            agt.print(conv.resolve())
-
-        # ['Add 3 and 4.', '', FunctionCallOutput(name=add, call_id=, content=7...), '3 + 4 = 7']
+# ['Add 3 and 4.', '', FunctionCallOutput(name=add, call_id=, content=7...), '3 + 4 = 7']

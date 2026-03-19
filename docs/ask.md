@@ -1,6 +1,6 @@
 # Ask API
 
-The Ask API is the primary way to interact with LLMs, user functions, and humans. It is exposed on both `AgentContext` (`agt`) and `MessageState`.
+In pipelinellm, we believe that an agent is a **program**, not an LLM. While that program often uses LLMs to automate its decision making, agents can also ask functions and humans. As a result, we can unify `ask_llm`, `ask_functions`, and `ask_human` into a common interface!
 
 ## `ask_llm`
 
@@ -46,16 +46,15 @@ print(resp.final_answer)  # {"capital":"Paris"}
 
 ### Tool use
 
-```python
+```python title="examples/simplest_tool.py"
 --8<-- "examples/simplest_tool.py"
 ```
 
 ## `ask_functions`
 
-After `ask_llm` returns a response that contains function calls, `ask_functions` executes them by dispatching to the matching Python callables.
+After `ask_llm` returns a response that contains function calls, `ask_functions` executes them by running the actual Python functions.
 
-Take this example from [Quickstart 2](quickstart.md#quickstart-2):
-```python
+```python title="Quickstart"
 def count_files(directory: str) -> int:
     """Counts files in a directory"""
     return 4
@@ -66,12 +65,25 @@ fc_outs = agt.ask_functions(resp, count_files=count_files)
 final = agt.ask_llm([prompt, resp, *fc_outs])
 ```
 
-Pass functions as keyword arguments (name → callable).
+## `ask_human`
 
-## Cross-provider example
-
-Both `ask_llm` calls below use different models from different providers within the same session:
+`ask_human` is for human-in-the-loop checkpoints, approvals, or missing context that should come from a person instead of a model.
 
 ```python
---8<-- "examples/simplest_multi.py"
+conv = agt.get_msg_state()
+resp = agt.ask_human(
+    "Please confirm next step",
+
+    # Must pass the conversation for hashing purposes.
+    # Pipelinellm must associate the human response with
+    # the right point in the conversation.
+    conv,
+)
+print(resp.final_answer)
 ```
+
+It follows the same hashing idea as `ask_llm`:
+
+- `prompt` acts like the system prompt/instructions.
+- `documents` and `*additional_documents` are the hash basis.
+- `salt` can be used to force differentiation.

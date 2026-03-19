@@ -18,4 +18,4 @@ with pllm.resume_directory(
         img = Image.open("tests/data/images/Nokota_Horses_cropped.jpg")
         resp = agt.ask_llm("What animal is this?", img, hash_by=["llm"])
 
-        agt.print(resp.resolve())
+        agt.print(resp.final_answer)

@@ -48,14 +48,15 @@ markdown_extensions:
 
 nav:
   - Home: index.md
-  - Quickstart: quickstart.md
   - Philosophy: philosophy.md
+  - Your first agent: agent_pattern.md
+  - Quickstart: quickstart.md
   - Concepts:
     - Ask: ask.md
     - MessageState: msg_state.md
-    - Memoize: memoize.md
     - Persistence: persistence.md
     - Strategies: strategies.md
+    - Memoize: memoize.md
 
 
 extra_css:

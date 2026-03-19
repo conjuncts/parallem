@@ -8,9 +8,7 @@ with pllm.resume_directory(
     provider="openai",
     strategy="sync",
     dashboard=True,
-    # ignore_cache=True,
 ) as orch:
     with orch.agent() as agt:
         resp = agt.ask_llm("Please name a power of 3.", hash_by=["llm"])
-
         agt.print(resp.final_answer)

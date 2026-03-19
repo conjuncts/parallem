@@ -34,6 +34,11 @@ with pllm.resume_directory(
         agt.print(resp.final_answer)
 ```
 
+<div class="highlight session-log-html"><pre><code>[<span class="log-tag">INFO</span>] Resuming with session_id=27
+27 (which is 3^3).
+[<span class="log-tag">DASH</span>] <span class="log-hash">↘ b14ccd95</span>
+</code></pre></div>
+
 ## Read next
 
 - Start with the quickstart for the main workflow.
