@@ -5,7 +5,7 @@ import pipelinellm as pllm
 load_dotenv()
 
 with pllm.resume_directory(
-    ".pllm/state/conversation",
+    ".pllm/example/chatbot",
     provider="openai",
     strategy="sync",
     log_level=logging.DEBUG,

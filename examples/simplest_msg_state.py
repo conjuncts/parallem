@@ -1,25 +1,26 @@
-import logging
-from dotenv import load_dotenv
 import pipelinellm as pllm
+from dotenv import load_dotenv
+
 
 load_dotenv()
 
 with pllm.resume_directory(
-    ".pllm/state/msg-state",
+    ".pllm/simplest",
     provider="openai",
     strategy="sync",
-    log_level=logging.DEBUG,
     dashboard=True,
-    # ignore_cache=True,
+    hash_by=["llm"],
 ) as orch:
-    with orch.agent() as agt:
-        msgs = agt.get_msg_state().load()
+    for i in range(1):
+        with orch.agent(i) as agt:
+            conv = agt.get_msg_state()
+            conv.ask_llm("Please name an animal in 1 word.")
+            conv.ask_llm(f"Write a haiku about {conv[-1].final_answer}(s).")
+            agt.print(conv)
 
-        agt.print("Current messages:", msgs)
-        out = input("Send a message: ")
-        if out:
-            msgs.append(out)
-            resp = agt.ask_llm(msgs)
-            agt.print("Response:", resp.resolve())
-            msgs.append(resp)
-            msgs.save()
+# [
+#   'Please name an animal in 1 word.',
+#   ReadyLLMResponse('lion', doc_hash=69237628),
+#   'Write a haiku about lion(s).',
+#   ReadyLLMResponse('Golden savanna\nLions rest beneath the stars\nRoa...', doc_hash=947e27c0)
+# ]

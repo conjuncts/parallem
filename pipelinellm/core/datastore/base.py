@@ -30,13 +30,19 @@ class BaseDatastore(BaseRetriever, ABC):
         raise NotImplementedError
 
     def retrieve(
-        self, call_id: CallIdentifier, metadata=False
+        self,
+        call_id: CallIdentifier,
+        metadata=False,
+        *,
+        origin_type: Optional[int] = None,
     ) -> Optional[ParsedResponse]:
         """
         Retrieve a response from the backend.
 
         :param call_id: The task identifier containing agent_name, doc_hash, and seq_id.
         :param metadata: Whether to include metadata in the response.
+        :param origin_type: Optional origin marker filter. ``None`` retrieves only
+            LLM-originated rows, ``1`` retrieves only human-originated rows.
         :returns: The retrieved response content.
         """
         raise NotImplementedError
@@ -59,6 +65,7 @@ class BaseDatastore(BaseRetriever, ABC):
         parsed_response: ParsedResponse,
         *,
         upsert=False,
+        origin_type: Optional[int] = None,
     ) -> None:
         """
         Store a response in the backend.
@@ -66,6 +73,8 @@ class BaseDatastore(BaseRetriever, ABC):
         :param call_id: The task identifier containing doc_hash, seq_id, and session_id.
         :param parsed_response: The parsed response object containing text, response_id, and metadata.
         :param upsert: If True, update existing record instead of inserting duplicate (default: False)
+        :param origin_type: Optional origin marker. ``None`` means LLM-originated,
+            ``1`` means human-originated.
         """
         raise NotImplementedError
 

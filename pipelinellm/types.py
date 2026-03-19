@@ -441,8 +441,34 @@ class HumanResponse(LLMResponse):
     """
     A response provided by a human. Useful for human-in-the-loop.
 
-    Like LLMResponse, you must call resolve() to obtain the final value. TODO.
+    If created without a value, ``resolve()`` lazily loads it from the retriever
+    using ``origin_type=1``.
     """
+
+    def __init__(
+        self,
+        value: Optional[str],
+        *,
+        call_id: CallIdentifier = None,
+        backend: Optional["BaseRetriever"] = None,
+    ):
+        super().__init__(value=value, call_id=call_id)
+        self._backend = backend
+
+    def resolve(self) -> Optional[str]:
+        if self.value is not None:
+            return self.value
+
+        if self._backend is None or self.call_id is None:
+            return self.value
+
+        pr = self._backend.retrieve(self.call_id, origin_type=1)
+        if pr is None:
+            return None
+
+        self._pr = pr
+        self.value = pr.text
+        return self.value
 
 
 class BaseRetriever(ABC):
@@ -451,12 +477,18 @@ class BaseRetriever(ABC):
     """
 
     def retrieve(
-        self, call_id: CallIdentifier, metadata=False
+        self,
+        call_id: CallIdentifier,
+        metadata=False,
+        *,
+        origin_type: Optional[int] = None,
     ) -> Optional[ParsedResponse]:
         """
         Retrieve a response.
 
         :param call_id: The task identifier containing agent_name, doc_hash, and seq_id.
+        :param origin_type: Optional origin marker filter. ``None`` retrieves only
+            LLM-originated rows, ``1`` retrieves only human-originated rows.
         :returns: The retrieved ParsedResponse.
         """
         raise NotImplementedError

@@ -58,10 +58,6 @@ Read
     - https://resources.anthropic.com/hubfs/The-Complete-Guide-to-Building-Skill-for-Claude.pdf?hsLang=en
 - OpenRouter
 
-
-- human-in-the-loop: `ask_human` :)
-    - emits a HumanResponse
-
 - what if a function call also involves a LLM? well then the function will need to take in an agent object. Then you will need to do `functools.partial(my_func, agent)`. TODO: Consider then doing some hacking where ask_functions() automatically injects the *first* argument of type AgentContext (dependency inejction) (syntactic sugar)
 
 - [ ] need to hash based on available tools??? (TODO: issue a warning)
@@ -87,3 +83,6 @@ High priority:
 - [x] hash_by is susceptible to hash collisions (applies to salt, hash_by). twice hash? Probably need to hash the base_hash plus the salt then. maybe it's fine, but that's quite annoying because all of my stored data is now messed up. Add a _legacy_salt parameter fofr conversion then.
 - [ ] In memory datastore.
 - The "one-user" problem. "true" async / multiprocessing support.
+
+- If (sess_id, seq_id) serves as a unique key, then response_id can be removed from the main table.
+- If upserting, preserve old (sess_id, seq_id).

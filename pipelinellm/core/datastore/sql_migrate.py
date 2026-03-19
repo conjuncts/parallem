@@ -44,6 +44,15 @@ def _migrate_sql_schema(conn: sqlite3.Connection, db_name: Optional[str]) -> Non
             if "tag" not in columns:
                 conn.execute("ALTER TABLE batch_pending ADD COLUMN tag TEXT")
 
+        # Add origin_type column to anon_responses table if it doesn't exist
+        if table_exists(conn, "anon_responses"):
+            cursor = conn.execute("PRAGMA table_info(anon_responses)")
+            columns = [row[1] for row in cursor.fetchall()]
+            if "origin_type" not in columns:
+                conn.execute(
+                    "ALTER TABLE anon_responses ADD COLUMN origin_type INTEGER"
+                )
+
     except sqlite3.Error as e:
         # If migration fails, continue - tables will be created fresh
         db_label = "main database" if db_name is None else f"{db_name} database"

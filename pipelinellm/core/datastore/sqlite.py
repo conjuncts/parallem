@@ -119,6 +119,19 @@ class SQLiteDatastore(BaseDatastore):
                 "ALTER TABLE memoize_ops ADD COLUMN target TEXT NOT NULL DEFAULT '.msg'"
             )
 
+    def _ensure_anon_responses_schema(self, conn: sqlite3.Connection) -> None:
+        """Ensure anon_responses contains origin_type column.
+
+        :param conn: SQLite connection.
+        :return: None.
+        """
+        cols = {
+            row["name"]
+            for row in conn.execute("PRAGMA table_info(anon_responses)").fetchall()
+        }
+        if "origin_type" not in cols:
+            conn.execute("ALTER TABLE anon_responses ADD COLUMN origin_type INTEGER")
+
     def populate_call_id(
         self, short_call_id: dict, *, metadata=False
     ) -> CallIdentifier:
@@ -231,9 +244,11 @@ class SQLiteDatastore(BaseDatastore):
                         doc_hash TEXT NOT NULL,
                         response TEXT NOT NULL,
                         response_id TEXT,
-                        tool_calls TEXT
+                        tool_calls TEXT,
+                        origin_type INTEGER
                     )
                 """)
+                self._ensure_anon_responses_schema(conn)
 
                 # Create metadata table (shared between both response tables)
                 conn.execute("""
@@ -340,6 +355,9 @@ class SQLiteDatastore(BaseDatastore):
                 """)
                 conn.execute("""
                     CREATE INDEX IF NOT EXISTS idx_anon_response_id ON anon_responses(response_id)
+                """)
+                conn.execute("""
+                    CREATE INDEX IF NOT EXISTS idx_anon_origin_type ON anon_responses(origin_type)
                 """)
 
                 # Create indexes for metadata table
@@ -492,6 +510,8 @@ class SQLiteDatastore(BaseDatastore):
         table: str,
         where: str,
         params: list,
+        *,
+        origin_type: Optional[int] = None,
     ) -> Optional[sqlite3.Row]:
         """
         Fetch the oldest (lowest id) row matching a WHERE clause.
@@ -502,10 +522,16 @@ class SQLiteDatastore(BaseDatastore):
         :param params: Positional parameters for the WHERE clause.
         :returns: The matching row, or None.
         """
+        where_with_origin = f"{where} AND origin_type IS NULL"
+        params_with_origin = list(params)
+        if origin_type is not None:
+            where_with_origin = f"{where} AND origin_type = ?"
+            params_with_origin.append(origin_type)
+
         cursor = conn.execute(
             f"SELECT response, seq_id, session_id, tool_calls"
-            f" FROM {table} WHERE {where} ORDER BY id ASC LIMIT 1",
-            params,
+            f" FROM {table} WHERE {where_with_origin} ORDER BY id ASC LIMIT 1",
+            params_with_origin,
         )
         return cursor.fetchone()
 
@@ -557,7 +583,11 @@ class SQLiteDatastore(BaseDatastore):
         )
 
     def retrieve(
-        self, call_id: CallIdentifier, metadata=False
+        self,
+        call_id: CallIdentifier,
+        metadata=False,
+        *,
+        origin_type: Optional[int] = None,
     ) -> Optional[ParsedResponse]:
         """
         Retrieve a response from SQLite.
@@ -571,6 +601,8 @@ class SQLiteDatastore(BaseDatastore):
         :param call_id: The task identifier containing agent_name, doc_hash, seq_id,
             and optionally session_id.
         :param metadata: When True, attach usage metadata to the response.
+        :param origin_type: Optional origin marker filter. ``None`` retrieves only
+            LLM-originated rows, ``1`` retrieves only human-originated rows.
         :returns: The retrieved response, or None.
         """
         # Oldest entry is chosen to keep retrieval deterministic across concurrent writes.
@@ -588,6 +620,7 @@ class SQLiteDatastore(BaseDatastore):
                 table,
                 "agent_name = ? AND session_id = ? AND seq_id = ?",
                 [agent_name, session_id, seq_id],
+                origin_type=origin_type,
             )
         else:
             # Primary: exact doc_hash + seq_id match
@@ -596,6 +629,7 @@ class SQLiteDatastore(BaseDatastore):
                 table,
                 "agent_name = ? AND doc_hash = ? AND seq_id = ?",
                 [agent_name, doc_hash, seq_id],
+                origin_type=origin_type,
             )
             if row is None:
                 # Fallback: ignore seq_id mismatch
@@ -604,6 +638,7 @@ class SQLiteDatastore(BaseDatastore):
                     table,
                     "agent_name = ? AND doc_hash = ?",
                     [agent_name, doc_hash],
+                    origin_type=origin_type,
                 )
 
         if row is None:
@@ -741,6 +776,7 @@ class SQLiteDatastore(BaseDatastore):
         parsed_response: "ParsedResponse",
         *,
         upsert: bool = False,
+        origin_type: Optional[int] = None,
     ) -> None:
         doc_hash = call_id["doc_hash"]
         seq_id = call_id["seq_id"]
@@ -769,6 +805,7 @@ class SQLiteDatastore(BaseDatastore):
                 "response": response,
                 # "response_id": response_id,
                 "tool_calls": tool_calls_json,
+                "origin_type": origin_type,
             }
 
             # Insert/upsert the response
@@ -977,6 +1014,7 @@ class SQLiteDatastore(BaseDatastore):
                     # "response_id": custom_id,
                     # NB: response_id column is deprecated
                     "tool_calls": tool_calls_json,
+                    "origin_type": None,
                 }
                 # Insert/upsert the response
                 self._insert_response(

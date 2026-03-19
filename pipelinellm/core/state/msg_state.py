@@ -26,6 +26,7 @@ from pipelinellm.core.memoize.operations import (
 from pipelinellm.types import (
     FunctionCallOutput,
     HashByOptions,
+    HumanResponse,
     LLMDocument,
     LLMIdentity,
     LLMResponse,
@@ -341,6 +342,49 @@ class MessageState(UserList[Union[LLMDocument, LLMResponse]], Askable):
         )
         self.extend(fc_outs)
         return fc_outs
+
+    def ask_human(
+        self,
+        prompt: str,
+        documents: Union[
+            LLMDocument,
+            LLMResponse,
+            List[Union[LLMDocument, LLMResponse]],
+            "MessageState",
+            None,
+        ] = None,
+        *additional_documents: LLMDocument,
+        salt: Optional[str] = None,
+        input_fn: Optional[Callable[[str], str]] = None,
+    ) -> HumanResponse:
+        """
+        Ask a human for input and append that response to this message state.
+
+        :param prompt: Prompt shown to the human.
+        :param documents: Optional documents to append before asking.
+        :param additional_documents: Additional documents to append before asking.
+        :param salt: Optional salt to differentiate repeated prompts.
+        :param input_fn: Optional callable used to collect human input.
+            Defaults to built-in ``input``.
+        :returns: Human response object.
+        """
+        if self._true_agent is None:
+            raise ValueError("MessageState is not attached to an agent")
+
+        if documents is not None:
+            self.extend(reduce_to_list(documents))
+            self.extend(list(additional_documents))
+        elif additional_documents:
+            self.extend(list(additional_documents))
+
+        out = self._true_agent.ask_human(
+            prompt,
+            self,
+            salt=salt,
+            input_fn=input_fn,
+        )
+        self.append(out)
+        return out
 
     def resolve(self) -> List[LLMDocument]:
         """Helper to make sure that all messages have been resolved."""

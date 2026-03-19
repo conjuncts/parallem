@@ -13,7 +13,7 @@ from unittest.mock import patch
 from pipelinellm.core.agent.agent import AgentContext
 from pipelinellm.core.exception import NotAvailable
 from pipelinellm.core.response import ReadyLLMResponse, PendingLLMResponse
-from pipelinellm.types import ParsedResponse
+from pipelinellm.types import HumanResponse, ParsedResponse
 
 
 class TestAgentContextBasics:
@@ -164,6 +164,104 @@ class TestAskLLMMethod:
         with agent:
             agent.ask_llm("third call")
             assert agent._anonymous_counter == 3
+
+    def test_ask_human_returns_human_response_and_persists(self, mock_orchestrator):
+        """ask_human should persist with origin_type=1 and return HumanResponse."""
+        agent = AgentContext("test_agent", mock_orchestrator)
+
+        ds = mock_orchestrator._backend._get_datastore.return_value
+        ds.retrieve.return_value = None
+        with agent:
+            response = agent.ask_human("Question?", [], input_fn=lambda _: "answer")
+
+        assert isinstance(response, HumanResponse)
+        assert response.resolve() == "answer"
+        ds.store.assert_called_once()
+        ds.retrieve.assert_called_once()
+        assert ds.retrieve.call_args.kwargs["origin_type"] == 1
+        call_args = ds.store.call_args
+        assert call_args.kwargs["origin_type"] == 1
+
+    def test_ask_human_increments_counter(self, mock_orchestrator):
+        """ask_human should consume an anonymous sequence slot."""
+        agent = AgentContext("test_agent", mock_orchestrator)
+
+        ds = mock_orchestrator._backend._get_datastore.return_value
+        ds.retrieve.return_value = None
+
+        with agent:
+            agent.ask_human("q1", [], input_fn=lambda _: "a1")
+            agent.ask_human("q2", ["a1"], input_fn=lambda _: "a2")
+
+        assert agent._anonymous_counter == 2
+
+    @patch("pipelinellm.core.agent.agent.compute_hash")
+    def test_ask_human_hash_uses_prompt_and_documents(
+        self, mock_compute_hash, mock_orchestrator
+    ):
+        """ask_human should hash using prompt as instructions and documents as basis."""
+        mock_compute_hash.return_value = "human_hash_123"
+        agent = AgentContext("test_agent", mock_orchestrator)
+
+        ds = mock_orchestrator._backend._get_datastore.return_value
+        ds.retrieve.return_value = None
+
+        with agent:
+            agent.ask_human(
+                "System prompt",
+                ("user", "hello"),
+                ("assistant", "world"),
+                salt="s1",
+                input_fn=lambda _: "answer",
+            )
+
+        mock_compute_hash.assert_called_once_with(
+            "System prompt",
+            [("user", "hello"), ("assistant", "world")],
+            salt="s1",
+        )
+
+    def test_ask_human_cache_hit_skips_prompt_and_store(self, mock_orchestrator):
+        """ask_human should return cached human response when available."""
+        agent = AgentContext("test_agent", mock_orchestrator)
+
+        ds = mock_orchestrator._backend._get_datastore.return_value
+        ds.retrieve.return_value = ParsedResponse(
+            text="cached-human",
+            response_id=None,
+            metadata=None,
+            old_seq_id=9,
+            old_session_id=7,
+        )
+
+        def _boom(_):
+            raise AssertionError("input_fn should not be called on cache hit")
+
+        with agent:
+            response = agent.ask_human("Question?", "foo", input_fn=_boom)
+
+        assert isinstance(response, HumanResponse)
+        assert response.resolve() == "cached-human"
+        assert response.call_id["seq_id"] == 9
+        assert response.call_id["session_id"] == 7
+        ds.store.assert_not_called()
+
+    def test_msg_state_ask_human_appends_human_response(self, mock_orchestrator):
+        """MessageState.ask_human should append a HumanResponse."""
+        agent = AgentContext("test_agent", mock_orchestrator)
+
+        ds = mock_orchestrator._backend._get_datastore.return_value
+        ds.retrieve.return_value = None
+
+        with agent:
+            msg_state = agent.get_msg_state()
+            before_len = len(msg_state)
+            response = msg_state.ask_human("Question?", input_fn=lambda _: "answer")
+
+        assert isinstance(response, HumanResponse)
+        assert response.resolve() == "answer"
+        assert len(msg_state) == before_len + 1
+        assert msg_state[-1] is response
 
 
 if __name__ == "__main__":

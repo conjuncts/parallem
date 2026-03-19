@@ -55,7 +55,7 @@ __all__ = [
     "MinorTweaks",
     "ParsedError",
     "LLMResponse",
-    # "HumanResponse", TODO
+    "HumanResponse",
     ### pipelinellm.tools
     "tools",
     "to_tool_schema",

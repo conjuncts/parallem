@@ -117,6 +117,60 @@ class TestSQLite:
         retrieved = temp_datastore.retrieve(generic_call_id)
         assert retrieved is None
 
+    def test_store_human_response_sets_origin_type(
+        self, temp_datastore, generic_call_id
+    ):
+        """Human responses should be stored with origin_type=1."""
+        parsed = ParsedResponse(text="human", response_id=None, metadata=None)
+        temp_datastore.store(generic_call_id, parsed, origin_type=1)
+
+        conn = temp_datastore._get_connection(None)
+        row = conn.execute(
+            "SELECT origin_type FROM anon_responses WHERE agent_name = ? AND doc_hash = ? AND seq_id = ?",
+            (
+                generic_call_id["agent_name"],
+                generic_call_id["doc_hash"],
+                generic_call_id["seq_id"],
+            ),
+        ).fetchone()
+        assert row is not None
+        assert row["origin_type"] == 1
+
+    def test_retrieve_ignores_human_origin_rows(self, temp_datastore, generic_call_id):
+        """LLM retrieval should never return origin_type=1 rows."""
+        temp_datastore.store(
+            generic_call_id,
+            ParsedResponse(text="human-first", response_id=None, metadata=None),
+            origin_type=1,
+        )
+
+        temp_datastore.store(
+            generic_call_id,
+            ParsedResponse(text="llm-second", response_id=None, metadata=None),
+        )
+
+        retrieved = temp_datastore.retrieve(generic_call_id)
+        assert retrieved is not None
+        assert retrieved.text == "llm-second"
+
+    def test_retrieve_human_origin_rows_with_filter(
+        self, temp_datastore, generic_call_id
+    ):
+        """Human retrieval should return only origin_type=1 rows."""
+        temp_datastore.store(
+            generic_call_id,
+            ParsedResponse(text="human-first", response_id=None, metadata=None),
+            origin_type=1,
+        )
+        temp_datastore.store(
+            generic_call_id,
+            ParsedResponse(text="llm-second", response_id=None, metadata=None),
+        )
+
+        retrieved = temp_datastore.retrieve(generic_call_id, origin_type=1)
+        assert retrieved is not None
+        assert retrieved.text == "human-first"
+
     def test_retrieve_fallback_without_seq_id(self, temp_datastore, generic_call_id):
         """Test that retrieve falls back to matching without seq_id"""
 

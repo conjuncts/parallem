@@ -22,7 +22,11 @@ class MockBackend(BaseBackend):
         pass
 
     def retrieve(
-        self, call_id: CallIdentifier, metadata=False
+        self,
+        call_id: CallIdentifier,
+        metadata=False,
+        *,
+        origin_type: Optional[int] = None,
     ) -> Optional[ParsedResponse]:
         """
         Retrieve a response.
@@ -32,7 +36,14 @@ class MockBackend(BaseBackend):
         """
         return self._dict.get(tuple(_call_to_concise_dict(call_id).values()))
 
-    def store(self, call_id: CallIdentifier, response: ParsedResponse):
+    def store(
+        self,
+        call_id: CallIdentifier,
+        response: ParsedResponse,
+        *,
+        upsert: bool = False,
+        origin_type: Optional[int] = None,
+    ):
         self._dict[tuple(_call_to_concise_dict(call_id).values())] = response
 
 
@@ -45,7 +56,11 @@ class MockDatastore(BaseDatastore):
         self._dict = {}
 
     def retrieve(
-        self, call_id: CallIdentifier, metadata=False
+        self,
+        call_id: CallIdentifier,
+        metadata=False,
+        *,
+        origin_type: Optional[int] = None,
     ) -> Optional[ParsedResponse]:
         """
         Retrieve a response from the backend.
@@ -69,6 +84,9 @@ class MockDatastore(BaseDatastore):
         self,
         call_id: CallIdentifier,
         parsed_response: ParsedResponse,
+        *,
+        upsert: bool = False,
+        origin_type: Optional[int] = None,
     ):
         """
         Store a response in the backend.

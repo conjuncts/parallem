@@ -17,9 +17,11 @@ from pipelinellm.types import (
     CommonQueryParameters,
     FunctionCallOutput,
     HashByOptions,
+    HumanResponse,
     LLMDocument,
     LLMIdentity,
     LLMResponse,
+    ParsedResponse,
     ServerTool,
 )
 
@@ -267,6 +269,82 @@ class AgentContext(Askable):
                 FunctionCallOutput(content=result, name=fc.name, call_id=fc.call_id)
             )
         return fc_outs
+
+    def ask_human(
+        self,
+        prompt: str,
+        documents: Union[
+            LLMDocument,
+            LLMResponse,
+            List[Union[LLMDocument, LLMResponse]],
+            MessageState,
+            None,
+        ],
+        *additional_documents: LLMDocument,
+        salt: Optional[str] = None,
+        input_fn: Optional[Callable[[str], str]] = None,
+    ) -> HumanResponse:
+        """
+        Ask a human for input and persist the response.
+
+        Human responses are written to the datastore with ``origin_type=1`` so they
+        are never mixed with cached LLM responses.
+
+        :param prompt: Prompt shown to the human. Used as instructions/system prompt in hashing.
+        :param documents: Documents used as hash basis (analogous to ask_llm input).
+        :param additional_documents: Additional documents appended to ``documents``.
+        :param salt: Optional salt to differentiate repeated prompts.
+        :param input_fn: Optional callable used to collect human input.
+            Defaults to built-in ``input``.
+        :returns: Human response object.
+        """
+        seq_id = self._anonymous_counter
+        self._anonymous_counter += 1
+
+        if isinstance(documents, MessageState):
+            documents = list(documents)
+
+        if documents is None:
+            doc_list = list(additional_documents)
+        else:
+            doc_list = reduce_to_list(documents, list(additional_documents))
+        resolved_docs = cast_documents(doc_list)
+
+        hashed = compute_hash(prompt, resolved_docs, salt=salt)
+        call_id: CallIdentifier = {
+            "agent_name": self.agent_name,
+            "doc_hash": hashed,
+            "seq_id": seq_id,
+            "session_id": self._orch.get_session_counter(),
+            "meta": {
+                "provider_type": None,
+                "tag": None,
+            },
+        }
+
+        datastore = self._orch._backend._get_datastore()
+        cached = datastore.retrieve(call_id, origin_type=1)
+        if cached is not None:
+            if cached.old_session_id is not None:
+                call_id["session_id"] = cached.old_session_id
+                call_id["seq_id"] = cached.old_seq_id
+            return HumanResponse(cached.text, call_id=call_id)
+
+        asker = input_fn or input
+        answer = asker(prompt)
+
+        parsed = ParsedResponse(
+            text=answer,
+            response_id=None,
+            metadata=None,
+            function_calls=None,
+        )
+        datastore.store(
+            call_id,
+            parsed,
+            origin_type=1,
+        )
+        return HumanResponse(answer, call_id=call_id)
 
     def get_msg_state(self) -> MessageState:
         """
