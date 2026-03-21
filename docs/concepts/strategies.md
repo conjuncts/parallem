@@ -10,7 +10,7 @@
 
 ## See also
 
-- [Quickstart](quickstart.md)
+- [Quickstart](../quickstart.md)
 - [Ask](ask.md)
 - [MessageState](msg_state.md)
 - [Persistence](persistence.md)

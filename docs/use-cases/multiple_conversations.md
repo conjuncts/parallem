@@ -3,7 +3,7 @@ By design, pipelinellm does **not** offer a native API for managing unique conve
 
 We wish to keep pipelinellm slim and lightweight, and we believe that storing conversation IDs is outside the scope of our library. Instead, it is a task for your backend to handle. 
 
-Nonetheless, it can be accomplished. After assigning a unique conversation uuid, assign the uuid to be the agent name. The following demonstrates a simple CLI chatbot using polars:
+Nonetheless, it can be easily accomplished. After assigning a unique conversation uuid, assign the uuid to be the agent name. The following demonstrates a simple CLI chatbot using polars:
 
 ```python
 --8<-- "examples/advanced/simplest_multiconv_chatbot.py"

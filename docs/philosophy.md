@@ -23,7 +23,7 @@ We believe that an agent is a **program**. It just so happens that the program u
 
 By decoupling the LLM from the agent, we conceptually allow multi-LLM pipelines, message history editing, non-linear message histories, and more.
 
-See the [Your first agent](agent_pattern.md) and [Ask API](ask.md) docs for more information.
+See the [Your first agent](agent_pattern.md) and [Ask API](concepts/ask.md) docs for more information.
 
 
 ## Developer Experience

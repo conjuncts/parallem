@@ -57,15 +57,15 @@ FunctionCall(name=count_files, call_id=call_Xau, args={'directory': '~/examples'
 
 !!! warning
 
-    Pipelinellm saves progress by hashing. However, **not all config settings are hashed.** For instance, tool definitions are not hashed. If available tools change, then the hashes are still considered identical, so the old cached value is still returned. See the [Persistence guide](persistence.md) for how to control this with `hash_by` and `salt`.
+    Pipelinellm saves progress by hashing. However, **not all config settings are hashed.** For instance, tool definitions are not hashed. If available tools change, then the hashes are still considered identical, so the old cached value is still returned. See the [Persistence guide](concepts/persistence.md) for how to control this with `hash_by` and `salt`.
 
 
 ## Advanced Usage
 
 - See the docs for:
-    - The [**MessageState** guide](msg_state.md): simply a **list** that automatically stores documents and responses as they get added. Helps track long conversations, reducing boilerplate.
-    - The [**Ask** guide](ask.md): `ask_llm`, `ask_functions` (invoking user functions).
-    - The [**memoize** guide](memoize.md): for caching expensive or non-deterministic blocks of code.
+    - The [**MessageState** guide](concepts/msg_state.md): simply a **list** that automatically stores documents and responses as they get added. Helps track long conversations, reducing boilerplate.
+    - The [**Ask** guide](concepts/ask.md): `ask_llm`, `ask_functions` (invoking user functions).
+    - The [**memoize** guide](concepts/memoize.md): for caching expensive or non-deterministic blocks of code.
 
 ## Further examples
 

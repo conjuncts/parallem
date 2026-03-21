@@ -52,15 +52,17 @@ nav:
   - Your first agent: agent_pattern.md
   - Quickstart: quickstart.md
   - Concepts:
-    - Ask: ask.md
-    - MessageState: msg_state.md
-    - Persistence: persistence.md
-    - Strategies: strategies.md
-    - Memoize: memoize.md
+    - Ask: concepts/ask.md
+    - MessageState: concepts/msg_state.md
+    - Persistence: concepts/persistence.md
+    - Strategies: concepts/strategies.md
+    - Memoize: concepts/memoize.md
   - Use cases:
-    - Document processing: use_cases/document_processing.md
-    - Chatbot: use_cases/multiple_conversations.md
-    - RAG: use_cases/rag.md
+    - Many documents: use-cases/document_processing.md
+    - Chatbot: use-cases/multiple_conversations.md
+    - Subagents: use-cases/subagents.md
+    - Aggregation: use-cases/aggregation.md
+    - RAG: use-cases/rag.md
 
 
 

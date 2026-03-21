@@ -51,9 +51,9 @@ def best_animal_agent(agt: pllm.AgentContext):
     resp2 = agt.ask_human(f"Would you agree that {resp.final_answer} is the best animal?")
 ```
 
-The [Ask API](ask.md) epitomizes the philosophy that the agent is not an LLM, but a program.
+The [Ask API](concepts/ask.md) epitomizes the philosophy that the agent is not an LLM, but a program.
 
 ## See also
 
 - [Quickstart](quickstart.md)
-- [Ask](ask.md)
+- [Ask](concepts/ask.md)
