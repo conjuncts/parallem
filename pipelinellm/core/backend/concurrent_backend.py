@@ -173,7 +173,12 @@ class ConcurrentBackend(BaseBackend):
         )
 
         # Submit for concurrent execution
-        self.submit_coro(call_id=call_id, coro=coro, provider=provider)
+        self.submit_coro(
+            call_id=call_id,
+            coro=coro,
+            provider=provider,
+            provider_type=params["llm"].provider_type,
+        )
 
         return PendingLLMResponse(
             call_id=call_id,
@@ -205,7 +210,11 @@ class ConcurrentBackend(BaseBackend):
                 print(f"Warning: Failed to cleanup datastore: {e}")
 
     def submit_coro(
-        self, call_id: CallIdentifier, coro: types.CoroutineType, provider=None
+        self,
+        call_id: CallIdentifier,
+        coro: types.CoroutineType,
+        provider=None,
+        provider_type: Optional[str] = None,
     ):
         """Submit a coroutine to be executed in the backend's event loop"""
         if self._loop is None or self._loop.is_closed():
@@ -222,7 +231,8 @@ class ConcurrentBackend(BaseBackend):
 
         # Create the task in the backend's event loop
         future = asyncio.run_coroutine_threadsafe(
-            self._create_and_store_task(call_id, coro, provider), self._loop
+            self._create_and_store_task(call_id, coro, provider, provider_type),
+            self._loop,
         )
 
         self.dashlog.update_hash(call_id["doc_hash"], HashStatus.SENT)
@@ -230,7 +240,11 @@ class ConcurrentBackend(BaseBackend):
         return future
 
     async def _create_and_store_task(
-        self, call_id: CallIdentifier, coro: types.CoroutineType, provider=None
+        self,
+        call_id: CallIdentifier,
+        coro: types.CoroutineType,
+        provider=None,
+        provider_type: Optional[str] = None,
     ):
         """Helper to create and store a task in the event loop"""
 
@@ -242,7 +256,7 @@ class ConcurrentBackend(BaseBackend):
             await self._apply_throttling()
 
             result = await coro
-            parsed = provider.parse_response(result)
+            parsed = provider.parse_response(result, provider_type=provider_type)
             return parsed, metadata
 
         task = asyncio.create_task(wrapped_coro())

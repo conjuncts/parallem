@@ -1,0 +1,66 @@
+import tempfile
+from pathlib import Path
+
+from pipelinellm.core.backend.concurrent_backend import ConcurrentBackend
+from pipelinellm.core.file_manager import FileManager
+from pipelinellm.provider.base import ConcurrentProvider
+from pipelinellm.types import LLMIdentity, ParsedResponse
+
+
+class StubConcurrentProvider(ConcurrentProvider):
+    provider_type = "multi"
+
+    def __init__(self):
+        self.seen_provider_types = []
+
+    def get_default_llm_identity(self):
+        return LLMIdentity("gpt-5-nano", provider_type="openai")
+
+    def validate_request_compatibility(self, params, **kwargs):
+        return None
+
+    def prepare_concurrent_call(self, params, **kwargs):
+        async def _coro():
+            return {"content": "ok"}
+
+        return _coro()
+
+    def parse_response(self, raw_response, provider_type: str = None):
+        self.seen_provider_types.append(provider_type)
+        return ParsedResponse(
+            text=f"{provider_type}:{raw_response['content']}",
+            response_id=None,
+            metadata=None,
+        )
+
+
+def test_concurrent_backend_passes_llm_provider_type_to_parse_response():
+    with tempfile.TemporaryDirectory() as tmp:
+        file_manager = FileManager(Path(tmp))
+        backend = ConcurrentBackend(file_manager)
+        provider = StubConcurrentProvider()
+
+        call_id = {
+            "agent_name": "test_agent",
+            "doc_hash": "hash-provider-type",
+            "seq_id": 1,
+            "session_id": 1,
+            "meta": {"provider_type": "multi", "tag": None},
+        }
+
+        params = {
+            "instructions": "test",
+            "strict_documents": [],
+            "llm": LLMIdentity("gpt-5-nano", provider_type="openai"),
+            "text_format": str,
+            "tools": None,
+        }
+
+        backend.submit_query(provider, params, call_id=call_id)
+
+        parsed = backend.retrieve(call_id)
+        assert parsed is not None
+        assert parsed.text == "openai:ok"
+        assert provider.seen_provider_types == ["openai"]
+
+        backend.shutdown()
