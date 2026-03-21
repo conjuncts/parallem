@@ -33,7 +33,7 @@ class Askable(ABC):
         llm: Union[LLMIdentity, str, None] = None,
         salt: Optional[str] = None,
         hash_by: HashByOptions = None,
-        text_format: Optional[str] = None,
+        structured_output: Optional[object] = None,
         tools: Optional[list[Union[dict, ServerTool]]] = None,
         tag: Optional[str] = None,
         save_input: Optional[bool] = None,
@@ -50,7 +50,7 @@ class Askable(ABC):
         :param salt: A value to include in the hash for differentiation.
         :param hash_by: The names of additional terms to include in the hash for differentiation.
             Example: "llm" will also include the LLM name.
-        :param text_format: Schema or format specification for structured output.
+        :param structured_output: Schema or format specification for structured output.
             For OpenAI: uses structured output via responses.parse().
             For Google: sets response_mime_type and response_schema.
             For Anthropic: sets output_config.format.

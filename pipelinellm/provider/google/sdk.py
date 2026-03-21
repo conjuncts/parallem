@@ -198,7 +198,7 @@ def _prepare_google_config(params: CommonQueryParameters, **kwargs):
     """Prepare config and contents for Google API calls"""
     instructions = params["instructions"]
     llm = params["llm"]
-    text_format = params.get("text_format")
+    structured_output = params.get("structured_output")
     tools = params.get("tools")
 
     contents = _fix_docs_for_google(params["strict_documents"])
@@ -207,9 +207,9 @@ def _prepare_google_config(params: CommonQueryParameters, **kwargs):
     if instructions:
         config["system_instruction"] = instructions
 
-    if text_format is not None:
+    if structured_output is not None:
         config["response_mime_type"] = "application/json"
-        config["response_schema"] = text_format
+        config["response_schema"] = structured_output
 
     if tools:
         config["tools"] = _prepare_tool_schema(tools)

@@ -52,7 +52,7 @@ def test_concurrent_backend_passes_llm_provider_type_to_parse_response():
             "instructions": "test",
             "strict_documents": [],
             "llm": LLMIdentity("gpt-5-nano", provider_type="openai"),
-            "text_format": str,
+            "structured_output": str,
             "tools": None,
         }
 

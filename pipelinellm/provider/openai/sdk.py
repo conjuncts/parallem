@@ -239,15 +239,15 @@ class SyncOpenAIProvider(SyncProvider, OpenAIProvider):
         instructions = params["instructions"]
         fixed_documents = self._fix_docs_for_openai(params["strict_documents"])
         llm = params["llm"]
-        text_format = params.get("text_format")
+        structured_output = params.get("structured_output")
         tools = self._fix_server_tools_for_openai(params.get("tools"))
 
-        if text_format is not None:
+        if structured_output is not None:
             return self.client.responses.parse(
                 model=llm.model_name,
                 instructions=instructions,
                 input=fixed_documents,
-                text_format=text_format,
+                text_format=structured_output,
                 tools=tools,
                 **kwargs,
             )
@@ -255,7 +255,7 @@ class SyncOpenAIProvider(SyncProvider, OpenAIProvider):
             # if "text" not in kwargs:
             #     kwargs["text"] = {}
 
-            # schema = to_strict_json_schema(text_format)
+            # schema = to_strict_json_schema(structured_output)
             # kwargs["text"]["format"] = {
             #     "type": "json_schema",
             #     "strict": True,
@@ -284,15 +284,15 @@ class ConcurrentOpenAIProvider(ConcurrentProvider, OpenAIProvider):
         instructions = params["instructions"]
         fixed_documents = self._fix_docs_for_openai(params["strict_documents"])
         llm = params["llm"]
-        text_format = params.get("text_format")
+        structured_output = params.get("structured_output")
         tools = self._fix_server_tools_for_openai(params.get("tools"))
 
-        if text_format is not None:
+        if structured_output is not None:
             coro = self.client.responses.parse(
                 model=llm.model_name,
                 instructions=instructions,
                 input=fixed_documents,
-                text_format=text_format,
+                text_format=structured_output,
                 tools=tools,
                 **kwargs,
             )
@@ -322,17 +322,17 @@ class BatchOpenAIProvider(BatchProvider, OpenAIProvider):
         instructions = params["instructions"]
         fixed_documents = self._fix_docs_for_openai(params["strict_documents"])
         llm = params["llm"]
-        text_format = params.get("text_format")
+        structured_output = params.get("structured_output")
         tools = self._fix_server_tools_for_openai(params.get("tools"))
 
-        if text_format is not None:
+        if structured_output is not None:
             if "text" not in kwargs:
                 kwargs["text"] = {}
 
             assert not kwargs["text"].get("format"), (
-                "Cannot supply both text_format and text.format"
+                "Cannot supply both structured_output and text.format"
             )
-            schema = to_strict_json_schema(text_format)
+            schema = to_strict_json_schema(structured_output)
             kwargs["text"]["format"] = {
                 "type": "json_schema",
                 "strict": True,

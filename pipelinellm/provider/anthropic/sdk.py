@@ -191,7 +191,7 @@ def _prepare_anthropic_config(params: CommonQueryParameters, **kwargs) -> tuple:
     """Prepare config and messages for Anthropic API calls"""
     instructions = params["instructions"]
     llm = params["llm"]
-    text_format = params.get("text_format")
+    structured_output = params.get("structured_output")
     tools = params.get("tools")
 
     if tools:
@@ -203,15 +203,15 @@ def _prepare_anthropic_config(params: CommonQueryParameters, **kwargs) -> tuple:
     if instructions:
         config["system"] = instructions
 
-    if text_format is not None:
+    if structured_output is not None:
         if (config.get("output_config") or {}).get("format") is not None:
             raise AssertionError(
-                "Cannot supply both text_format and output_config.format"
+                "Cannot supply both structured_output and output_config.format"
             )
 
         config["output_config"] = config.get("output_config", {})
         config["output_config"]["format"] = _prepare_anthropic_output_format(
-            text_format
+            structured_output
         )
 
     model_name = llm.model_name
@@ -221,8 +221,8 @@ def _prepare_anthropic_config(params: CommonQueryParameters, **kwargs) -> tuple:
     return model_name, messages, config
 
 
-def _prepare_anthropic_output_format(text_format: object) -> dict:
-    """Prepare Anthropic output_config.format payload from text_format input."""
+def _prepare_anthropic_output_format(structured_output: object) -> dict:
+    """Prepare Anthropic output_config.format payload from structured_output input."""
 
     def _strict_schema(schema: dict) -> dict:
         schema_copy = copy.deepcopy(schema)
@@ -235,25 +235,30 @@ def _prepare_anthropic_output_format(text_format: object) -> dict:
             strict_format["schema"] = _strict_schema(schema)
         return strict_format
 
-    if isinstance(text_format, dict):
-        if text_format.get("type") == "json_schema" and "schema" in text_format:
-            return _strict_format(text_format)
-        if "format" in text_format and isinstance(text_format["format"], dict):
-            return _strict_format(text_format["format"])
+    if isinstance(structured_output, dict):
+        if (
+            structured_output.get("type") == "json_schema"
+            and "schema" in structured_output
+        ):
+            return _strict_format(structured_output)
+        if "format" in structured_output and isinstance(
+            structured_output["format"], dict
+        ):
+            return _strict_format(structured_output["format"])
         return {
             "type": "json_schema",
-            "schema": _strict_schema(text_format),
+            "schema": _strict_schema(structured_output),
         }
 
-    model_json_schema = getattr(text_format, "model_json_schema", None)
+    model_json_schema = getattr(structured_output, "model_json_schema", None)
     if callable(model_json_schema):
         return {
             "type": "json_schema",
-            "schema": to_strict_json_schema(text_format),
+            "schema": to_strict_json_schema(structured_output),
         }
 
     raise ValueError(
-        "Unsupported text_format for Anthropic. Expected dict JSON schema or a Pydantic model/class with model_json_schema()."
+        "Unsupported structured_output for Anthropic. Expected dict JSON schema or a Pydantic model/class with model_json_schema()."
     )
 
 
@@ -316,8 +321,8 @@ class AnthropicProvider(BaseProvider):
         :param params: Common query parameters for the request.
         :return: None.
         """
-        text_format = params.get("text_format")
-        if text_format is not None:
+        structured_output = params.get("structured_output")
+        if structured_output is not None:
             _enforce_anthropic_min_version_for_structured_output()
 
     def get_default_llm_identity(self) -> LLMIdentity:

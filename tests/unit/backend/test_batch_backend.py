@@ -308,7 +308,7 @@ class TestBatchBackendExecuteBatch:
                         "instructions": None,
                         "strict_documents": [],
                         "llm": llm,
-                        "text_format": None,
+                        "structured_output": None,
                         "tools": None,
                     },
                     call_id=call_id,

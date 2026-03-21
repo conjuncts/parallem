@@ -28,7 +28,6 @@ Input storage:
 - [ ] roll up messages when several consecutive come from the same role
 
 
-- [ ] resolve_all
 - [ ] export_all
 
 - [x] make arguments that work on all ask_llm calls (ie. save_input)

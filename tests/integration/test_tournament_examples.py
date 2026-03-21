@@ -117,9 +117,9 @@ Chymotrypsin
         client=mock_client,
     )
 
-    with orch.agent() as d:
+    with orch.agent() as agt:
         # Get initial enzymes
-        resp = d.ask_llm(
+        resp = agt.ask_llm(
             "Please name 8 enzymes. Place your final answer in a code block, separated by newlines."
         )
 
@@ -131,7 +131,7 @@ Chymotrypsin
             responses_round = []
             for i in range(0, len(teams), 2):
                 if i + 1 < len(teams):
-                    resp = d.ask_llm(
+                    resp = agt.ask_llm(
                         "Given two enzymes, choose the one you like more. Only respond with the name of the enzyme.",
                         teams[i],
                         teams[i + 1],
@@ -144,7 +144,7 @@ Chymotrypsin
                     responses_round.append(LLMResponse(teams[i]))
 
             # Resolve all responses for this round
-            teams = [resp.resolve() for resp in responses_round]
+            teams = agt.resolve_all(responses_round)
 
         # Winner should be Amylase based on our mock responses
         assert len(teams) == 1
@@ -256,7 +256,7 @@ Delta
 
         # Resolve all at once (tests async batching)
         teams = teams_resp.resolve()
-        games = [resp.resolve() for resp in game_responses]
+        games = agent.resolve_all(game_responses)
 
     assert "Alpha" in teams
     assert "Alpha beats Beta" in games[0]

@@ -118,7 +118,7 @@ def _common_asks(agt, sample_tools, sample_image):
     )
 
     # Test 4: Structured output
-    agt.ask_llm("What is the capital of France?", text_format=MyModel)
+    agt.ask_llm("What is the capital of France?", structured_output=MyModel)
 
     # Test 5: Image input
     agt.ask_llm("What animal is this?", sample_image)

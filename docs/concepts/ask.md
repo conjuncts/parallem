@@ -23,7 +23,7 @@ ask_llm(
     llm=None,             # override model, e.g. "gpt-4o"
     salt=None,            # manual hash differentiator
     hash_by=None,         # e.g. ["llm"] to include model name in hash
-    text_format=None,     # Pydantic model for structured output
+    structured_output=None,  # Pydantic model for structured output
     tools=None,           # list of tool dicts or ServerTool objects
     tag=None,             # optional label for dashboards
     save_input=None,      # whether to persist input documents
@@ -32,7 +32,7 @@ ask_llm(
 
 ### Structured output
 
-Pass a Pydantic model to `text_format` to get back a validated object:
+Pass a Pydantic model to `structured_output` to get back a validated object:
 
 ```python
 from pydantic import BaseModel
@@ -40,7 +40,7 @@ from pydantic import BaseModel
 class Answer(BaseModel):
     capital: str
 
-resp = agt.ask_llm("What is the capital of France?", text_format=Answer)
+resp = agt.ask_llm("What is the capital of France?", structured_output=Answer)
 print(resp.final_answer)  # {"capital":"Paris"}
 ```
 

@@ -14,19 +14,19 @@ class MyModel(BaseModel):
     final_answer: str
 
 
-def _params(*, text_format=None):
+def _params(*, structured_output=None):
     return {
         "instructions": None,
         "strict_documents": ["What is the capital of France?"],
         "llm": LLMIdentity("claude-3-haiku-20240307", provider_type="anthropic"),
-        "text_format": text_format,
+        "structured_output": structured_output,
         "tools": None,
     }
 
 
-def test_prepare_anthropic_config_with_pydantic_text_format():
+def test_prepare_anthropic_config_with_pydantic_structured_output():
     model_name, messages, config = _prepare_anthropic_config(
-        _params(text_format=MyModel)
+        _params(structured_output=MyModel)
     )
 
     assert model_name == "claude-3-haiku-20240307"
@@ -43,7 +43,7 @@ def test_prepare_anthropic_config_with_json_schema_dict():
         "required": ["capital"],
     }
 
-    _, _, config = _prepare_anthropic_config(_params(text_format=schema))
+    _, _, config = _prepare_anthropic_config(_params(structured_output=schema))
 
     format_payload = config["output_config"]["format"]
     assert format_payload["type"] == "json_schema"
@@ -53,9 +53,9 @@ def test_prepare_anthropic_config_with_json_schema_dict():
 
 
 def test_prepare_anthropic_config_rejects_conflicting_output_format():
-    with pytest.raises(AssertionError, match="Cannot supply both text_format"):
+    with pytest.raises(AssertionError, match="Cannot supply both structured_output"):
         _prepare_anthropic_config(
-            _params(text_format=MyModel),
+            _params(structured_output=MyModel),
             output_config={
                 "format": {
                     "type": "json_schema",
@@ -65,9 +65,9 @@ def test_prepare_anthropic_config_rejects_conflicting_output_format():
         )
 
 
-def test_prepare_anthropic_config_rejects_invalid_text_format():
-    with pytest.raises(ValueError, match="Unsupported text_format for Anthropic"):
-        _prepare_anthropic_config(_params(text_format="not-a-schema"))
+def test_prepare_anthropic_config_rejects_invalid_structured_output():
+    with pytest.raises(ValueError, match="Unsupported structured_output for Anthropic"):
+        _prepare_anthropic_config(_params(structured_output="not-a-schema"))
 
 
 def test_validate_request_compatibility_enforces_min_version(monkeypatch):
@@ -79,7 +79,7 @@ def test_validate_request_compatibility_enforces_min_version(monkeypatch):
     provider = AnthropicProvider()
 
     with pytest.raises(ProviderCompatibilityError, match="requires anthropic>=0.77.0"):
-        provider.validate_request_compatibility(_params(text_format=MyModel))
+        provider.validate_request_compatibility(_params(structured_output=MyModel))
 
 
 def test_validate_request_compatibility_allows_minimum_supported_version(monkeypatch):
@@ -90,10 +90,10 @@ def test_validate_request_compatibility_allows_minimum_supported_version(monkeyp
     )
     provider = AnthropicProvider()
 
-    provider.validate_request_compatibility(_params(text_format=MyModel))
+    provider.validate_request_compatibility(_params(structured_output=MyModel))
 
 
-def test_validate_request_compatibility_skips_version_check_without_text_format(
+def test_validate_request_compatibility_skips_version_check_without_structured_output(
     monkeypatch,
 ):
     def _fail_if_called(package_name):
@@ -106,4 +106,4 @@ def test_validate_request_compatibility_skips_version_check_without_text_format(
     )
 
     provider = AnthropicProvider()
-    provider.validate_request_compatibility(_params(text_format=None))
+    provider.validate_request_compatibility(_params(structured_output=None))

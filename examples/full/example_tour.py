@@ -27,7 +27,7 @@ def tour_agent(agt: pllm.AgentContext):
     )
 
     # 3. Structured output
-    resp3 = agt.ask_llm("What is the capital of France?", text_format=MyModel)
+    resp3 = agt.ask_llm("What is the capital of France?", structured_output=MyModel)
 
     # 4. Image input. NOTE: Adjust image as needed.
     img = Image.open("tests/data/images/Nokota_Horses_cropped.jpg")

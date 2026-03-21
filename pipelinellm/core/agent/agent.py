@@ -105,7 +105,7 @@ class AgentContext(Askable):
         llm: Union[LLMIdentity, str, None] = None,
         salt: Optional[str] = None,
         hash_by: HashByOptions = None,
-        text_format: Optional[str] = None,
+        structured_output: Optional[object] = None,
         tools: Optional[list[Union[dict, ServerTool]]] = None,
         tag: Optional[str] = None,
         save_input: Optional[bool] = None,
@@ -113,6 +113,16 @@ class AgentContext(Askable):
         _legacy_hash_by: HashByOptions = None,
         **kwargs,
     ) -> LLMResponse:
+        # Handle legacy text_format alias
+        legacy_text_format = kwargs.pop("text_format", None)
+        if structured_output is not None and legacy_text_format is not None:
+            raise ValueError(
+                "Cannot specify both structured_output and text_format. "
+                "text_format is a legacy alias for structured_output."
+            )
+        if structured_output is None:
+            structured_output = legacy_text_format
+
         # load ask_params defaults
         for k, v in self.ask_params.items():
             if k == "hash_by" and hash_by is None:
@@ -121,6 +131,10 @@ class AgentContext(Askable):
                 save_input = v
             elif k == "llm" and llm is None:
                 llm = v
+            elif k == "structured_output" and structured_output is None:
+                structured_output = v
+            elif k == "text_format" and structured_output is None:
+                structured_output = v
 
         if llm is None:
             llm = self._orch._provider.get_default_llm_identity()
@@ -223,7 +237,7 @@ class AgentContext(Askable):
             "instructions": instructions,
             "strict_documents": resolved_docs,
             "llm": llm,
-            "text_format": text_format,
+            "structured_output": structured_output,
             "tools": tools,
         }
 
@@ -385,3 +399,12 @@ class AgentContext(Askable):
             Different salt values will create separate memoization caches.
         """
         return MemoizeContext(self, salt=salt)
+
+    def resolve_all(self, responses: List[LLMResponse]) -> List[str]:
+        """
+        Resolve all responses at once.
+
+        :param responses: List of LLMResponse objects to resolve.
+        :returns: List of resolved string values corresponding to each response.
+        """
+        return [resp.resolve() for resp in responses]
