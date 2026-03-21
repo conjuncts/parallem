@@ -92,3 +92,6 @@ exclude = [
 
 [tool.ruff]
 lint.ignore = ["E261"]
+
+[tool.pytest.ini_options]
+addopts = "--durations=10"

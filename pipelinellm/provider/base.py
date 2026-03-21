@@ -113,3 +113,12 @@ class BatchProvider(BaseProvider):
         :param batch_uuid: The unique identifier for the batch to download
         """
         raise NotImplementedError
+
+    def cancel_batch(self, batch_uuid: str, provider_type: str) -> None:
+        """Cancel a batch on the provider.
+
+        :param provider_type: Double check to make sure that batch_uuid is for the same provider.
+        :param batch_uuid: The unique identifier for the batch to cancel.
+        :return: None.
+        """
+        raise NotImplementedError

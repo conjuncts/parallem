@@ -14,13 +14,30 @@ class BatchNamespace:
     def __init__(self, orch: "AgentOrchestrator"):
         self._orch = orch
 
-    def forget_batch(self, batch_uuid, *, provider_type: ProviderType) -> None:
+    def forget_batch(
+        self,
+        batch_uuid,
+        *,
+        provider_type: ProviderType,
+        cancel: bool = False,
+    ) -> None:
         """
         Forget a batch of calls, removing them from the cache and preventing them from being used in future calls.
 
         :param batch_uuid: The batch UUID to forget
         :param provider_type: The provider type (e.g., 'openai', 'google')
+        :param cancel: Whether to cancel the batch with the provider before forgetting locally.
         """
+        if not self._orch._provider.is_compatible(provider_type):
+            raise ValueError(
+                f"Given provider '{provider_type}' is not compatible with current '{self._orch._provider.provider_type}'"
+            )
+
+        if cancel:
+            if not isinstance(self._orch._provider, BatchProvider):
+                raise TypeError("Current provider does not support batch cancellation.")
+            self._orch._provider.cancel_batch(batch_uuid, provider_type=provider_type)
+
         # Get the datastore from the backend
         datastore = self._orch._backend._get_datastore()
         datastore.clear_batch_pending(batch_uuid)

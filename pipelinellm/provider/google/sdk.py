@@ -557,6 +557,10 @@ class BatchGoogleProvider(BatchProvider, GoogleProvider):
 
         # TODO: consider: a try/finally block option to clean up the temp files?
 
+    def cancel_batch(self, batch_uuid: str, provider_type: str) -> None:
+        """Cancel a Gemini batch job."""
+        self.client.batches.cancel(name="batches/" + batch_uuid)
+
     def decode_batch_content(
         self,
         content: str,

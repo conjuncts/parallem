@@ -486,6 +486,10 @@ class BatchAnthropicProvider(BatchProvider, AnthropicProvider):
         batch = self.client.messages.batches.create(requests=requests)
         return batch.id
 
+    def cancel_batch(self, batch_uuid: str, provider_type: str) -> None:
+        """Cancel an Anthropic Message Batch."""
+        self.client.messages.batches.cancel(batch_uuid)
+
     def _decode_anthropic_batch_success(self, line_data: dict) -> ParsedResponse:
         custom_id = line_data.get("custom_id")
         result = line_data.get("result") or {}

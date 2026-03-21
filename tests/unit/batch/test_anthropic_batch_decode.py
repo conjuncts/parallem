@@ -94,3 +94,12 @@ def test_decode_batch_content_with_mixed_lines():
 
     assert error_result.parsed_responses is not None
     assert error_result.parsed_responses[0].custom_id == "anth-exp"
+
+
+def test_cancel_batch_calls_anthropic_batches_cancel():
+    mock_client = Mock()
+    provider = BatchAnthropicProvider(client=mock_client)
+
+    provider.cancel_batch("batch_123", provider_type="anthropic")
+
+    mock_client.messages.batches.cancel.assert_called_once_with("batch_123")

@@ -113,6 +113,10 @@ class BatchMultiProvider(BatchProvider, MultiProvider):
         provider = self._load_provider(llm.provider_type, "batch")
         return provider.submit_batch_to_provider(fpath, llm)
 
+    def cancel_batch(self, batch_uuid: str, provider_type: str) -> None:
+        provider = self._load_provider(provider_type, "batch")
+        provider.cancel_batch(batch_uuid, provider_type=provider_type)
+
     def parse_response(self, raw_response, provider_type: str = None):
         provider = self._load_provider(provider_type, "batch")
         return provider.parse_response(raw_response, provider_type=provider_type)

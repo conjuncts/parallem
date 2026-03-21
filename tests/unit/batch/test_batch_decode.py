@@ -145,3 +145,12 @@ def test_decode_batch_content_with_mixed_success_and_error():
     assert len(error_result.parsed_responses) == 1
     assert error_result.parsed_responses[0].custom_id == "error-id"
     assert error_result.parsed_responses[0].error_code == 400
+
+
+def test_cancel_batch_calls_openai_batches_cancel():
+    mock_client = Mock()
+    provider = BatchOpenAIProvider(client=mock_client)
+
+    provider.cancel_batch("batch_123", provider_type="openai")
+
+    mock_client.batches.cancel.assert_called_once_with("batch_123")

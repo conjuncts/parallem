@@ -439,6 +439,10 @@ class BatchOpenAIProvider(BatchProvider, OpenAIProvider):
 
         return batch_obj.id
 
+    def cancel_batch(self, batch_uuid: str, provider_type: str) -> None:
+        """Cancel a batch on OpenAI."""
+        self.client.batches.cancel(batch_uuid)
+
     def decode_batch_content(self, content: str) -> List[BatchResult]:
         """Decode content_str into dictionaries, with some error handling"""
         parsed_responses = []

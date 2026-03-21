@@ -24,8 +24,6 @@ def vector_store_tool(query: str, k: int = 2) -> str:
     return "\n".join(docs)
 
 
-
-
 def rag_agent(agt: pllm.AgentContext, query: str):
     conv = agt.get_msg_state()
     resp = conv.ask_llm(
