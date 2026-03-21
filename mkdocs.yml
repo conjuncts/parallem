@@ -57,6 +57,11 @@ nav:
     - Persistence: persistence.md
     - Strategies: strategies.md
     - Memoize: memoize.md
+  - Use cases:
+    - Document processing: use_cases/document_processing.md
+    - Chatbot: use_cases/multiple_conversations.md
+    - RAG: use_cases/rag.md
+
 
 
 extra_css:

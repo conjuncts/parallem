@@ -1,13 +1,13 @@
 # pipelinellm
 
-`pipelinellm` is a batch-first Python library for building LLM workflows without giving up ordinary Python control flow.
+`pipelinellm` is a general-purpose, batch-first Python library for building LLM workflows in ordinary Python control flow.
 
 ## Why use it?
 
-- Switch between sync, concurrent, and batch execution with minimal code changes.
-- Keep orchestration logic in Python instead of separate graph or DSL layers.
-- Reuse the same workflow structure across tool calls, structured output, image input, and web search.
-- Resume runs from disk and reuse cached responses for fast iteration.
+- Switch between sync, concurrent, and batch execution with just 1 line of code.
+- Write applications in Python instead of a data structure or domain-specific language.
+- Supports agentic features like tool calls, structured output, image input, and web search.
+- Saves responses to disk for fast iteration.
 
 ## Installation
 
@@ -34,7 +34,7 @@ with pllm.resume_directory(
         agt.print(resp.final_answer)
 ```
 
-<div class="highlight session-log-html"><pre><code>[<span class="log-tag">INFO</span>] Resuming with session_id=27
+<div class="highlight session-log-html"><pre><code>[<span class="log-tag">INFO</span>] Resuming with session_id=0
 27 (which is 3^3).
 [<span class="log-tag">DASH</span>] <span class="log-hash">↘ b14ccd95</span>
 </code></pre></div>

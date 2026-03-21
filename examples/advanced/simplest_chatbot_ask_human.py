@@ -1,12 +1,11 @@
 import logging
 from dotenv import load_dotenv
 import pipelinellm as pllm
-from pipelinellm.core.agent.agent import AgentContext
 
 load_dotenv()
 
 
-def chatbot(agt: AgentContext):
+def chatbot(agt: pllm.AgentContext):
     conv = agt.get_msg_state()
     while True:
         # No exit: Ctrl+C to stop.
