@@ -21,6 +21,7 @@ class MultiProvider(BaseProvider):
     def __init__(self, base_strategy: Literal["sync", "concurrent", "batch"]):
         self.providers: dict[str, BaseProvider] = {}
         self.base_strategy = base_strategy
+        self.provider_type = None
 
     def validate_request_compatibility(
         self,

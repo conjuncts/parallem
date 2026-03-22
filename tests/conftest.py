@@ -3,7 +3,7 @@ import tempfile
 from unittest.mock import Mock
 import pytest
 from pipelinellm.core.response import ReadyLLMResponse
-from pipelinellm.types import CallIdentifier
+from pipelinellm.types import CallIdentifier, LLMIdentity
 
 
 @pytest.fixture
@@ -31,6 +31,9 @@ def mock_orchestrator():
     mock_orch = Mock()
     mock_orch.get_session_counter.return_value = 1
     mock_orch._provider.provider_type = "openai"
+    mock_orch._provider.get_default_llm_identity.return_value = LLMIdentity(
+        "gpt-5-nano", provider_type="openai"
+    )
     mock_orch._backend.retrieve.return_value = None  # No cache by default
 
     # Set up the metadata dictionary structure that my_metadata property expects

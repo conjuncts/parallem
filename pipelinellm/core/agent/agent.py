@@ -202,13 +202,16 @@ class AgentContext(Askable):
                 msg_hashes=msg_hashes,
             )
 
+        provider_type = self._orch._provider.provider_type
+        if provider_type is None:
+            provider_type = llm.provider_type
         call_id: CallIdentifier = {
             "agent_name": self.agent_name,
             "doc_hash": hashed,
             "seq_id": seq_id,
             "session_id": self._orch.get_session_counter(),
             "meta": {
-                "provider_type": self._orch._provider.provider_type,
+                "provider_type": provider_type,
                 "tag": tag,
             },
         }

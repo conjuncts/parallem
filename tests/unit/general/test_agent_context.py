@@ -13,7 +13,7 @@ from unittest.mock import patch
 from pipelinellm.core.agent.agent import AgentContext
 from pipelinellm.core.exception import NotAvailable
 from pipelinellm.core.response import ReadyLLMResponse, PendingLLMResponse
-from pipelinellm.types import HumanResponse, ParsedResponse
+from pipelinellm.types import HumanResponse, LLMIdentity, ParsedResponse
 
 
 class TestAgentContextBasics:
@@ -116,6 +116,21 @@ class TestAskLLMMethod:
             assert call_id["seq_id"] == 0  # First call
             assert call_id["session_id"] == 1
             assert call_id["meta"]["provider_type"] == "openai"
+
+    def test_ask_llm_uses_llm_provider_type_in_call_metadata(self, mock_orchestrator):
+        """Call metadata should track the selected llm provider for multiplexer compatibility."""
+        mock_orchestrator._provider.provider_type = None
+        agent = AgentContext("test_agent", mock_orchestrator)
+
+        with agent:
+            agent.ask_llm(
+                "Test prompt",
+                llm=LLMIdentity("gemini-2.5-flash", provider_type="google"),
+            )
+
+            call_args = mock_orchestrator._backend.submit_query.call_args
+            call_id = call_args.kwargs["call_id"]
+            assert call_id["meta"]["provider_type"] == "google"
 
     @patch("pipelinellm.core.agent.agent.compute_hash")
     def test_ask_llm_hash_computation(self, mock_compute_hash, mock_orchestrator):
