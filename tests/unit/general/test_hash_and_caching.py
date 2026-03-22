@@ -117,31 +117,6 @@ class TestComputeHash:
         h2 = compute_hash("instr", ["doc"], salt="s1")
         assert h1 == h2
 
-    def test_legacy_salt_reproduces_old_behaviour(self):
-        """_legacy_salt must produce the same hash as the old collision-prone approach."""
-        instructions = "test"
-        docs = ["doc_content"]
-        salt_terms = ["v1"]
-
-        # Old behaviour: append salt strings directly to the document list
-        expected = compute_hash(instructions, docs + salt_terms)
-
-        with pytest.warns(DeprecationWarning):
-            result = compute_hash(instructions, docs, _legacy_salt=salt_terms)
-
-        assert result == expected
-
-    def test_legacy_salt_differs_from_new_salt(self):
-        """New salt and legacy_salt must produce different hashes (different schemes)."""
-        docs = ["hello"]
-        salt_term = "world"
-
-        with pytest.warns(DeprecationWarning):
-            legacy = compute_hash(None, docs, _legacy_salt=[salt_term])
-        new = compute_hash(None, docs, salt=salt_term)
-
-        assert legacy != new
-
 
 @pytest.mark.skip("Not very informative")
 class TestDashboardLogger:

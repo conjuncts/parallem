@@ -1,4 +1,3 @@
-import warnings
 from typing import TYPE_CHECKING, Callable, Dict, List, Optional, Union
 from pipelinellm.core.ask import Askable
 from pipelinellm.core.cast.fix_docs import cast_documents, reduce_to_list
@@ -109,8 +108,6 @@ class AgentContext(Askable):
         tools: Optional[list[Union[dict, ServerTool]]] = None,
         tag: Optional[str] = None,
         save_input: Optional[bool] = None,
-        _legacy_salt: Optional[str] = None,
-        _legacy_hash_by: HashByOptions = None,
         **kwargs,
     ) -> LLMResponse:
         # Handle legacy text_format alias
@@ -156,41 +153,21 @@ class AgentContext(Askable):
             salt_terms.append(str(salt))
         if hash_by is not None:
             for term in hash_by:
-                if term == "llm":
+                if term in ["llm", "llm+provider"]:
                     if llm is not None:
                         salt_terms.append(llm.identity)
-                    else:
+                    elif term == "llm+provider":
                         salt_terms.append(self._orch._provider.provider_type)
+                    else:
+                        salt_terms.append(
+                            self._orch._provider.get_default_llm_identity().identity
+                        )
 
-        use_legacy = _legacy_salt is not None or _legacy_hash_by is not None
-        if use_legacy:
-            warnings.warn(
-                "_legacy_salt and _legacy_hash_by are deprecated and exist only for "
-                "migration purposes. Switch to salt/hash_by to avoid hash collisions.",
-                DeprecationWarning,
-                stacklevel=2,
-            )
-            legacy_terms: list[str] = []
-            if _legacy_salt is not None:
-                legacy_terms.append(str(_legacy_salt))
-            if _legacy_hash_by is not None:
-                for term in _legacy_hash_by:
-                    if term == "llm":
-                        if llm is not None:
-                            legacy_terms.append(llm.identity)
-                        else:
-                            legacy_terms.append(self._orch._provider.provider_type)
-            # Also fold in any normal salt/hash_by terms (unlikely to mix, but safe)
-            legacy_terms = salt_terms + legacy_terms
-            hashed = compute_hash(
-                instructions, resolved_docs, _legacy_salt=legacy_terms
-            )
-        else:
-            # Use a null-byte separator so individual terms cannot be confused with one
-            # another, and pass as the `salt` parameter (applied via re-hash) so that
-            # salt content can never collide with document content.
-            combined_salt = "\x00".join(salt_terms) if salt_terms else None
-            hashed = compute_hash(instructions, resolved_docs, salt=combined_salt)
+        # Use a null-byte separator so individual terms cannot be confused with one
+        # another, and pass as the `salt` parameter (applied via re-hash) so that
+        # salt content can never collide with document content.
+        combined_salt = "\x00".join(salt_terms) if salt_terms else None
+        hashed = compute_hash(instructions, resolved_docs, salt=combined_salt)
 
         if save_input:
             msg_hashes = [compute_hash(None, [msg]) for msg in resolved_docs]
