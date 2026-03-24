@@ -5,7 +5,7 @@ pipelinellm is based on four principles:
 ### 1. Batch API first.
 
 The batch API has been historically neglected, even by major production LLM libraries.
-Pipelinellm is designed from the ground up to support the Batch API.
+Our library is designed from the ground up to support the Batch API.
 
 ### 2. Synchronous and Batch interchangeable.
 
