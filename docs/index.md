@@ -1,6 +1,8 @@
-# pipelinellm
+# ParaLLeM
 
-`pipelinellm` is a general-purpose, batch-first Python library for building LLM workflows in ordinary Python control flow.
+ParaLLeM is a general-purpose, batch-first Python library for building LLM workflows in ordinary Python control flow.
+
+(Note: its old name was pipelinellm - please excuse mentions of this old name.)
 
 ## Why use it?
 
@@ -12,14 +14,14 @@
 ## Installation
 
 ```bash
-pip install pipelinellm
+pip install parallem
 ```
 
 ## Small example
 
 ```python
 from dotenv import load_dotenv
-import pipelinellm as pllm
+import parallem as pllm
 
 load_dotenv()
 

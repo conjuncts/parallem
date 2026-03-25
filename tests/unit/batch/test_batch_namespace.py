@@ -2,8 +2,8 @@ from unittest.mock import Mock
 
 import pytest
 
-from pipelinellm.core.batch_namespace import BatchNamespace
-from pipelinellm.provider.base import BatchProvider
+from parallem.core.batch_namespace import BatchNamespace
+from parallem.provider.base import BatchProvider
 
 
 class DummyBatchProvider(BatchProvider):

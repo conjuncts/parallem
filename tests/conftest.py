@@ -2,8 +2,8 @@ from pathlib import Path
 import tempfile
 from unittest.mock import Mock
 import pytest
-from pipelinellm.core.response import ReadyLLMResponse
-from pipelinellm.types import CallIdentifier, LLMIdentity
+from parallem.core.response import ReadyLLMResponse
+from parallem.types import CallIdentifier, LLMIdentity
 
 
 @pytest.fixture

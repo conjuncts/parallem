@@ -1,5 +1,5 @@
 
-By design, pipelinellm does **not** offer a native API for retrieval augmented generation (RAG). This is because there are many vector stores (Chroma, FAISS, Qdrant, Weaviate, Milvus, Pinecone, Elastisearch, pgvector). 
+By design, parallem does **not** offer a native API for retrieval augmented generation (RAG). This is because there are many vector stores (Chroma, FAISS, Qdrant, Weaviate, Milvus, Pinecone, Elastisearch, pgvector). 
 
 We do not want to enforce a single way, and neither do we want to bundle a vector store library. Pipelinellm should be slim and lightweight, and native RAG is outside the scope of our library. However, it can still be easily accomplished with functions and/or function calls. 
 

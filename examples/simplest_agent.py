@@ -1,4 +1,4 @@
-import pipelinellm as pllm
+import parallem as pllm
 from dotenv import load_dotenv
 
 

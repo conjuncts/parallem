@@ -1,6 +1,6 @@
 # Strategies
 
-`pipelinellm` supports three execution strategies:
+`parallem` supports three execution strategies:
 
 - **Sync**: executes each request immediately in normal Python control flow.
 

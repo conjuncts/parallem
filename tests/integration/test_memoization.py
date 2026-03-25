@@ -8,8 +8,8 @@ These tests validate that:
 - Complex operation sequences work properly
 """
 
-from pipelinellm.core.gateway import resume_directory
-from pipelinellm.testing.simple_mock import mock_openai_client
+from parallem.core.gateway import resume_directory
+from parallem.testing.simple_mock import mock_openai_client
 
 
 def test_basic_memoization(temp_integration_dir):

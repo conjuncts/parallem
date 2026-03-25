@@ -2,7 +2,7 @@
 
 import chromadb
 from dotenv import load_dotenv
-import pipelinellm as pllm
+import parallem as pllm
 
 client = chromadb.Client()
 collection = client.create_collection(name="rag_demo")

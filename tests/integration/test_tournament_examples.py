@@ -8,8 +8,8 @@ These tests validate:
 """
 
 import pytest
-from pipelinellm.core.gateway import resume_directory
-from pipelinellm.testing.simple_mock import mock_openai_client
+from parallem.core.gateway import resume_directory
+from parallem.testing.simple_mock import mock_openai_client
 
 
 def test_nfl_tournament_mocked(temp_integration_dir):
@@ -139,7 +139,7 @@ Chymotrypsin
                     responses_round.append(resp)
                 else:
                     # Odd number - this team advances automatically
-                    from pipelinellm.types import LLMResponse
+                    from parallem.types import LLMResponse
 
                     responses_round.append(LLMResponse(teams[i]))
 

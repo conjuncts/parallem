@@ -1,7 +1,7 @@
-site_name: pipelinellm
+site_name: parallem
 site_description: Batch-first Python workflows for LLM pipelines.
-repo_name: conjuncts/pipelinellm
-repo_url: https://github.com/conjuncts/pipelinellm
+repo_name: conjuncts/parallem
+repo_url: https://github.com/conjuncts/parallem
 docs_dir: docs
 
 theme:

@@ -1,6 +1,6 @@
 from unittest.mock import Mock
 
-from pipelinellm.provider.google.sdk import BatchGoogleProvider
+from parallem.provider.google.sdk import BatchGoogleProvider
 
 
 def test_cancel_batch_calls_google_batches_cancel_with_prefixed_name():

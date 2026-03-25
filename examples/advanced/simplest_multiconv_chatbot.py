@@ -1,7 +1,7 @@
 from pathlib import Path
 from uuid import uuid4
 from dotenv import load_dotenv
-import pipelinellm as pllm
+import parallem as pllm
 import polars as pl
 from colorama import Fore, Style, init
 

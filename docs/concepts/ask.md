@@ -1,6 +1,6 @@
 # Ask API
 
-In pipelinellm, we believe that an agent is a **program**, not an LLM. While that program often uses LLMs to automate its decision making, agents can also ask functions and humans. As a result, we can unify `ask_llm`, `ask_functions`, and `ask_human` into a common interface!
+In parallem, we believe that an agent is a **program**, not an LLM. While that program often uses LLMs to automate its decision making, agents can also ask functions and humans. As a result, we can unify `ask_llm`, `ask_functions`, and `ask_human` into a common interface!
 
 ## `ask_llm`
 

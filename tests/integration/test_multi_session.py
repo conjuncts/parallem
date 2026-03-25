@@ -1,7 +1,7 @@
 def test_session_id_restoration(temp_integration_dir):
     """Test that sess_id is preserved when retrieving cached responses across sessions"""
-    from pipelinellm.core.gateway import resume_directory
-    from pipelinellm.testing.simple_mock import mock_openai_client
+    from parallem.core.gateway import resume_directory
+    from parallem.testing.simple_mock import mock_openai_client
 
     test_dir = temp_integration_dir / "session_test"
 

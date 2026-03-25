@@ -5,7 +5,7 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from pipelinellm.core.memoize.operations import (
+from parallem.core.memoize.operations import (
     # AppendNestedListOp,
     # ClearNestedDictOp,
     # ClearNestedListOp,
@@ -21,14 +21,14 @@ from pipelinellm.core.memoize.operations import (
     # SetNestedListItemOp,
     # SortNestedListOp,
 )
-from pipelinellm.core.state.non_msg_state import (
+from parallem.core.state.non_msg_state import (
     NonMessageState,
     # TrackedDict,
     # TrackedList,
 )
 
 if TYPE_CHECKING:
-    from pipelinellm.core.memoize.operations import (
+    from parallem.core.memoize.operations import (
         AppendNestedListOp,
         ClearNestedDictOp,
         ClearNestedListOp,
@@ -43,7 +43,7 @@ if TYPE_CHECKING:
         SetNestedListItemOp,
         SortNestedListOp,
     )
-    from pipelinellm.core.state.non_msg_state import (
+    from parallem.core.state.non_msg_state import (
         TrackedDict,
         TrackedList,
     )
@@ -315,7 +315,7 @@ class TestNonMessageStateContainers:
 class TestNestedReplay:
     def _replay_on_fresh(self, log: OperationLog) -> NonMessageState:
         fresh = _make_state()
-        from pipelinellm.core.state.msg_state import MessageState
+        from parallem.core.state.msg_state import MessageState
 
         msg = MessageState()
         log.replay(msg, fresh)

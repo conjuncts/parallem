@@ -7,8 +7,8 @@ These tests validate complex scenarios that combine:
 """
 
 import pytest
-from pipelinellm.core.gateway import resume_directory
-from pipelinellm.testing.simple_mock import mock_openai_client
+from parallem.core.gateway import resume_directory
+from parallem.testing.simple_mock import mock_openai_client
 
 
 def test_tournament(temp_integration_dir):

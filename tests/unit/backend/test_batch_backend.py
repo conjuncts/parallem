@@ -12,10 +12,10 @@ from pathlib import Path
 from unittest.mock import Mock
 import pytest
 
-from pipelinellm.core.backend.batch_backend import BatchBackend
-from pipelinellm.core.file_manager import FileManager
-from pipelinellm.logging.dash_logger import PrimitiveDashboardLogger
-from pipelinellm.types import LLMIdentity, CallIdentifier
+from parallem.core.backend.batch_backend import BatchBackend
+from parallem.core.file_manager import FileManager
+from parallem.logging.dash_logger import PrimitiveDashboardLogger
+from parallem.types import LLMIdentity, CallIdentifier
 
 
 @pytest.fixture
@@ -280,7 +280,7 @@ class TestBatchBackendExecuteBatch:
 
     def test_pending_requests_counting(self, batch_backend, mock_provider):
         """Test that pending requests are counted"""
-        from pipelinellm.core.exception import PendingNotAvailable
+        from parallem.core.exception import PendingNotAvailable
 
         llm = LLMIdentity(
             "gpt-4o-mini", provider_type="openai", model_name="gpt-4o-mini"

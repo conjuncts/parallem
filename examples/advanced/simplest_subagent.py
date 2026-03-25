@@ -1,6 +1,6 @@
 from dotenv import load_dotenv
 
-import pipelinellm as pllm
+import parallem as pllm
 
 
 def subagent_app(orch: pllm.AgentOrchestrator):

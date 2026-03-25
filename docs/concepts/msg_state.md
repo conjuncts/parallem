@@ -25,7 +25,7 @@ def long_conversation_agent(agt: pllm.AgentContext):
     print(resp4)
 ```
 
-It can be cumbersome and repetitive to keep track of long conversations. To address this, pipelinellm has the concept of `MessageState`. Instead of asking on `agt`, ask directly on `MessageState`. Documents/responses will automatically be tracked and appended.
+It can be cumbersome and repetitive to keep track of long conversations. To address this, parallem has the concept of `MessageState`. Instead of asking on `agt`, ask directly on `MessageState`. Documents/responses will automatically be tracked and appended.
 
 ```python
 def long_conversation_agent(agt: pllm.AgentContext):

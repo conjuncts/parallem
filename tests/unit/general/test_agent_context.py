@@ -10,10 +10,10 @@ Tests the core agent functionality including:
 
 import pytest
 from unittest.mock import patch
-from pipelinellm.core.agent.agent import AgentContext
-from pipelinellm.core.exception import NotAvailable
-from pipelinellm.core.response import ReadyLLMResponse, PendingLLMResponse
-from pipelinellm.types import HumanResponse, LLMIdentity, ParsedResponse
+from parallem.core.agent.agent import AgentContext
+from parallem.core.exception import NotAvailable
+from parallem.core.response import ReadyLLMResponse, PendingLLMResponse
+from parallem.types import HumanResponse, LLMIdentity, ParsedResponse
 
 
 class TestAgentContextBasics:
@@ -132,7 +132,7 @@ class TestAskLLMMethod:
             call_id = call_args.kwargs["call_id"]
             assert call_id["meta"]["provider_type"] == "google"
 
-    @patch("pipelinellm.core.agent.agent.compute_hash")
+    @patch("parallem.core.agent.agent.compute_hash")
     def test_ask_llm_hash_computation(self, mock_compute_hash, mock_orchestrator):
         """Test that ask_llm computes hashes correctly"""
         mock_compute_hash.return_value = "test_hash_123"
@@ -190,7 +190,7 @@ class TestAskLLMMethod:
 
         assert agent._anonymous_counter == 2
 
-    @patch("pipelinellm.core.agent.agent.compute_hash")
+    @patch("parallem.core.agent.agent.compute_hash")
     def test_ask_human_hash_uses_prompt_and_documents(
         self, mock_compute_hash, mock_orchestrator
     ):

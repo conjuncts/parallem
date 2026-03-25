@@ -1,7 +1,7 @@
 import json
 from unittest.mock import Mock
 
-from pipelinellm.provider.anthropic.sdk import BatchAnthropicProvider
+from parallem.provider.anthropic.sdk import BatchAnthropicProvider
 
 
 def test_decode_batch_content_with_success_line():

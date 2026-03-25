@@ -1,7 +1,7 @@
 from tests.unit.batch.data import total_batch_result
 import json
 from unittest.mock import Mock
-from pipelinellm.provider.openai.sdk import BatchOpenAIProvider
+from parallem.provider.openai.sdk import BatchOpenAIProvider
 
 
 def test_decode_batch_content_with_tool_call():

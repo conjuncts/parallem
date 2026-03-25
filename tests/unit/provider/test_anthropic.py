@@ -1,13 +1,13 @@
 import pytest
 from pydantic import BaseModel
 
-from pipelinellm.core.exception import ProviderCompatibilityError
-from pipelinellm.provider.anthropic import sdk
-from pipelinellm.provider.anthropic.sdk import (
+from parallem.core.exception import ProviderCompatibilityError
+from parallem.provider.anthropic import sdk
+from parallem.provider.anthropic.sdk import (
     AnthropicProvider,
     _prepare_anthropic_config,
 )
-from pipelinellm.types import LLMIdentity
+from parallem.types import LLMIdentity
 
 
 class MyModel(BaseModel):

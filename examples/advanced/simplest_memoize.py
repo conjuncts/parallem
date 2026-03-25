@@ -1,7 +1,7 @@
 import logging
 import random
 import time
-import pipelinellm as pllm
+import parallem as pllm
 from dotenv import load_dotenv
 
 

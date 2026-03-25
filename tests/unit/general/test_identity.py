@@ -10,8 +10,8 @@ Tests the LLM identity system including:
 
 import pytest
 
-from pipelinellm.types import LLMIdentity
-from pipelinellm.utils.hardcoded import guess_provider_and_name
+from parallem.types import LLMIdentity
+from parallem.utils.hardcoded import guess_provider_and_name
 
 
 def test_identity_with_guessed_provider():

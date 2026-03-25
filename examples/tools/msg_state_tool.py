@@ -6,7 +6,7 @@ to conveniently store conversation history.
 import logging
 
 from dotenv import load_dotenv
-import pipelinellm as pllm
+import parallem as pllm
 
 load_dotenv()
 

@@ -10,7 +10,7 @@ Every call to `ask_llm` computes a SHA-256 hash of:
 - All input documents (strings, images, function call outputs, …)
 - Any additional salt terms (see below)
 
-If pipelinellm has already seen your hash, then the previous value is returned immediately. Otherwise, a request is sent to the provider and stored.
+If parallem has already seen your hash, then the previous value is returned immediately. Otherwise, a request is sent to the provider and stored.
 
 ```python
 with pllm.resume_directory(".pllm/myproject", provider="openai", strategy="sync") as orch:

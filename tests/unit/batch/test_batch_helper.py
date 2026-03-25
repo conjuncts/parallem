@@ -1,4 +1,4 @@
-from pipelinellm.utils._batch_helper import _split_batch_response
+from parallem.utils._batch_helper import _split_batch_response
 
 
 def test_split_batch_response_mixed_has_error_raw_output():

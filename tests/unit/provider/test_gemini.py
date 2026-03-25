@@ -9,8 +9,8 @@ Tests the Gemini provider functionality including:
 
 from dotenv import load_dotenv
 import pytest
-from pipelinellm.types import LLMIdentity
-from pipelinellm.provider.google.sdk import (
+from parallem.types import LLMIdentity
+from parallem.provider.google.sdk import (
     SyncGoogleProvider,
     _fix_docs_for_google,
     GoogleProvider,

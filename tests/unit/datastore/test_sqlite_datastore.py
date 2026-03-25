@@ -10,15 +10,15 @@ from pathlib import Path
 from PIL import Image
 from unittest.mock import patch
 
-from pipelinellm.core.datastore.sqlite import SQLiteDatastore
-from pipelinellm.core.file_manager import FileManager
-from pipelinellm.core.memoize.operations import (
+from parallem.core.datastore.sqlite import SQLiteDatastore
+from parallem.core.file_manager import FileManager
+from parallem.core.memoize.operations import (
     AppendOp,
     ExtendOp,
     OperationLog,
     SetNonMsgItemOp,
 )
-from pipelinellm.types import (
+from parallem.types import (
     CallIdentifier,
     ParsedResponse,
     BatchIdentifier,

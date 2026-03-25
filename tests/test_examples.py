@@ -10,8 +10,8 @@ For more comprehensive examples testing real PipelineLLM functionality:
 
 import tempfile
 import pytest
-from pipelinellm.core.gateway import resume_directory
-from pipelinellm.testing.simple_mock import (
+from parallem.core.gateway import resume_directory
+from parallem.testing.simple_mock import (
     mock_openai_client,
     assert_call_made,
 )

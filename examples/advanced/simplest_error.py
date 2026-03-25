@@ -1,6 +1,6 @@
 import logging
 import os
-import pipelinellm as pllm
+import parallem as pllm
 
 # load_dotenv()
 

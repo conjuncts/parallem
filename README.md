@@ -1,4 +1,12 @@
-# pipelinellm
+# ParaLLeM
+
+ParaLLeM is a library for orchestrating agentic LLM workflows using the Batch API.
+
+We are scalable, traceable, concise, readable, and expressive.
+
+We are developer-centered and lightweight.
+
+We help you save 50% on all token costs.
 
 ## Compatibility
 
@@ -14,9 +22,13 @@
 
 ## Philosophy
 
-1. A library designed with the Batch API in mind.
-2. We aim to support pipelines where LLMs are "input/output machines", rather than an interactive conversational agent.
-3. LLM pipeline control flow should be represented with Python, rather than data structures.
-4. Circumvent vendor lock-in and "architecture lock-in". (Model agnostic and architecture agnostic.)
-5. Effortless parallelization.
-6. Improved Developer Experience (develop and debug as synchronous, quickly scale up to huge pipelines).
+1. We are built from the ground up around the Batch API.
+2. Switch between sync (sequential) and batch in just 1 line of code.
+3. Control flow is best represented with Python, not data structures.
+4. An agent is more than just one LLM.
+
+## Quickstart/Documentation
+
+Please refer to the [documentation](https://conjuncts.github.io/parallem).
+
+Note: the former name of this library was "pipelinellm". Please excuse references to the old name.

@@ -14,11 +14,11 @@ from PIL import Image
 from io import BytesIO
 from unittest.mock import Mock
 
-from pipelinellm.core.cast.doc_to_str import (
+from parallem.core.cast.doc_to_str import (
     cast_bytes_to_document,
     cast_document_to_bytes,
 )
-from pipelinellm.types import (
+from parallem.types import (
     FunctionCallRequest,
     FunctionCallOutput,
     FunctionCall,

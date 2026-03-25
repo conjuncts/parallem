@@ -1,7 +1,7 @@
 import json
 import polars as pl
 
-from pipelinellm.provider.openai._sink import openai_metadata_sinker
+from parallem.provider.openai._sink import openai_metadata_sinker
 
 
 def test_openai_metadata_sinker_reasoning_before_message():

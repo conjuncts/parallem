@@ -1,7 +1,7 @@
 
 # Quickstart
 
-This guide gives a tour of pipelinellm. We support many agentic features including function calling, image input, structured output, web search, and more -- all with the Batch API.
+This guide gives a tour of parallem. We support many agentic features including function calling, image input, structured output, web search, and more -- all with the Batch API.
 
 ```python title="examples/full/example_tour.py"
 --8<-- "examples/full/example_tour.py"

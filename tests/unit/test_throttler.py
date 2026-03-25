@@ -1,6 +1,6 @@
 import time
 import threading
-from pipelinellm.core.throttler import Throttler
+from parallem.core.throttler import Throttler
 
 
 class TestThrottler:

@@ -10,13 +10,13 @@ Tests the LLMResponse hierarchy including:
 
 from unittest.mock import Mock
 import pytest
-from pipelinellm.core.calls import _call_to_concise_dict
-from pipelinellm.core.response import (
+from parallem.core.calls import _call_to_concise_dict
+from parallem.core.response import (
     PendingLLMResponse,
     ReadyLLMResponse,
 )
-from pipelinellm.types import ParsedResponse
-from pipelinellm.testing.simple_backend import MockBackend
+from parallem.types import ParsedResponse
+from parallem.testing.simple_backend import MockBackend
 
 
 class TestReadyLLMResponse:

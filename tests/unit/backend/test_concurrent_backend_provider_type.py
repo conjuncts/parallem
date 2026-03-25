@@ -1,10 +1,10 @@
 import tempfile
 from pathlib import Path
 
-from pipelinellm.core.backend.concurrent_backend import ConcurrentBackend
-from pipelinellm.core.file_manager import FileManager
-from pipelinellm.provider.base import ConcurrentProvider
-from pipelinellm.types import LLMIdentity, ParsedResponse
+from parallem.core.backend.concurrent_backend import ConcurrentBackend
+from parallem.core.file_manager import FileManager
+from parallem.provider.base import ConcurrentProvider
+from parallem.types import LLMIdentity, ParsedResponse
 
 
 class StubConcurrentProvider(ConcurrentProvider):

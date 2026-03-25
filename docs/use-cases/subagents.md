@@ -2,7 +2,7 @@
 
 The **subagent pattern** is when a main agent creates many child subagents in order to break down and complete a task in parallel. 
 
-This pattern is supported by pipelinellm: **no special syntax required**. Simply create an agent from within an existing agent context block.
+This pattern is supported by parallem: **no special syntax required**. Simply create an agent from within an existing agent context block.
 
 Core pattern:
 

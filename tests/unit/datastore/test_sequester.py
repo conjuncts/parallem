@@ -2,8 +2,8 @@ import pytest
 import polars as pl
 from pathlib import Path
 import shutil
-from pipelinellm.core.datastore.sqlite import SQLiteDatastore
-from pipelinellm.core.file_manager import FileManager
+from parallem.core.datastore.sqlite import SQLiteDatastore
+from parallem.core.file_manager import FileManager
 
 
 @pytest.fixture

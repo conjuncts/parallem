@@ -19,7 +19,7 @@ from pydantic import BaseModel
 from PIL import Image
 from unittest.mock import Mock
 
-import pipelinellm as pllm
+import parallem as pllm
 import polars as pl
 from tests.integration.batch.data import (
     data_batch_full_anthropic,
