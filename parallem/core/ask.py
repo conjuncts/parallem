@@ -1,5 +1,5 @@
 from abc import ABC
-from typing import TYPE_CHECKING, Callable, Dict, List, Optional, Union
+from typing import TYPE_CHECKING, Callable, Dict, List, Optional, Sequence, Union
 
 from parallem.types import (
     FunctionCallOutput,
@@ -69,6 +69,7 @@ class Askable(ABC):
         response: Optional[LLMResponse] = None,
         functions: Dict[str, Callable] = None,
         *,
+        subagent_names: Optional[Sequence[str]] = None,
         if_func_not_exist: Union[str, Exception] = ValueError,
         **kwargs,
     ) -> List[FunctionCallOutput]:

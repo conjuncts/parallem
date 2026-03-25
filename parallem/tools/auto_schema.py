@@ -2,6 +2,24 @@ import inspect
 from typing import Callable, List, Optional, Union, get_origin, get_args
 
 
+def _is_agent_context_annotation(annotation) -> bool:
+    if annotation is inspect.Parameter.empty:
+        return False
+
+    if isinstance(annotation, str):
+        cleaned = annotation.replace(" ", "")
+        return cleaned == "AgentContext" or cleaned.endswith(".AgentContext")
+
+    if hasattr(annotation, "__forward_arg__"):
+        return _is_agent_context_annotation(annotation.__forward_arg__)
+
+    origin = get_origin(annotation)
+    if origin is not None:
+        return any(_is_agent_context_annotation(arg) for arg in get_args(annotation))
+
+    return getattr(annotation, "__name__", None) == "AgentContext"
+
+
 def python_type_to_json_schema(tp):
     origin = get_origin(tp)
     args = get_args(tp)
@@ -36,6 +54,9 @@ def to_tool_schema(funcs: Union[Callable, List[Callable]]) -> List[dict]:
             "required": [],
         }
         for name, param in sig.parameters.items():
+            if _is_agent_context_annotation(param.annotation):
+                continue
+
             params["properties"][name] = python_type_to_json_schema(param.annotation)
             if param.default is inspect.Parameter.empty:
                 params["required"].append(name)

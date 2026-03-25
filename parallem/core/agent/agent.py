@@ -1,4 +1,16 @@
-from typing import TYPE_CHECKING, Callable, Dict, List, Optional, Union
+import inspect
+from typing import (
+    TYPE_CHECKING,
+    Callable,
+    Dict,
+    Iterator,
+    List,
+    Optional,
+    Sequence,
+    Union,
+    get_args,
+    get_origin,
+)
 from parallem.core.ask import Askable
 from parallem.core.cast.fix_docs import cast_documents, reduce_to_list
 from parallem.core.exception import NotAvailable, PendingNotAvailable
@@ -26,6 +38,24 @@ from parallem.types import (
 
 if TYPE_CHECKING:
     from parallem.core.agent.orchestrator import AgentOrchestrator
+
+
+def _is_agent_context_annotation(annotation) -> bool:
+    if annotation is inspect.Parameter.empty:
+        return False
+
+    if isinstance(annotation, str):
+        cleaned = annotation.replace(" ", "")
+        return cleaned == "AgentContext" or cleaned.endswith(".AgentContext")
+
+    if hasattr(annotation, "__forward_arg__"):
+        return _is_agent_context_annotation(annotation.__forward_arg__)
+
+    origin = get_origin(annotation)
+    if origin is not None:
+        return any(_is_agent_context_annotation(arg) for arg in get_args(annotation))
+
+    return getattr(annotation, "__name__", None) == "AgentContext"
 
 
 class AgentContext(Askable):
@@ -233,12 +263,16 @@ class AgentContext(Askable):
         response: LLMResponse,
         functions: Dict[str, Callable] = None,
         *,
+        subagent_names: Optional[Sequence[str]] = None,
         if_func_not_exist: Union[str, Exception] = ValueError,
         **kwargs,
     ) -> List[FunctionCallOutput]:
         if functions is None:
             functions = {}
         functions.update(kwargs)
+        subagent_name_iter = (
+            iter(subagent_names) if subagent_names is not None else None
+        )
 
         # Check if response has function calls. If so, delegate to user-defined functions.
         fcs = response.resolve_function_calls()
@@ -257,12 +291,58 @@ class AgentContext(Askable):
                     fc_outs.append(if_func_not_exist)
                     continue
 
+            call_args = dict(fc.args)
+            call_args = self._inject_subagent_context(
+                callme,
+                call_args,
+                subagent_name_iter,
+            )
+
             # Execute the function
-            result = callme(**fc.args)
+            result = callme(**call_args)
             fc_outs.append(
                 FunctionCallOutput(content=result, name=fc.name, call_id=fc.call_id)
             )
         return fc_outs
+
+    def _inject_subagent_context(
+        self,
+        callme: Callable,
+        call_args: dict,
+        subagent_name_iter: Optional[Iterator[str]],
+    ) -> dict:
+        injected_param_names = []
+        signature = inspect.signature(callme)
+        for param_name, param in signature.parameters.items():
+            if _is_agent_context_annotation(param.annotation):
+                injected_param_names.append(param_name)
+
+        if not injected_param_names:
+            return call_args
+
+        if subagent_name_iter is None:
+            raise ValueError(
+                "Function call requires AgentContext injection. "
+                "Pass subagent_names to ask_functions()."
+            )
+
+        try:
+            subagent_name = next(subagent_name_iter)
+        except StopIteration as exc:
+            raise ValueError(
+                "Not enough subagent_names provided for AgentContext injection."
+            ) from exc
+
+        injected_agent = AgentContext(
+            str(subagent_name),
+            self._orch,
+            ask_params=self.ask_params,
+            ignore_cache=self.ignore_cache,
+        )
+        for param_name in injected_param_names:
+            call_args[param_name] = injected_agent
+
+        return call_args
 
     def ask_human(
         self,

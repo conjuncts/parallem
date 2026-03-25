@@ -507,11 +507,13 @@ class BatchOpenAIProvider(BatchProvider, OpenAIProvider):
 
         if batch.errors:
             print(f"Batch {batch_uuid} failed with errors: {batch.errors}")
-            return [BatchResult(
-                status="error",
-                raw_output=str(batch.errors),
-                parsed_responses=None,
-            )]
+            return [
+                BatchResult(
+                    status="error",
+                    raw_output=str(batch.errors),
+                    parsed_responses=None,
+                )
+            ]
 
         if out_file_id is None and err_file_id is None:
             return []

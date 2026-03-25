@@ -6,6 +6,7 @@ from typing import (
     Iterable,
     List,
     Optional,
+    Sequence,
     Union,
 )
 from parallem.core.ask import Askable
@@ -311,6 +312,7 @@ class MessageState(UserList[Union[LLMDocument, LLMResponse]], Askable):
         response: Optional[LLMResponse] = None,
         functions: Dict[str, Callable] = None,
         *,
+        subagent_names: Optional[Sequence[str]] = None,
         if_func_not_exist: Union[str, Exception] = ValueError,
         **kwargs,
     ) -> List[FunctionCallOutput]:
@@ -338,7 +340,11 @@ class MessageState(UserList[Union[LLMDocument, LLMResponse]], Askable):
         else:
             last_msg = response
         fc_outs = self._true_agent.ask_functions(
-            last_msg, functions=functions, if_func_not_exist=if_func_not_exist, **kwargs
+            last_msg,
+            functions=functions,
+            subagent_names=subagent_names,
+            if_func_not_exist=if_func_not_exist,
+            **kwargs,
         )
         self.extend(fc_outs)
         return fc_outs

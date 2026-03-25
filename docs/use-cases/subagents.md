@@ -2,7 +2,7 @@
 
 The **subagent pattern** is when a main agent creates many child subagents in order to break down and complete a task in parallel. 
 
-This pattern is supported by parallem: **no special syntax required**. Simply create an agent from within an existing agent context block.
+This pattern is supported by parallem. Simply create an agent from within an existing agent context block.
 
 Core pattern:
 
@@ -29,6 +29,49 @@ Core pattern:
 9. Kyoto, in Japan's Kansai region, long se...
 10. Bali, Indonesia's famed island, lies bet...
 ```
+
+## Dynamically creating subagents
+
+You may want another type of subagent, where the parent agent creates a subagent via a function call.
+
+For this pattern, simply pass a function (which takes a `pllm.AgentContext` an argument) as a regular function call. ParaLLeM will automatically inject it with an agent. But you will also need to pass a name for these newly created agents to `subagent_names`.
+
+```python
+import parallem as pllm
+from dotenv import load_dotenv
+
+
+def city_summary_agent(agt: pllm.AgentContext, city: str) -> str:
+	"""Creates an up-to-date summary of a city as a travel destination."""
+	conv = agt.get_msg_state()
+	conv.ask_llm(
+		f"Write one concise paragraph about {city} as a travel destination."
+	)
+	return conv[-1].final_answer
+
+
+load_dotenv()
+with pllm.resume_directory(".pllm/example/subagent-dynamic", dashboard=True) as orch:
+	with orch.agent("planner") as agt:
+		conv = agt.get_msg_state()
+		conv.ask_llm(
+			"Generate summaries of 3 popular travel destinations.",
+			tools=pllm.to_tool_schema([city_summary_agent]),
+		)
+
+		fc_outs = conv.ask_functions(
+			city_summary_agent=city_summary_agent,
+			subagent_names=["city-agent-1", "city-agent-2", "city-agent-3"],
+		)
+
+		conv.ask_llm(
+			"Combine these city summaries into a ranked list.",
+			*fc_outs,
+		)
+		print(conv[-1].final_answer)
+```
+
+If fewer names are provided than required injected calls, `ask_functions` raises a `ValueError`.
 
 ## See also
 
