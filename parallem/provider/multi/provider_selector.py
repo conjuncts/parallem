@@ -11,7 +11,7 @@ def dynamic_select_provider(
     client=None,
 ):
     """
-    Produces the correct pipelinellm provider object.
+    Produces the correct provider object.
     """
     if provider_type == "openai":
         from parallem.provider.openai.sdk import (

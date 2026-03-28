@@ -25,7 +25,7 @@ import parallem.tools as tools
 
 __all__ = [
     "resume_directory",
-    ### pipelinellm.types
+    ### .types
     #
     ## Not public facing:
     # "AgentMetadata",
@@ -56,12 +56,12 @@ __all__ = [
     "ParsedError",
     "LLMResponse",
     "HumanResponse",
-    ### pipelinellm.tools
+    ### .tools
     "tools",
     "to_tool_schema",
-    ### pipelinellm.core.throttler
+    ### .core.throttler
     "Throttler",
-    ### pipelinellm.core.agent
+    ### .core.agent
     "AgentOrchestrator",
     "AgentContext",
 ]

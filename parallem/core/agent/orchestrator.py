@@ -14,7 +14,7 @@ import polars as pl
 
 
 class AgentOrchestrator:
-    """The AgentOrchestrator manages and creates agents. It's how you begin using pipelinellm."""
+    """The AgentOrchestrator manages and creates agents. It's how you begin using parallem."""
 
     def __init__(
         self,
@@ -71,9 +71,9 @@ class AgentOrchestrator:
         """
         Constructs an agent.
 
-        pipelinellm does things a bit differently.
+        parallem does things a bit differently.
         While typically an agent is associated with a single LLM,
-        pipelinellm identifies an agent with a process, program, or algorithm
+        parallem identifies an agent with a process, program, or algorithm
         which itself can ask LLMs questions, but also functions, MCP servers, and humans.
         It just so happens that the agent uses LLM(s) to automate much of its decision making.
         """

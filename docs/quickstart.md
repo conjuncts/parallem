@@ -1,7 +1,7 @@
 
 # Quickstart
 
-This guide gives a tour of parallem. We support many agentic features including function calling, image input, structured output, web search, and more -- all with the Batch API.
+This guide gives a tour of `parallem`. We support many agentic features including function calling, image input, structured output, web search, and more -- all with the Batch API.
 
 ```python title="examples/full/example_tour.py"
 --8<-- "examples/full/example_tour.py"
@@ -57,7 +57,7 @@ FunctionCall(name=count_files, call_id=call_Xau, args={'directory': '~/examples'
 
 !!! warning
 
-    Pipelinellm saves progress by hashing. However, **not all config settings are hashed.** For instance, tool definitions are not hashed. If available tools change, then the hashes are still considered identical, so the old cached value is still returned. See the [Persistence guide](concepts/persistence.md) for how to control this with `hash_by` and `salt`.
+    ParaLLeM saves progress by hashing. However, **not all config settings are hashed.** For instance, tool definitions are not hashed. If available tools change, then the hashes are still considered identical, so the old cached value is still returned. See the [Persistence guide](concepts/persistence.md) for how to control this with `hash_by` and `salt`.
 
 
 ## Advanced Usage

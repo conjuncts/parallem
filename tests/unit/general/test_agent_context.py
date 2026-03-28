@@ -27,8 +27,8 @@ class TestAgentContextBasics:
         with agent:
             pass
 
-    def test_exit_with_pipelinellm_exceptions(self, mock_orchestrator):
-        """Test __exit__ handles PipelineLLM exceptions correctly"""
+    def test_exit_with_parallem_exceptions(self, mock_orchestrator):
+        """Test __exit__ handles parallem exceptions correctly"""
         agent = AgentContext("test_agent", mock_orchestrator)
 
         suppressed_exceptions = [NotAvailable]
@@ -45,7 +45,7 @@ class TestAgentContextBasics:
         # Other exceptions should not be suppressed
         with pytest.raises(ValueError):
             with agent:
-                raise ValueError("non-PipelineLLM exception")
+                raise ValueError("non-parallem exception")
 
         with pytest.raises(AssertionError):
             with agent:

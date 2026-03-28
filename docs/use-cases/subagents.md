@@ -1,15 +1,12 @@
 # Subagents
 
-The **subagent pattern** is when a main agent creates many child subagents in order to break down and complete a task in parallel. 
+In the **subagent pattern**, a main agent creates child subagents to break down and complete a task in parallel. 
 
-This pattern is supported by parallem. Simply create an agent from within an existing agent context block.
+This pattern is supported by parallem:
 
-Core pattern:
-
-1. Create a parent conversation.
-2. For each item, create a new named agent.
-3. Copy parent context into each child with `sub_conv.extend(parent_conv)`.
-4. Ask a focused question in each child and collect results.
+1. Create a parent agent.
+2. Within the parent block, create a child agent. (No special syntax required.)
+3. (Optional) Give the child access to its parent's messages.
 
 ```python
 --8<-- "examples/advanced/simplest_subagent.py"
@@ -32,46 +29,15 @@ Core pattern:
 
 ## Dynamically creating subagents
 
-You may want another type of subagent, where the parent agent creates a subagent via a function call.
+You may want the parent to create a subagent via a function call.
 
-For this pattern, simply pass a function (which takes a `pllm.AgentContext` an argument) as a regular function call. ParaLLeM will automatically inject it with an agent. But you will also need to pass a name for these newly created agents to `subagent_names`.
+Simply pass in your subagent function as a function call (like any regular function). 
+
+When `ask_functions` is called, ParaLLeM will automatically create the necessary subagents using the names passed into `subagent_names`.
 
 ```python
-import parallem as pllm
-from dotenv import load_dotenv
-
-
-def city_summary_agent(agt: pllm.AgentContext, city: str) -> str:
-	"""Creates an up-to-date summary of a city as a travel destination."""
-	conv = agt.get_msg_state()
-	conv.ask_llm(
-		f"Write one concise paragraph about {city} as a travel destination."
-	)
-	return conv[-1].final_answer
-
-
-load_dotenv()
-with pllm.resume_directory(".pllm/example/subagent-dynamic", dashboard=True) as orch:
-	with orch.agent("planner") as agt:
-		conv = agt.get_msg_state()
-		conv.ask_llm(
-			"Generate summaries of 3 popular travel destinations.",
-			tools=pllm.to_tool_schema([city_summary_agent]),
-		)
-
-		fc_outs = conv.ask_functions(
-			city_summary_agent=city_summary_agent,
-			subagent_names=["city-agent-1", "city-agent-2", "city-agent-3"],
-		)
-
-		conv.ask_llm(
-			"Combine these city summaries into a ranked list.",
-			*fc_outs,
-		)
-		print(conv[-1].final_answer)
+--8<-- "examples/advanced/recursive_subagents.py"
 ```
-
-If fewer names are provided than required injected calls, `ask_functions` raises a `ValueError`.
 
 ## See also
 

@@ -2,23 +2,23 @@
 
 ## Philosophy
 
-Pipelinellm treats agents a little differently. Traditionally, the agent concept has been tightly coupled with a single LLM: one agent equals one LLM. 
+We treat agents a little differently. Traditionally, the agent concept has been tightly coupled with a single LLM: one agent equals one LLM. 
 
-In contrast, pipelinellm associates an agent with a program. What does this mean?
+In contrast, parallem associates an agent with a program. What does this mean?
 
 ## An agent is just a python function
 
-The most "pipelinic" method way to create a reusable agent is to define a simple **Python function** that takes a `pllm.AgentContext` as a parameter. For example:
+The most idiomatic way to declare an agent is with a **vanilla Python function** that takes a `pllm.AgentContext`. For example:
 
 ```python
 --8<-- "examples/simplest_agent.py"
 ```
 
-But of course, it is just a python function! Nothing is stopping you from embedding all the logic directly in the main function, as is the case in `simplest.py`. We recommend the separate function approach for larger applications, but the choice is really up to you.
+But it is just a python function! Nothing is stopping you from embedding all the logic directly in the main function, as is the case in `simplest.py`. The choice is up to you.
 
 ## More parameters
 
-Of course, you can always pass more parameters to the agent:
+You can always pass more parameters to the agent:
 ```python
 def haiku_agent(agt: pllm.AgentContext, subject: str):
     resp = agt.ask_llm(f"Please write a haiku about {subject}.")

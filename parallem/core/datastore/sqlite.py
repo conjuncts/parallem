@@ -1217,7 +1217,7 @@ class SQLiteDatastore(BaseDatastore):
 
         :param agent_name: The name of the agent owning the memoized state.
         :param state_hash: The hash of the initial MessageState.
-        :param operation_log: The :class:`~pipelinellm.core.memoize.operations.OperationLog`
+        :param operation_log: The :class:`~parallem.core.memoize.operations.OperationLog`
             to persist.
         """
 
@@ -1321,7 +1321,7 @@ class SQLiteDatastore(BaseDatastore):
 
         :param agent_name: The name of the agent owning the memoized state.
         :param state_hash: The hash of the initial MessageState.
-        :return: The reconstructed :class:`~pipelinellm.core.memoize.operations.OperationLog`,
+        :return: The reconstructed :class:`~parallem.core.memoize.operations.OperationLog`,
             or ``None`` if not found.
         """
 

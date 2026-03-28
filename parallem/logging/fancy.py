@@ -52,15 +52,13 @@ class DashboardAwareHandler(logging.StreamHandler):
             self.handleError(record)
 
 
-# Configure logging to output to console with colors - only for pipelinellm loggers
-_pipelinellm_log_handler = None
+# Configure logging to output to console with colors - only for pllm loggers
+_pllm_log_handler = None
 
 
-def get_pipelinellm_log_handler(dashlog) -> DashboardAwareHandler:
-    global _pipelinellm_log_handler
-    if _pipelinellm_log_handler is None:
-        _pipelinellm_log_handler = DashboardAwareHandler(dashlog)
-        _pipelinellm_log_handler.setFormatter(
-            ColoredFormatter("%(levelname)s %(message)s")
-        )
-    return _pipelinellm_log_handler
+def get_pllm_log_handler(dashlog) -> DashboardAwareHandler:
+    global _pllm_log_handler
+    if _pllm_log_handler is None:
+        _pllm_log_handler = DashboardAwareHandler(dashlog)
+        _pllm_log_handler.setFormatter(ColoredFormatter("%(levelname)s %(message)s"))
+    return _pllm_log_handler

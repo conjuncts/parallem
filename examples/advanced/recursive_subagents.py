@@ -9,22 +9,31 @@ def city_summary_agent(agt: pllm.AgentContext, city: str) -> str:
     return conv[-1].final_answer
 
 
-load_dotenv()
-with pllm.resume_directory(".pllm/example/subagent-dynamic", dashboard=True) as orch:
-    with orch.agent("planner") as agt:
-        conv = agt.get_msg_state()
-        conv.ask_llm(
-            "Generate summaries of 3 popular travel destinations.",
-            tools=pllm.to_tool_schema([city_summary_agent]),
-        )
+def planner_agent(agt: pllm.AgentContext):
+    # Parent agent
+    conv = agt.get_msg_state()
+    conv.ask_llm(
+        "Generate summaries of 3 popular travel destinations.",
+        tools=pllm.to_tool_schema([city_summary_agent]),
+    )
 
-        fc_outs = conv.ask_functions(
-            city_summary_agent=city_summary_agent,
-            subagent_names=["city-agent-1", "city-agent-2", "city-agent-3"],
-        )
+    # ask_functions creates subagents on the fly
+    fc_outs = conv.ask_functions(
+        city_summary_agent=city_summary_agent,
+        subagent_names=["city-agent-1", "city-agent-2", "city-agent-3"],
+    )
 
-        conv.ask_llm(
-            "Combine these city summaries into a ranked list.",
-            *fc_outs,
-        )
-        print(conv[-1].final_answer)
+    conv.ask_llm(
+        "Combine these city summaries into a ranked list.",
+        *fc_outs,
+    )
+    print(conv[-1].final_answer)
+
+
+if __name__ == "__main__":
+    load_dotenv()
+    with pllm.resume_directory(
+        ".pllm/example/subagent-dynamic", dashboard=True
+    ) as orch:
+        with orch.agent("planner") as agt:
+            planner_agent(agt)

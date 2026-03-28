@@ -1,6 +1,6 @@
 from typing import TYPE_CHECKING
 
-from parallem.core.exception import PipelinellmSignal
+from parallem.core.exception import ParallemSignal
 from parallem.core.memoize.operations import OperationLog
 
 
@@ -8,7 +8,7 @@ if TYPE_CHECKING:
     from parallem.core.agent.agent import AgentContext
 
 
-class MemoizedSignal(PipelinellmSignal):
+class MemoizedSignal(ParallemSignal):
     """Signal used to indicate that a memoized value should be returned."""
 
     def __init__(self, value_hash: str):

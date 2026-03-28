@@ -738,7 +738,7 @@ class TestSQLiteExtras:
             temp_datastore.store(generic_call_id, parsed_response)
 
     @pytest.mark.skip("Fails but idk why")
-    @patch("pipelinellm.core.sink.sequester.sequester_openai_metadata")
+    @patch("parallem.core.sink.sequester.sequester_openai_metadata")
     def test_metadata_transfer_on_persist(
         self, mock_sequester, temp_datastore, generic_call_id
     ):

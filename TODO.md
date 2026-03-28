@@ -60,7 +60,6 @@ Read
 - what if a function call also involves a LLM? well then the function will need to take in an agent object. Then you will need to do `functools.partial(my_func, agent)`. TODO: Consider then doing some hacking where ask_functions() automatically injects the *first* argument of type AgentContext (dependency inejction) (syntactic sugar)
 
 - [ ] need to hash based on available tools??? (TODO: issue a warning)
-- [ ] material docs
 - [ ] continuable errors (ie. JSON)
 
 
@@ -75,10 +74,7 @@ High priority:
     - not sure it's possible
 - [x] df export to parquet
 - [ ] clienet as a way to delegate
-- [x] tags for batch mode
-- [ ] demonstrate that traditional workflows (ie. a simple ChatGPT wrapper) is also possible with pipelinellm (albeit not the intended purpose). Probably needs to use some message uuid as the agent_name.
 - [ ] demonstrate that subagents (nested agents) is possible.
-- [x] instead of locking up, do not resend responses that are known to already be pending. So create a PendingBatchResponse() interrupt.
 - [ ] In memory datastore.
 - The "one-user" problem. "true" async / multiprocessing support.
 

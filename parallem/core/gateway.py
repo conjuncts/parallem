@@ -4,7 +4,7 @@ from typing import TYPE_CHECKING, Any, Literal, Optional, Union
 from parallem.core.agent.orchestrator import AgentOrchestrator
 from parallem.core.file_manager import FileManager
 from parallem.logging.dash_logger import DashboardLogger
-from parallem.logging.fancy import get_pipelinellm_log_handler
+from parallem.logging.fancy import get_pllm_log_handler
 from parallem.provider.multi.provider_selector import dynamic_select_provider
 from parallem.types import AskParameters, HashByOptions, LLMIdentity, MinorTweaks
 
@@ -68,11 +68,11 @@ def resume_directory(
         tweaks = MinorTweaks(**tweaks)
     # 2. Setup logger
     dashlog = DashboardLogger(k=10, display=dashboard)
-    pipelinellm_log_handler = get_pipelinellm_log_handler(dashlog)
+    pllm_log_handler = get_pllm_log_handler(dashlog)
 
-    logger = logging.getLogger("pipelinellm")
+    logger = logging.getLogger("parallem")
     logger.setLevel(log_level)
-    logger.addHandler(pipelinellm_log_handler)
+    logger.addHandler(pllm_log_handler)
     logger.debug("Resuming directory")
 
     # Prevent propagation to root logger to avoid duplicate messages

@@ -1,6 +1,6 @@
-Parallem excels for processing documents in high throughput. 
+ParaLLeM excels for processing documents in high throughput. 
 
-By switching to batch mode, you save 50% on token costs, save CPU time, and can easily scale up to 1000s of documents.
+By switching to batch mode, you save 50% on token costs, save CPU time, and can scale up to 1000s of documents.
 
 
 ```python

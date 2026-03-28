@@ -1,6 +1,6 @@
 # Ask API
 
-In parallem, we believe that an agent is a **program**, not an LLM. While that program often uses LLMs to automate its decision making, agents can also ask functions and humans. As a result, we can unify `ask_llm`, `ask_functions`, and `ask_human` into a common interface!
+We believe that an agent is a **program**, not an LLM. While that program often uses LLMs to automate its decision making, agents can also ask functions and humans. As a result, we can unify `ask_llm`, `ask_functions`, and `ask_human` into a common interface!
 
 ## `ask_llm`
 
@@ -11,7 +11,7 @@ resp = agt.ask_llm("What is the capital of France?")
 print(resp.final_answer)
 ```
 
-The response is **lazy-loaded** — it is not resolved until you call `.final_answer`, `.resolve()`, or iterate over function calls. This lets the runtime batch and cache calls efficiently.
+The response is lazy-loaded — it is not resolved until you call `.final_answer`, `.resolve()`, or iterate over function calls. This lets the runtime batch and cache calls efficiently.
 
 ### Signature
 
@@ -75,7 +75,7 @@ resp = agt.ask_human(
     "Please confirm next step",
 
     # Must pass the conversation for hashing purposes.
-    # Pipelinellm must associate the human response with
+    # ParaLLeM must associate the human response with
     # the right point in the conversation.
     conv,
 )

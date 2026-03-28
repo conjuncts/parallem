@@ -4,8 +4,6 @@ from PIL import Image
 
 import parallem as pllm
 
-load_dotenv()
-
 
 class MyModel(BaseModel):
     final_answer: str
@@ -52,6 +50,8 @@ def tour_agent(agt: pllm.AgentContext):
 
 
 if __name__ == "__main__":
+    load_dotenv()
+
     with pllm.resume_directory(
         ".pllm/example/batch",
         provider="openai",

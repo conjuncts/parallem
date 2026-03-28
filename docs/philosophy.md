@@ -1,6 +1,4 @@
-## Principles
-
-pipelinellm is based on four principles:
+We are based on four principles:
 
 ### 1. Batch API first.
 

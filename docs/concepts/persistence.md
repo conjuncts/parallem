@@ -1,6 +1,6 @@
 # Persistence
 
-Pipelinellm saves every LLM response to a local datastore keyed by a **hash** of the request content. On subsequent runs, a matching hash returns the cached response instantly — no API call is made.
+ParaLLeM saves every LLM response to a local datastore keyed by a **hash** of the request content. On subsequent runs, a matching hash returns the cached response instantly — no API call is made.
 
 ## How caching works
 

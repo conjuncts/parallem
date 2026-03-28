@@ -1,7 +1,9 @@
 
-By design, parallem does **not** offer a native API for managing unique conversation IDs. There are many ways to do this (Redis, Postgres), and we don't want to enforce just one way.
+By design, we do **not** offer a native API for managing unique conversation UUIDs. 
 
-We wish to keep parallem slim and lightweight, and we believe that storing conversation IDs is outside the scope of our library. Instead, it is a task for your backend to handle. 
+There are many ways to do this (Redis, PostgreSQL, MongoDB), and we don't want to enforce a single method.
+
+Nor do we want to bundle a database. To keep parallem **slim** and **lightweight**, storing conversation IDs is outside our scope. 
 
 Nonetheless, it can be easily accomplished. After assigning a unique conversation uuid, assign the uuid to be the agent name. The following demonstrates a simple CLI chatbot using polars:
 

@@ -1,8 +1,9 @@
-# Pipelinellm does not bundle any RAG libraries, but it can be easily implemented.
-
 import chromadb
 from dotenv import load_dotenv
 import parallem as pllm
+
+# RAG implementation.
+# parallem does not bundle any RAG libraries, but it can be easily implemented.
 
 client = chromadb.Client()
 collection = client.create_collection(name="rag_demo")
@@ -22,6 +23,9 @@ def vector_store_tool(query: str, k: int = 2) -> str:
     result = collection.query(query_texts=[query], n_results=k)
     docs = result["documents"][0]
     return "\n".join(docs)
+
+
+# Begin parallem logic
 
 
 def rag_agent(agt: pllm.AgentContext, query: str):

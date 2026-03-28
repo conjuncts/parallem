@@ -66,7 +66,7 @@ def exit_to_quit(x):
     return out
 
 
-# Begin pipelinellm logic
+# Begin parallem logic
 
 
 def chatbot(agt: pllm.AgentContext):

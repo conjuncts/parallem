@@ -1,4 +1,4 @@
-class PipelinellmSignal(Exception):
+class ParallemSignal(Exception):
     """
     parallem uses exceptions as "signals" to prevent
     code from executing.
@@ -8,7 +8,7 @@ class PipelinellmSignal(Exception):
     """
 
 
-class NotAvailable(PipelinellmSignal):
+class NotAvailable(ParallemSignal):
     pass
 
 
