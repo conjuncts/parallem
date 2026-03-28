@@ -842,6 +842,59 @@ wheels = [
 ]
 
 [[package]]
+name = "parallem"
+version = "0.0.1"
+source = { editable = "." }
+dependencies = [
+    { name = "colorama" },
+    { name = "openai" },
+    { name = "pillow" },
+    { name = "polars" },
+]
+
+[package.dev-dependencies]
+dev = [
+    { name = "anthropic" },
+    { name = "click" },
+    { name = "flit" },
+    { name = "google-genai" },
+    { name = "mkdocs-material" },
+    { name = "pandas" },
+    { name = "pyarrow" },
+    { name = "pytest" },
+    { name = "pytest-asyncio" },
+    { name = "python-dotenv" },
+    { name = "tabulate" },
+]
+docs = [
+    { name = "mkdocs-material" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "colorama", specifier = ">=0.4.6" },
+    { name = "openai", specifier = ">=1.107.2" },
+    { name = "pillow", specifier = ">=10.0.0" },
+    { name = "polars", specifier = ">=1.32.3" },
+]
+
+[package.metadata.requires-dev]
+dev = [
+    { name = "anthropic", specifier = ">=0.77.0" },
+    { name = "click", specifier = "==8.2.1" },
+    { name = "flit", specifier = ">=3.12.0" },
+    { name = "google-genai", specifier = ">=1.41.0" },
+    { name = "mkdocs-material", specifier = ">=9.6.18" },
+    { name = "pandas", specifier = ">=2.3.2" },
+    { name = "pyarrow", specifier = ">=21.0.0" },
+    { name = "pytest", specifier = ">=8.4.2" },
+    { name = "pytest-asyncio", specifier = ">=1.2.0" },
+    { name = "python-dotenv", specifier = ">=1.1.1" },
+    { name = "tabulate", specifier = ">=0.9.0" },
+]
+docs = [{ name = "mkdocs-material", specifier = ">=9.6.18" }]
+
+[[package]]
 name = "pathspec"
 version = "1.0.4"
 source = { registry = "https://pypi.org/simple" }
@@ -960,59 +1013,6 @@ sdist = { url = "https://files.pythonhosted.org/packages/48/83/0d7d4e9efe3344b8e
 wheels = [
     { url = "https://files.pythonhosted.org/packages/de/f0/c81e05b613866b76d2d1066490adf1a3dbc4ee9d9c839961c3fc8a6997af/pip-26.0.1-py3-none-any.whl", hash = "sha256:bdb1b08f4274833d62c1aa29e20907365a2ceb950410df15fc9521bad440122b", size = 1787723 },
 ]
-
-[[package]]
-name = "pipelinellm"
-version = "0.0.1"
-source = { editable = "." }
-dependencies = [
-    { name = "colorama" },
-    { name = "openai" },
-    { name = "pillow" },
-    { name = "polars" },
-]
-
-[package.dev-dependencies]
-dev = [
-    { name = "anthropic" },
-    { name = "click" },
-    { name = "flit" },
-    { name = "google-genai" },
-    { name = "mkdocs-material" },
-    { name = "pandas" },
-    { name = "pyarrow" },
-    { name = "pytest" },
-    { name = "pytest-asyncio" },
-    { name = "python-dotenv" },
-    { name = "tabulate" },
-]
-docs = [
-    { name = "mkdocs-material" },
-]
-
-[package.metadata]
-requires-dist = [
-    { name = "colorama", specifier = ">=0.4.6" },
-    { name = "openai", specifier = ">=1.107.2" },
-    { name = "pillow", specifier = ">=10.0.0" },
-    { name = "polars", specifier = ">=1.32.3" },
-]
-
-[package.metadata.requires-dev]
-dev = [
-    { name = "anthropic", specifier = ">=0.77.0" },
-    { name = "click", specifier = "==8.2.1" },
-    { name = "flit", specifier = ">=3.12.0" },
-    { name = "google-genai", specifier = ">=1.41.0" },
-    { name = "mkdocs-material", specifier = ">=9.6.18" },
-    { name = "pandas", specifier = ">=2.3.2" },
-    { name = "pyarrow", specifier = ">=21.0.0" },
-    { name = "pytest", specifier = ">=8.4.2" },
-    { name = "pytest-asyncio", specifier = ">=1.2.0" },
-    { name = "python-dotenv", specifier = ">=1.1.1" },
-    { name = "tabulate", specifier = ">=0.9.0" },
-]
-docs = [{ name = "mkdocs-material", specifier = ">=9.6.18" }]
 
 [[package]]
 name = "platformdirs"

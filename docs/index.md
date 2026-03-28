@@ -2,8 +2,6 @@
 
 ParaLLeM is a general-purpose, batch-first Python library for building LLM workflows in ordinary Python control flow.
 
-(Note: its old name was pipelinellm - please excuse mentions of this old name.)
-
 ## Why use it?
 
 - Switch between sync, concurrent, and batch execution with just 1 line of code.
@@ -46,3 +44,5 @@ with pllm.resume_directory(
 - Start with the quickstart for the main workflow.
 - Compare sync, concurrent, and batch in the strategy guide.
 - Read the philosophy page for the design goals behind the library.
+
+(Note: its old name was pipelinellm - please excuse mentions of this old name.)

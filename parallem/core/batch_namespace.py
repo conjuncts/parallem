@@ -17,8 +17,8 @@ class BatchNamespace:
     def forget_batch(
         self,
         batch_uuid,
-        *,
         provider_type: ProviderType,
+        *,
         cancel: bool = False,
     ) -> None:
         """
