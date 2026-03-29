@@ -264,12 +264,16 @@ class AgentContext(Askable):
         functions: Dict[str, Callable] = None,
         *,
         subagent_names: Optional[Sequence[str]] = None,
-        if_func_not_exist: Union[str, Exception] = ValueError,
+        if_func_not_exist: Union[str, Exception, None] = None,
         **kwargs,
     ) -> List[FunctionCallOutput]:
         if functions is None:
             functions = {}
         functions.update(kwargs)
+        if not functions:
+            raise ValueError(
+                "No functions provided to ask_functions. Provide functions as a dict or as kwargs."
+            )
         subagent_name_iter = (
             iter(subagent_names) if subagent_names is not None else None
         )
@@ -287,6 +291,8 @@ class AgentContext(Askable):
                     )
                 if isinstance(if_func_not_exist, Exception):
                     raise if_func_not_exist
+                elif if_func_not_exist is None:
+                    continue
                 else:
                     fc_outs.append(if_func_not_exist)
                     continue
@@ -359,10 +365,7 @@ class AgentContext(Askable):
         input_fn: Optional[Callable[[str], str]] = None,
     ) -> HumanResponse:
         """
-        Ask a human for input and persist the response.
-
-        Human responses are written to the datastore with ``origin_type=1`` so they
-        are never mixed with cached LLM responses.
+        Ask a human for input.
 
         :param prompt: Prompt shown to the human. Used as instructions/system prompt in hashing.
         :param documents: Documents used as hash basis (analogous to ask_llm input).

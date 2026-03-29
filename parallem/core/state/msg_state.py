@@ -313,21 +313,9 @@ class MessageState(UserList[Union[LLMDocument, LLMResponse]], Askable):
         functions: Dict[str, Callable] = None,
         *,
         subagent_names: Optional[Sequence[str]] = None,
-        if_func_not_exist: Union[str, Exception] = ValueError,
+        if_func_not_exist: Union[str, Exception] = None,
         **kwargs,
     ) -> List[FunctionCallOutput]:
-        """
-        If the agent requested any function calls, then this method actually calls user-defined functions.
-
-        Functions should be provided as kwargs.
-
-        :param functions: Available functions to the model. Mapping from function name to callable.
-        :param kwargs: Any additional functions will be added to "functions".
-        :param if_func_not_exist: What to do if a function is not found.
-            If an Exception is passed, it will be raised. If a string is passed, it will be added to the
-            conversation as an error message but allowed to continue.
-            Default: ValueError.
-        """
         if response is None:
             # Obtain last message from LLM; check if it made any function calls
             if len(self) <= 0:

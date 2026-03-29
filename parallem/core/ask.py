@@ -70,7 +70,7 @@ class Askable(ABC):
         functions: Dict[str, Callable] = None,
         *,
         subagent_names: Optional[Sequence[str]] = None,
-        if_func_not_exist: Union[str, Exception] = ValueError,
+        if_func_not_exist: Union[str, Exception, None] = None,
         **kwargs,
     ) -> List[FunctionCallOutput]:
         """
@@ -81,9 +81,11 @@ class Askable(ABC):
         :param functions: Available functions to the model. Mapping from function name to callable.
         :param kwargs: Any additional functions will be added to "functions".
         :param if_func_not_exist: What to do if a function is not found.
-            If an Exception is passed, it will be raised. If a string is passed, it will be added to the
-            conversation as an error message but allowed to continue.
-            Default: ValueError.
+            If an Exception is passed, it will be raised.
+            If a string is passed, it will be added to the conversation as an error message
+            but allowed to continue.
+            If None, it will be silently ignored.
+            Default: None.
         """
         raise NotImplementedError()
 
