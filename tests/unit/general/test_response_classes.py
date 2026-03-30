@@ -9,6 +9,7 @@ Tests the LLMResponse hierarchy including:
 """
 
 from unittest.mock import Mock
+import asyncio
 import pytest
 from parallem.core.calls import _call_to_concise_dict
 from parallem.core.response import (
@@ -42,6 +43,15 @@ class TestReadyLLMResponse:
 
         # Test __setstate__
         # ReadyLLMResponse needs the help of the backend to retrieve the true value
+
+    def test_ready_response_default_await_matches_resolve(self, generic_call_id):
+        response = ReadyLLMResponse(call_id=generic_call_id, value="Immediate content")
+
+        async def _run():
+            return await response
+
+        result = asyncio.run(_run())
+        assert result == response.resolve()
 
 
 class TestPendingLLMResponse:

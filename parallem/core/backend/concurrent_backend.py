@@ -301,6 +301,17 @@ class ConcurrentBackend(BaseBackend):
             await self._poll_changes(call_id)
         return self._concurrent_ds.retrieve(call_id, metadata=metadata)
 
+    async def await_response(
+        self, call_id: CallIdentifier, metadata: bool = False
+    ) -> Optional[ParsedResponse]:
+        if self._loop is None or self._loop.is_closed():
+            raise RuntimeError("ConcurrentBackend event loop is not running")
+
+        future = asyncio.run_coroutine_threadsafe(
+            self.aretrieve(call_id, metadata=metadata), self._loop
+        )
+        return await asyncio.wrap_future(future)
+
     def persist(self, timeout=30.0):
         """
         Synchronous persist that uses the backend's event loop.

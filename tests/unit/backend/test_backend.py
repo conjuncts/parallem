@@ -2,12 +2,12 @@
 Unit tests for backend functionality
 
 Tests the backend implementations including:
-- AsyncBackend initialization, task management, and lifecycle
+- ConcurrentBackend initialization, task management, and lifecycle
 - SyncBackend initialization and synchronous operations
 - Backend persistence and data storage
 - Backend retrieve operations
 - Backend shutdown and cleanup
-- AsyncBackend functionality after persist() calls
+- ConcurrentBackend functionality after persist() calls
 """
 
 import pytest

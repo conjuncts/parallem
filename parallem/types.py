@@ -436,6 +436,12 @@ class LLMResponse:
             return self.value
         return repr(self)
 
+    def __await__(self):
+        async def _sync_await_response():
+            return self.resolve()
+
+        return _sync_await_response().__await__()
+
 
 class HumanResponse(LLMResponse):
     """
@@ -492,6 +498,12 @@ class BaseRetriever(ABC):
         :returns: The retrieved ParsedResponse.
         """
         raise NotImplementedError
+
+    async def await_response(
+        self, call_id: CallIdentifier, metadata: bool = False
+    ) -> Optional[ParsedResponse]:
+        # return await asyncio.to_thread(self.retrieve, call_id, metadata)
+        return self.retrieve(call_id, metadata=metadata)
 
     def populate_call_id(
         self, call_id: CallIdentifier, *, metadata=False

@@ -15,7 +15,7 @@ if TYPE_CHECKING:
 def resume_directory(
     directory,
     *,
-    strategy: Literal["sync", "concurrent", "batch", "hybrid"] = "sync",
+    strategy: Literal["sync", "concurrent", "batch"] = "sync",
     provider: Literal["openai", "google", "anthropic", "multi"] = "multi",
     datastore: Literal["sqlite", "sqlite_parquet"] = "sqlite",
     dry_run=False,
@@ -60,7 +60,7 @@ def resume_directory(
 
     # Logic to resume from the specified directory
     # 1. Validation
-    if strategy not in ["sync", "concurrent", "batch", "hybrid"]:
+    if strategy not in ["sync", "concurrent", "batch"]:
         raise ValueError(f"Unknown strategy '{strategy}'")
     if dry_run:
         raise NotImplementedError("Dry run is not implemented yet")

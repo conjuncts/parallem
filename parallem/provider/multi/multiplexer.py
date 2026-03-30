@@ -50,7 +50,9 @@ class MultiProvider(BaseProvider):
         self, provider_name: str, strategy: Literal["batch"]
     ) -> BatchProvider: ...
     def _load_provider(
-        self, provider_name: str, strategy: Literal["sync", "concurrent", "batch"]
+        self,
+        provider_name: str,
+        strategy: Literal["sync", "concurrent", "batch"],
     ) -> BaseProvider:
         if provider_name is None:
             raise ValueError("Cannot resolve None provider.")

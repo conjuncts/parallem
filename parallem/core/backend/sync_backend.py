@@ -133,6 +133,11 @@ class SyncBackend(BaseBackend):
         # Fall back to datastore
         return self._ds.retrieve(call_id, metadata=metadata)
 
+    async def await_response(
+        self, call_id: CallIdentifier, metadata: bool = False
+    ) -> Optional[ParsedResponse]:
+        return self.retrieve(call_id, metadata=metadata)
+
     def persist(self):
         """Persist any remaining data and datastore"""
         # Let datastore cleanup

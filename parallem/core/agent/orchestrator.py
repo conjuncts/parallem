@@ -1,5 +1,7 @@
 from logging import Logger
-from typing import List, Literal, Optional
+import asyncio
+import inspect
+from typing import Any, Callable, Coroutine, List, Literal, Optional
 from parallem.core.agent.agent import AgentContext
 from parallem.core.backend import BaseBackend
 from parallem.core.batch_namespace import BatchNamespace
@@ -26,7 +28,7 @@ class AgentOrchestrator:
         dashlog: DashboardLogger,
         ask_params: Optional[AskParameters] = None,
         ignore_cache: bool = False,
-        strategy: Optional[Literal["sync", "async", "batch"]] = None,
+        strategy: Optional[Literal["sync", "concurrent", "batch"]] = None,
     ):
         """
         Initialize the AgentOrchestrator.
@@ -52,6 +54,49 @@ class AgentOrchestrator:
         self.ask_params = ask_params or {}
         self.ignore_cache = ignore_cache
         self.strategy = strategy
+        self._pending_agent_coroutines: list[Coroutine[Any, Any, Any]] = []
+
+    def run_agent(
+        self,
+        fn: Callable[..., Any],
+        *fn_args,
+        agent_name: str = "",
+        ask_params: Optional[AskParameters] = None,
+        **fn_kwargs,
+    ):
+        """
+        Run an agent function.
+
+        - sync/batch: executes coroutine agents immediately.
+        - concurrent/async: queues coroutine agents to run together.
+        """
+        agt = self.agent(agent_name, ask_params=ask_params)
+        result = fn(agt, *fn_args, **fn_kwargs)
+
+        if not inspect.isawaitable(result):
+            return result
+
+        if self.strategy == "concurrent":
+            try:
+                loop = asyncio.get_running_loop()
+            except RuntimeError:
+                self._pending_agent_coroutines.append(result)
+                return result
+            return loop.create_task(result)
+
+        return asyncio.run(result)
+
+    def _run_pending_agents(self):
+        if not self._pending_agent_coroutines:
+            return
+
+        coros = list(self._pending_agent_coroutines)
+        self._pending_agent_coroutines.clear()
+
+        async def _runner():
+            await asyncio.gather(*coros)
+
+        asyncio.run(_runner())
 
     def __enter__(self):
         """Enter the context manager, returning self."""
@@ -95,6 +140,9 @@ class AgentOrchestrator:
         """
         Ensure that everything is properly saved AND cleans up resources.
         """
+
+        if self.strategy == "concurrent":
+            self._run_pending_agents()
 
         if getattr(self._backend, "execute_batch", None):
             with self.dashboard():
