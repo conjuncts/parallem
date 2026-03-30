@@ -7,6 +7,9 @@ class ParallemSignal(Exception):
     the BatchManager inside a 'with' block.
     """
 
+    _from_run_agents = False
+    "Flag for whether it was emitted by AgentOrchestrator.run_agents"
+
 
 class NotAvailable(ParallemSignal):
     pass

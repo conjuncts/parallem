@@ -57,6 +57,7 @@ nav:
     - Persistence: concepts/persistence.md
     - Strategies: concepts/strategies.md
     - Memoize: concepts/memoize.md
+    - Parallelization Idioms: concepts/idioms.md
   - Use cases:
     - Many documents: use-cases/document_processing.md
     - Chatbot: use-cases/multiple_conversations.md

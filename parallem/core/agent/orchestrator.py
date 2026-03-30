@@ -1,18 +1,20 @@
 from logging import Logger
 import asyncio
+from concurrent.futures import Future
 import inspect
-from typing import Any, Callable, Coroutine, List, Literal, Optional
+import polars as pl
+from typing import Any, Callable, Coroutine, List, Literal, Optional, Union
 from parallem.core.agent.agent import AgentContext
 from parallem.core.backend import BaseBackend
 from parallem.core.batch_namespace import BatchNamespace
+from parallem.core.exception import NotAvailable, ParallemSignal, PendingNotAvailable
 from parallem.core.state.non_msg_state import NonMessageState
 from parallem.logging.dashlog_context import DashboardLoggerContext
 from parallem.provider.base import BaseProvider
 from parallem.core.file_manager import FileManager
 from parallem.logging.dash_logger import DashboardLogger
 from parallem.types import AskParameters, LLMResponse
-
-import polars as pl
+from parallem.utils.manip import reduce_to_list
 
 
 class AgentOrchestrator:
@@ -54,49 +56,160 @@ class AgentOrchestrator:
         self.ask_params = ask_params or {}
         self.ignore_cache = ignore_cache
         self.strategy = strategy
-        self._pending_agent_coroutines: list[Coroutine[Any, Any, Any]] = []
+        self._pending_agent_coroutines: list[
+            tuple[Coroutine[Any, Any, Any], Future[Any]]
+        ] = []
 
-    def run_agent(
+    def create_agent(
         self,
         fn: Callable[..., Any],
         *fn_args,
         agent_name: str = "",
         ask_params: Optional[AskParameters] = None,
         **fn_kwargs,
-    ):
+    ) -> Future[Any]:
         """
-        Run an agent function.
+        Create a future-like handle for an agent function.
 
         - sync/batch: executes coroutine agents immediately.
         - concurrent/async: queues coroutine agents to run together.
         """
+        promise: Future[Any] = Future()
+
         agt = self.agent(agent_name, ask_params=ask_params)
-        result = fn(agt, *fn_args, **fn_kwargs)
+        agent_coro: Optional[Coroutine[Any, Any, Any]] = None
 
-        if not inspect.isawaitable(result):
-            return result
+        is_coro = inspect.iscoroutinefunction(fn)
+        if not is_coro:
+            # Then it's a regular function
+            if self.strategy in ["sync", "batch"]:
+                # If sync mode = execute immediately and set result on promise
+                try:
+                    result = fn(agt, *fn_args, **fn_kwargs)
+                except Exception as exc:
+                    promise.set_exception(exc)
+                    return promise
+                promise.set_result(result)
+                return promise
+            else:
+                # If concurrent mode, turn regular function into coroutine and queue
+                async def _coro_wrapper():
+                    return fn(agt, *fn_args, **fn_kwargs)
 
-        if self.strategy == "concurrent":
+                agent_coro = _coro_wrapper()
+        else:
+            # Then it's an async function
+            if self.strategy in ["sync", "batch"]:
+                # If sync mode = execute immediately and set result on promise
+                try:
+                    agent_coro = fn(agt, *fn_args, **fn_kwargs)
+                    resolved = asyncio.run(agent_coro)
+                except Exception as exc:
+                    promise.set_exception(exc)
+                    return promise
+                promise.set_result(resolved)
+                return promise
+            agent_coro = fn(agt, *fn_args, **fn_kwargs)
+
+        if self.strategy != "concurrent" or agent_coro is None:
+            promise.set_exception(
+                ValueError(
+                    f"Invalid strategy for create_agent: {self.strategy}. "
+                    "Expected one of 'sync', 'batch', or 'concurrent'."
+                )
+            )
+            return promise
+
+        try:
+            loop = asyncio.get_running_loop()
+        except RuntimeError:
+            self._pending_agent_coroutines.append((agent_coro, promise))
+            return promise
+
+        task = loop.create_task(agent_coro)
+
+        def _done_callback(done_task):
+            if promise.done():
+                return
+            if done_task.cancelled():
+                promise.cancel()
+                return
+            exc = done_task.exception()
+            if exc is not None:
+                promise.set_exception(exc)
+                return
+            promise.set_result(done_task.result())
+
+        task.add_done_callback(_done_callback)
+        return promise
+
+    def run_agents(
+        self,
+        handle: Union[Future, List[Future]],
+        *handles: Future[Any],
+        return_exceptions: bool = None,
+    ):
+        """
+        Resolve multiple created agent handles.
+
+        Similar to gather semantics:
+        - Executes all queued concurrent coroutines first.
+        - Collects all outcomes.
+        - If ``return_exceptions`` is False, raises once at the end if any handle failed,
+          prioritizing ParallemSignal subclasses (e.g., NotAvailable).
+        - If ``return_exceptions`` is True, returns a list of outcomes and exceptions.
+          (Matches behavior of asyncio.gather with return_exceptions=True)
+        """
+        if self.strategy == "concurrent" and self._pending_agent_coroutines:
+            self._run_pending_agents()
+
+        outcomes: list[Any] = []
+        first_signal: Optional[BaseException] = None
+        first_other: Optional[BaseException] = None
+
+        handles = reduce_to_list(handle, list(handles))
+        for handle in handles:
             try:
-                loop = asyncio.get_running_loop()
-            except RuntimeError:
-                self._pending_agent_coroutines.append(result)
-                return result
-            return loop.create_task(result)
+                outcome = handle.result()
+            except BaseException as exc:
+                outcomes.append(exc)
+                if isinstance(exc, ParallemSignal):
+                    if first_signal is None:
+                        first_signal = exc
+                elif first_other is None:
+                    first_other = exc
+                continue
+            outcomes.append(outcome)
 
-        return asyncio.run(result)
+        if return_exceptions is True:
+            return outcomes
+
+        if first_signal is not None:
+            first_signal._from_run_agents = True
+            raise first_signal
+        if first_other is not None:
+            raise first_other
+        return outcomes
 
     def _run_pending_agents(self):
         if not self._pending_agent_coroutines:
             return
 
-        coros = list(self._pending_agent_coroutines)
+        pending = list(self._pending_agent_coroutines)
         self._pending_agent_coroutines.clear()
 
         async def _runner():
-            await asyncio.gather(*coros)
+            coros = [coro for coro, _ in pending]
+            return await asyncio.gather(*coros, return_exceptions=True)
 
-        asyncio.run(_runner())
+        results = asyncio.run(_runner())
+        for (_, handle), outcome in zip(pending, results):
+            if handle.done():
+                continue
+            if isinstance(outcome, Exception):
+                handle.set_exception(outcome)
+            else:
+                handle.set_result(outcome)
 
     def __enter__(self):
         """Enter the context manager, returning self."""
@@ -105,6 +218,14 @@ class AgentOrchestrator:
     def __exit__(self, exc_type, exc_value, traceback):
         """Exit the context manager, automatically calling persist()."""
         self.persist()
+        if isinstance(exc_value, ParallemSignal):
+            # If the signal was emitted by run_agents, we suppress it to allow graceful exits.
+            if exc_value._from_run_agents:
+                if exc_type is NotAvailable:
+                    self._logger.info("Exited due to unavailable values.")
+                elif exc_type is PendingNotAvailable:
+                    self._logger.info("Exited due to values still in a pending batch.")
+                return True
         return False
 
     def agent(
