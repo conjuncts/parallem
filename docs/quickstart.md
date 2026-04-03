@@ -3,8 +3,8 @@
 
 This guide gives a tour of `parallem`. We support many agentic features including function calling, image input, structured output, web search, and more -- all with the Batch API.
 
-```python title="examples/full/example_tour.py"
---8<-- "examples/full/example_tour.py"
+```python title="examples/full_tour.py"
+--8<-- "examples/full_tour.py"
 ```
 
 
