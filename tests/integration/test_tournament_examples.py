@@ -77,7 +77,7 @@ Steelers
     assert len(mock_client.calls) == 5  # 1 for teams + 4 for games
 
     # Persist and verify directory structure
-    orch.persist()
+    orch.finalize_and_persist()
     assert (temp_integration_dir / "tour-nfl").exists()
 
 
@@ -154,7 +154,7 @@ Chymotrypsin
     # 1 initial + 4 round1 + 2 round2 + 1 final = 8 calls
     assert len(mock_client.calls) == 8
 
-    orch.persist()
+    orch.finalize_and_persist()
 
 
 def test_tournament_persistence_and_caching(temp_integration_dir):
@@ -189,7 +189,7 @@ Team D
         game1 = game1_resp.resolve()
         game2 = game2_resp.resolve()
 
-    pllm1.persist()
+    pllm1.finalize_and_persist()
 
     # Verify API calls were made
     assert len(mock_client1.calls) == 3
@@ -213,7 +213,7 @@ Team D
         game1_2 = game1_resp2.resolve()
         game2_2 = game2_resp2.resolve()
 
-    pllm2.persist()
+    pllm2.finalize_and_persist()
 
     # Verify no new API calls were made (cache hit)
     assert len(mock_client2.calls) == 0
@@ -263,7 +263,7 @@ Delta
     assert "Gamma beats Delta" in games[1]
     assert len(mock_client.calls) == 3
 
-    orch.persist()
+    orch.finalize_and_persist()
 
 
 if __name__ == "__main__":

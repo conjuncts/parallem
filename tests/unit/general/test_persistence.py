@@ -219,7 +219,7 @@ class TestAgentOrchestratorIntegration:
                 loaded = msg_state.load()
                 assert list(loaded) == ["saved"]
 
-            orchestrator.persist()
+            orchestrator.finalize_and_persist()
 
     def test_msg_state_load_requires_manual_persist(self):
         """Test load mode state persists only when MessageState.persist() is called."""
@@ -243,7 +243,7 @@ class TestAgentOrchestratorIntegration:
                 loaded = agent.get_msg_state().load()
                 assert list(loaded) == ["hello"]
 
-            orchestrator.persist()
+            orchestrator.finalize_and_persist()
 
     def test_msg_state_continued_replay_accumulates(self):
         """Test continued mode replays recorded operations each separate run."""
@@ -280,7 +280,7 @@ class TestAgentOrchestratorIntegration:
 
             assert lengths == [1, 2, 3]
 
-            orchestrator.persist()
+            orchestrator.finalize_and_persist()
 
     def test_orchestrator_userdata_operations(self):
         """Test userdata operations through AgentOrchestrator"""

@@ -218,7 +218,7 @@ class AgentOrchestrator:
 
     def __exit__(self, exc_type, exc_value, traceback):
         """Exit the context manager, automatically calling persist()."""
-        self.persist()
+        self.finalize_and_persist()
         if isinstance(exc_value, ParallemSignal):
             # If the signal was emitted by run_agents, we suppress it to allow graceful exits.
             if exc_value._from_run_agents:
@@ -258,9 +258,12 @@ class AgentOrchestrator:
     def userdata(self):
         return self._userdata
 
-    def persist(self):
+    def finalize_tasks(self):
         """
-        Ensure that everything is properly saved AND cleans up resources.
+        Run any remaining tasks.
+            - In concurrent mode, waits for all pending agents to complete.
+            - In batch mode, executes the entire batch.
+            - In sync mode, does nothing since agents are executed immediately.
         """
 
         if self.strategy == "concurrent":
@@ -276,6 +279,11 @@ class AgentOrchestrator:
             self._dashlog._update_console()
             self._dashlog.finalize_line()
 
+    def finalize_and_persist(self):
+        """
+        Ensure that everything is properly finalized, saved, and resources cleaned up.
+        """
+        self.finalize_tasks()
         self._backend.persist()
         self._fm.persist()
 
