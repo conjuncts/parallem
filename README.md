@@ -30,5 +30,3 @@ We help you save 50% on all token costs.
 ## Quickstart/Documentation
 
 Please refer to the [documentation](https://conjuncts.github.io/parallem).
-
-Note: the former name of this library was "pipelinellm". Please excuse references to the old name.

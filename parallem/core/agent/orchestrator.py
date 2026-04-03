@@ -11,6 +11,7 @@ from parallem.core.exception import NotAvailable, ParallemSignal, PendingNotAvai
 from parallem.core.state.non_msg_state import NonMessageState
 from parallem.logging.dashlog_context import DashboardLoggerContext
 from parallem.provider.base import BaseProvider
+from parallem.provider.openai.client import OpenAICompatClient
 from parallem.core.file_manager import FileManager
 from parallem.logging.dash_logger import DashboardLogger
 from parallem.types import AskParameters, LLMResponse
@@ -301,6 +302,25 @@ class AgentOrchestrator:
         Context manager for activating a dashlog only for a specific block of code.
         """
         return DashboardLoggerContext(self._dashlog, keep_when_done=keep_when_done)
+
+    def to_client(
+        self,
+        *,
+        agent_name: str = "",
+        ask_params: Optional[AskParameters] = None,
+    ):
+        """
+        Build an OpenAI-compatible client facade backed by ``ask_llm`` calls.
+
+        The returned object exposes:
+        - ``client.responses.create(...)``
+        - ``client.responses.parse(...)``
+        - ``client.chat.completions.create(...)``
+
+        In ``strategy='concurrent'``, these methods are async and must be awaited.
+        """
+        agent = self.agent(agent_name, ask_params=ask_params)
+        return OpenAICompatClient(agent, strategy=self.strategy)
 
     @property
     def batch(self) -> BatchNamespace:

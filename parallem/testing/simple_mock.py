@@ -21,6 +21,7 @@ class MockOpenAIClient:
 
         mock = Mock()
         mock.create = self._create_response
+        mock.parse = self._create_response
         self.responses = mock
 
     def set_responses(self, responses: List[Union[str, MockResponse]]):
@@ -111,6 +112,7 @@ class MockConcurrentOpenAIClient(MockOpenAIClient):
     def __init__(self):
         super().__init__()
         self.responses.create = self._concurrent_create_response
+        self.responses.parse = self._concurrent_create_response
 
     async def _concurrent_create_response(
         self, model=None, instructions=None, input=None, **kwargs

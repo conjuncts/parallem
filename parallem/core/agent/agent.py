@@ -38,6 +38,7 @@ from parallem.types import (
 
 if TYPE_CHECKING:
     from parallem.core.agent.orchestrator import AgentOrchestrator
+    from pydantic import BaseModel
 
 
 def _is_agent_context_annotation(annotation) -> bool:
@@ -134,7 +135,7 @@ class AgentContext(Askable):
         llm: Union[LLMIdentity, str, None] = None,
         salt: Optional[str] = None,
         hash_by: HashByOptions = None,
-        structured_output: Optional[object] = None,
+        structured_output: Optional["BaseModel"] = None,
         tools: Optional[list[Union[dict, ServerTool]]] = None,
         tag: Optional[str] = None,
         save_input: Optional[bool] = None,
