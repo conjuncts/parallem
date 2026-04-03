@@ -36,9 +36,6 @@ def mock_orchestrator():
     )
     mock_orch._backend.retrieve.return_value = None  # No cache by default
 
-    # Set up the metadata dictionary structure that my_metadata property expects
-    mock_orch._fm.metadata = {"agents": {}}
-
     mock_orch._logger.info = Mock()
 
     # Create a mock call ID for responses

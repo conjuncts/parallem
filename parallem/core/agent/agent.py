@@ -110,18 +110,6 @@ class AgentContext(Askable):
         """
         self._orch._dashlog.print(*args, **kwargs)
 
-    @property
-    def my_metadata(self) -> dict:
-        """
-        Metadata for this agent.
-        Backed by the AgentOrchestrator's FileManager.
-        """
-        key = self.agent_name if self.agent_name is not None else ""
-        return self._orch._fm.metadata["agents"].setdefault(
-            key,
-            {},
-        )
-
     def ask_llm(
         self,
         documents: Union[

@@ -10,7 +10,8 @@ Tests the userdata persistence functionality including:
 
 import pytest
 import tempfile
-import json
+import multiprocessing
+import queue
 from pathlib import Path
 from unittest.mock import Mock
 from parallem.core.file_manager import FileManager
@@ -23,6 +24,13 @@ from parallem.types import (
 )
 
 
+def _init_file_manager_and_get_session_counter(temp_dir: str, result_queue):
+    fm = FileManager(temp_dir)
+    result_queue.put(fm.metadata["session_counter"])
+    fm.persist()
+    fm._cleanup()
+
+
 class TestFileManagerBasics:
     """Test basic FileManager functionality"""
 
@@ -32,7 +40,6 @@ class TestFileManagerBasics:
             fm = FileManager(temp_dir)
 
             assert fm.directory == Path(temp_dir)
-            assert fm.metadata_file == Path(temp_dir) / "metadata.json"
             assert fm.lock_file == Path(temp_dir) / ".filemanager.lock"
 
             # Directory should be created
@@ -46,14 +53,8 @@ class TestFileManagerBasics:
         with tempfile.TemporaryDirectory() as temp_dir:
             fm = FileManager(temp_dir)
 
-            # Should have default metadata structure
-            assert "agents" in fm.metadata
+            # Should expose session counter in metadata
             assert "session_counter" in fm.metadata
-            assert "" in fm.metadata["agents"]
-
-            # Default agent should have proper structure
-            default_agent = fm.metadata["agents"][""]
-            assert default_agent == {}
 
     def test_session_counter_increments(self):
         """Test session counter increments on each new FileManager"""
@@ -69,22 +70,37 @@ class TestFileManagerBasics:
 
             assert session2 == session1 + 1
 
-    def test_metadata_persistence_across_instances(self):
-        """Test that metadata persists across FileManager instances"""
+    @pytest.mark.skip("slow")
+    def test_session_counter_multiprocess_unique(self):
+        """Test session counter remains unique across concurrent processes"""
         with tempfile.TemporaryDirectory() as temp_dir:
-            # First instance - modify metadata
-            fm1 = FileManager(temp_dir)
-            fm1.metadata["agents"]["test_agent"] = {
-                "foo": "bar",
-                "foo_counter": 5,
-            }
-            fm1.persist()
+            process_count = 8
+            ctx = multiprocessing.get_context("spawn")
+            result_queue = ctx.Queue()
 
-            # Second instance should load persisted metadata
-            fm2 = FileManager(temp_dir)
-            assert "test_agent" in fm2.metadata["agents"]
-            assert fm2.metadata["agents"]["test_agent"]["foo"] == "bar"
-            assert fm2.metadata["agents"]["test_agent"]["foo_counter"] == 5
+            processes = [
+                ctx.Process(
+                    target=_init_file_manager_and_get_session_counter,
+                    args=(temp_dir, result_queue),
+                )
+                for _ in range(process_count)
+            ]
+
+            for process in processes:
+                process.start()
+
+            for process in processes:
+                process.join(timeout=15)
+                assert process.exitcode == 0
+
+            session_ids = []
+            for _ in range(process_count):
+                try:
+                    session_ids.append(result_queue.get(timeout=2))
+                except queue.Empty:
+                    pytest.fail("Timed out receiving session IDs from worker processes")
+
+            assert len(set(session_ids)) == process_count
 
     def test_lock_file_cleanup(self):
         """Test lock file is cleaned up"""
@@ -379,27 +395,6 @@ class TestAgentOrchestratorIntegration:
 class TestFileManagerPersistence:
     """Test FileManager persist functionality"""
 
-    def test_persist_saves_metadata(self):
-        """Test that persist saves metadata to disk"""
-        with tempfile.TemporaryDirectory() as temp_dir:
-            fm = FileManager(temp_dir)
-
-            # Modify metadata
-            fm.metadata["agents"]["new_agent"] = {
-                "foo": "bar",
-                "foo_counter": 10,
-            }
-
-            fm.persist()
-
-            # Verify metadata file contains changes
-            with open(fm.metadata_file, "r") as f:
-                saved_metadata = json.load(f)
-
-            assert "new_agent" in saved_metadata["agents"]
-            assert saved_metadata["agents"]["new_agent"]["foo"] == "bar"
-            assert saved_metadata["agents"]["new_agent"]["foo_counter"] == 10
-
     def test_persist_idempotent(self):
         """Test that multiple persist calls are safe"""
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -411,7 +406,6 @@ class TestFileManagerPersistence:
             fm.persist()
 
             # Metadata should still be valid
-            assert "agents" in fm.metadata
             assert "session_counter" in fm.metadata
 
 

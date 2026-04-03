@@ -16,15 +16,7 @@ from PIL import Image
 from parallem.utils.hardcoded import guess_provider_and_name
 
 
-class AgentMetadata(TypedDict):
-    """Metadata for an agent"""
-
-    pass
-
-
 class WorkingMetadata(TypedDict):
-    agents: dict[str, AgentMetadata]
-
     session_counter: int
     """
     Numeric ID of session. Increments on each new BatchManager creation.
