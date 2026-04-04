@@ -1,8 +1,17 @@
 from pathlib import Path
 import tempfile
+from threading import Lock
 from unittest.mock import Mock
+import logging
 import pytest
+from parallem.core.gateway import resume_directory
 from parallem.core.response import ReadyLLMResponse
+from parallem.core.file_manager import FileManager
+from parallem.core.agent.orchestrator import AgentOrchestrator
+from parallem.core.backend.sync_backend import SyncBackend
+from parallem.logging.dash_logger import PrimitiveDashboardLogger
+from parallem.testing.simple_backend import MockBackend
+from parallem.testing.simple_mock import mock_openai_client
 from parallem.types import CallIdentifier, LLMIdentity
 
 
@@ -56,3 +65,137 @@ def mock_orchestrator():
     )
 
     yield mock_orch
+
+
+@pytest.fixture(scope="session")
+def lock():
+    return Lock()
+
+
+@pytest.fixture(scope="session")
+def session_orch_root():
+    with tempfile.TemporaryDirectory() as temp_dir:
+        yield Path(temp_dir)
+
+
+@pytest.fixture(scope="session")
+def async_sync_orch(session_orch_root):
+    fm = FileManager(session_orch_root / "async-sync")
+    orch = AgentOrchestrator(
+        file_manager=fm,
+        backend=MockBackend(),
+        provider=object(),
+        logger=logging.getLogger("parallem.test"),
+        dashlog=PrimitiveDashboardLogger(),
+        strategy="sync",
+    )
+    yield orch
+    orch.finalize_and_persist()
+
+
+@pytest.fixture(scope="session")
+def async_concurrent_orch(session_orch_root):
+    fm = FileManager(session_orch_root / "async-concurrent")
+    orch = AgentOrchestrator(
+        file_manager=fm,
+        backend=MockBackend(),
+        provider=object(),
+        logger=logging.getLogger("parallem.test"),
+        dashlog=PrimitiveDashboardLogger(),
+        strategy="concurrent",
+    )
+    yield orch
+    orch.finalize_and_persist()
+
+
+@pytest.fixture(scope="session")
+def async_batch_orch(session_orch_root):
+    fm = FileManager(session_orch_root / "async-batch")
+    orch = AgentOrchestrator(
+        file_manager=fm,
+        backend=MockBackend(),
+        provider=object(),
+        logger=logging.getLogger("parallem.test"),
+        dashlog=PrimitiveDashboardLogger(),
+        strategy="batch",
+    )
+    yield orch
+    orch.finalize_and_persist()
+
+
+@pytest.fixture(scope="session")
+def persistence_sync_orch(session_orch_root):
+    fm = FileManager(session_orch_root / "persistence-sync")
+    backend = SyncBackend(fm)
+    orch = AgentOrchestrator(
+        file_manager=fm,
+        backend=backend,
+        provider=Mock(),
+        logger=Mock(),
+        dashlog=Mock(),
+    )
+    yield orch
+    orch.finalize_and_persist()
+
+
+@pytest.fixture(scope="session")
+def persistence_mock_backend_orch(session_orch_root):
+    fm = FileManager(session_orch_root / "persistence-mock")
+    backend = MockBackend()
+    orch = AgentOrchestrator(
+        file_manager=fm,
+        backend=backend,
+        provider=Mock(),
+        logger=Mock(),
+        dashlog=Mock(),
+    )
+    yield orch
+    orch.finalize_and_persist()
+
+
+@pytest.fixture(scope="session")
+def persistence_ignore_cache_orch(session_orch_root):
+    fm = FileManager(session_orch_root / "persistence-ignore-cache")
+    backend = Mock()
+    backend.retrieve.return_value = "cached_response"
+    orch = AgentOrchestrator(
+        file_manager=fm,
+        backend=backend,
+        provider=Mock(),
+        logger=Mock(),
+        dashlog=Mock(),
+        ignore_cache=True,
+    )
+    yield orch
+    orch.finalize_and_persist()
+
+
+@pytest.fixture(scope="session")
+def shared_sync_orch(session_orch_root):
+    orch_dir = session_orch_root / "shared-sync"
+    mock_client = mock_openai_client()
+    orch = resume_directory(
+        orch_dir,
+        provider="openai",
+        strategy="sync",
+        client=mock_client,
+        hash_by=["llm"],
+    )
+    orch._mock_client = mock_client
+    yield orch
+    orch.finalize_and_persist()
+
+
+@pytest.fixture(scope="session")
+def shared_concurrent_orch(session_orch_root):
+    orch_dir = session_orch_root / "shared-concurrent"
+    mock_client = mock_openai_client(concurrent=True)
+    orch = resume_directory(
+        orch_dir,
+        provider="openai",
+        strategy="concurrent",
+        client=mock_client,
+    )
+    orch._mock_client = mock_client
+    yield orch
+    orch.finalize_and_persist()

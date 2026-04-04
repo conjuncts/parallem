@@ -1,44 +1,17 @@
-import tempfile
-import pytest
-from parallem.core.gateway import resume_directory
 from parallem.testing.simple_mock import (
-    mock_openai_client,
     assert_call_made,
 )
 
 
-@pytest.fixture
-def temp_orch(tmp_path):
-    """Pytest fixture that provides a temporary orchestrator"""
-    orch_dir = tmp_path / "sync"
-    mock_client = mock_openai_client()
-    orch = resume_directory(
-        str(orch_dir), provider="openai", strategy="sync", client=mock_client
-    )
-    orch._mock_client = mock_client
-    yield orch
-
-
-@pytest.fixture
-def concurrent_temp_orch(tmp_path):
-    """Pytest fixture that provides a temporary concurrent orchestrator"""
-    orch_dir = tmp_path / "concurrent"
-    mock_client = mock_openai_client(concurrent=True)
-    orch = resume_directory(
-        str(orch_dir), provider="openai", strategy="concurrent", client=mock_client
-    )
-    orch._mock_client = mock_client
-    yield orch
-
-
-def test_simple_mock_responses(temp_orch):
+def test_simple_mock_responses(shared_sync_orch):
     """Test with a simple list of mock responses"""
     responses = ["First response", "Second response", "Third response"]
 
-    mock_client = temp_orch._mock_client
+    mock_client = shared_sync_orch._mock_client
+    mock_client.clear()
     mock_client.set_responses(responses)
 
-    with temp_orch.agent() as a:
+    with shared_sync_orch.agent("test_simple_mock_responses") as a:
         resp1 = a.ask_llm("First question")
         resp2 = a.ask_llm("Second question")
         resp3 = a.ask_llm("Third question")
@@ -55,11 +28,12 @@ def test_simple_mock_responses(temp_orch):
     assert_call_made(mock_client, "Third question")
 
 
-def test_pattern_based_responses(temp_orch):
+def test_pattern_based_responses(shared_sync_orch):
     """Test with pattern-based response mapping"""
-    mock_client = temp_orch._mock_client
+    mock_client = shared_sync_orch._mock_client
 
     # Add patterns using the convenient dict method
+    mock_client.clear()
     mock_client.add_patterns(
         {
             "calculate": "The answer is 42",
@@ -69,7 +43,7 @@ def test_pattern_based_responses(temp_orch):
     )
     mock_client.set_default("Mock response for unknown question")
 
-    with temp_orch.agent() as a:
+    with shared_sync_orch.agent("test_pattern_based_responses") as a:
         # These should match patterns
         calc_resp = a.ask_llm("Please calculate 2 + 2")
         weather_resp = a.ask_llm("What's the weather like?")
@@ -86,11 +60,12 @@ def test_pattern_based_responses(temp_orch):
     assert len(mock_client.calls) == 4
 
 
-def test_exact_instruction_matching(temp_orch):
+def test_exact_instruction_matching(shared_sync_orch):
     """Test with exact instruction matching"""
-    mock_client = temp_orch._mock_client
+    mock_client = shared_sync_orch._mock_client
 
     # Add exact matches using the dict method with literal=True
+    mock_client.clear()
     mock_client.add_patterns(
         {
             "What is the capital of France?": "The capital of France is Paris.",
@@ -100,7 +75,7 @@ def test_exact_instruction_matching(temp_orch):
     )
     mock_client.set_default("I don't know that.")
 
-    with temp_orch.agent() as a:
+    with shared_sync_orch.agent("test_exact_instruction_matching") as a:
         resp1 = a.ask_llm("What is the capital of France?")
         resp2 = a.ask_llm("What is 2 + 2?")
         resp3 = a.ask_llm("What is the meaning of life?")
@@ -110,11 +85,12 @@ def test_exact_instruction_matching(temp_orch):
     assert "don't know" in resp3.resolve()
 
 
-def test_mixed_pattern_methods(temp_orch):
+def test_mixed_pattern_methods(shared_sync_orch):
     """Test mixing individual add_pattern and batch add_patterns"""
-    mock_client = temp_orch._mock_client
+    mock_client = shared_sync_orch._mock_client
 
     # Add batch patterns first
+    mock_client.clear()
     mock_client.add_patterns(
         {"math|calculate": "Math result: 42", "weather": "It's sunny"}
     )
@@ -125,7 +101,7 @@ def test_mixed_pattern_methods(temp_orch):
     # Set default
     mock_client.set_default("Default response")
 
-    with temp_orch.agent() as a:
+    with shared_sync_orch.agent("test_mixed_pattern_methods") as a:
         math_resp = a.ask_llm("Calculate 2+2")
         weather_resp = a.ask_llm("What's the weather?")
         greeting_resp = a.ask_llm("Hello world")
@@ -139,14 +115,15 @@ def test_mixed_pattern_methods(temp_orch):
     assert len(mock_client.calls) == 4
 
 
-def test_concurrent_provider(concurrent_temp_orch):
+def test_concurrent_provider(shared_concurrent_orch):
     """Test with concurrent provider"""
     responses = ["Async response 1", "Async response 2"]
 
-    mock_client = concurrent_temp_orch._mock_client
+    mock_client = shared_concurrent_orch._mock_client
+    mock_client.clear()
     mock_client.set_responses(responses)
 
-    with concurrent_temp_orch.agent() as a:
+    with shared_concurrent_orch.agent("test_concurrent_provider") as a:
         resp1 = a.ask_llm("First async question")
         resp2 = a.ask_llm("Second async question")
 
@@ -157,7 +134,7 @@ def test_concurrent_provider(concurrent_temp_orch):
     assert len(mock_client.calls) == 2
 
 
-def example_nfl_tournament_test():
+def example_nfl_tournament_test(shared_sync_orch):
     """Example of testing the NFL tournament from the examples"""
 
     # Set up responses for the tournament
@@ -181,47 +158,49 @@ Steelers
         "Ravens defeat Steelers 24-10",
     ]
 
-    with tempfile.TemporaryDirectory() as temp_dir:
-        mock_client = mock_openai_client(responses=responses)
-        orch = resume_directory(
-            temp_dir, provider="openai", strategy="sync", client=mock_client
+    mock_client = shared_sync_orch._mock_client
+    mock_client.clear()
+    mock_client.set_responses(responses)
+    with shared_sync_orch.agent("example_nfl_tournament_test") as a:
+        # Get teams
+        resp = a.ask_llm(
+            "Please name 8 NFL teams. Place your final answer in a code block, separated by newlines."
         )
 
-        with orch.agent() as a:
-            # Get teams
+        teams = resp.resolve().split("```")[1].split("\n")[1:9]
+        print(f"Teams: {teams}")
+
+        # Run games
+        games = []
+        for i in range(0, len(teams), 2):
             resp = a.ask_llm(
-                "Please name 8 NFL teams. Place your final answer in a code block, separated by newlines."
+                f"Given a game between the {teams[i]} and the {teams[i + 1]}, simply predict the winner and the score."
             )
+            games.append(resp)
 
-            teams = resp.resolve().split("```")[1].split("\n")[1:9]
-            print(f"Teams: {teams}")
+        # Get results
+        game_descriptions = []
+        for resp in games:
+            game_descriptions.append(resp.resolve())
 
-            # Run games
-            games = []
-            for i in range(0, len(teams), 2):
-                resp = a.ask_llm(
-                    f"Given a game between the {teams[i]} and the {teams[i + 1]}, simply predict the winner and the score."
-                )
-                games.append(resp)
+        print(f"Game results: {game_descriptions}")
 
-            # Get results
-            game_descriptions = []
-            for resp in games:
-                game_descriptions.append(resp.resolve())
-
-            print(f"Game results: {game_descriptions}")
-
-        # Verify the mock worked as expected
-        assert len(mock_client.calls) == 5  # 1 for teams + 4 for games
-        assert len(game_descriptions) == 4
-        assert "Patriots" in game_descriptions[0]
-        assert "Packers" in game_descriptions[1]
+    # Verify the mock worked as expected
+    assert len(mock_client.calls) == 5  # 1 for teams + 4 for games
+    assert len(game_descriptions) == 4
+    assert "Patriots" in game_descriptions[0]
+    assert "Packers" in game_descriptions[1]
 
 
 if __name__ == "__main__":
     # Run the example
+    import parallem as pllm
+
     print("Running NFL tournament test example...")
-    example_nfl_tournament_test()
+    with pllm.resume_directory(
+        "temp_example_nfl_tournament_test", provider="openai", strategy="sync"
+    ) as temp_orch:
+        example_nfl_tournament_test(temp_orch)
     print("✓ NFL tournament test completed successfully!")
 
     # Run pytest tests

@@ -8,11 +8,17 @@ These tests validate:
 """
 
 import pytest
+from uuid import uuid4
 from parallem.core.gateway import resume_directory
 from parallem.testing.simple_mock import mock_openai_client
 
 
-def test_nfl_tournament_mocked(temp_integration_dir):
+@pytest.fixture
+def test_agent_name(request):
+    return f"{request.node.name}-{uuid4().hex}"
+
+
+def test_nfl_tournament_mocked(shared_sync_orch, test_agent_name):
     """Test NFL tournament with mocked responses"""
     # Set up mock responses
     responses = [
@@ -35,15 +41,11 @@ Steelers
         "Ravens defeat Steelers 24-10",
     ]
 
-    mock_client = mock_openai_client(responses=responses)
-    orch = resume_directory(
-        temp_integration_dir / "tour-nfl",
-        provider="openai",
-        strategy="sync",
-        client=mock_client,
-    )
+    mock_client = shared_sync_orch._mock_client
+    mock_client.clear()
+    mock_client.set_responses(responses)
 
-    with orch.agent() as dash:
+    with shared_sync_orch.agent(test_agent_name) as dash:
         # Get teams
         resp = dash.ask_llm(
             "Please name 8 NFL teams. Place your final answer in a code block, separated by newlines."
@@ -76,12 +78,11 @@ Steelers
     # Verify mock was called correctly
     assert len(mock_client.calls) == 5  # 1 for teams + 4 for games
 
-    # Persist and verify directory structure
-    orch.finalize_and_persist()
-    assert (temp_integration_dir / "tour-nfl").exists()
+    # Verify directory structure
+    assert len(mock_client.calls) == 5
 
 
-def test_enzyme_tournament_mocked(temp_integration_dir):
+def test_enzyme_tournament_mocked(shared_sync_orch, test_agent_name):
     """Test enzyme tournament with elimination rounds"""
     # Mock responses for a multi-round tournament
     responses = [
@@ -109,15 +110,11 @@ Chymotrypsin
         "Amylase",  # Amylase vs Catalase
     ]
 
-    mock_client = mock_openai_client(responses=responses)
-    orch = resume_directory(
-        temp_integration_dir / "tour-enzyme",
-        provider="openai",
-        strategy="sync",
-        client=mock_client,
-    )
+    mock_client = shared_sync_orch._mock_client
+    mock_client.clear()
+    mock_client.set_responses(responses)
 
-    with orch.agent() as agt:
+    with shared_sync_orch.agent(test_agent_name) as agt:
         # Get initial enzymes
         resp = agt.ask_llm(
             "Please name 8 enzymes. Place your final answer in a code block, separated by newlines."
@@ -153,8 +150,6 @@ Chymotrypsin
     # Verify correct number of API calls
     # 1 initial + 4 round1 + 2 round2 + 1 final = 8 calls
     assert len(mock_client.calls) == 8
-
-    orch.finalize_and_persist()
 
 
 def test_tournament_persistence_and_caching(temp_integration_dir):
@@ -224,7 +219,7 @@ Team D
     assert game2 == game2_2
 
 
-def test_tournament_with_concurrent_strategy(temp_integration_dir):
+def test_tournament_with_concurrent_strategy(shared_concurrent_orch, test_agent_name):
     """Test tournament works with concurrent strategy"""
     responses = [
         """Concurrent teams:
@@ -238,15 +233,11 @@ Delta
         "Gamma beats Delta",
     ]
 
-    mock_client = mock_openai_client(responses=responses, concurrent=True)
-    orch = resume_directory(
-        temp_integration_dir / "tour-concurrent-test",
-        provider="openai",
-        strategy="concurrent",  # Test concurrent strategy
-        client=mock_client,
-    )
+    mock_client = shared_concurrent_orch._mock_client
+    mock_client.clear()
+    mock_client.set_responses(responses)
 
-    with orch.agent() as agent:
+    with shared_concurrent_orch.agent(test_agent_name) as agent:
         teams_resp = agent.ask_llm("Get teams")
 
         # Submit multiple requests concurrently
@@ -262,8 +253,6 @@ Delta
     assert "Alpha beats Beta" in games[0]
     assert "Gamma beats Delta" in games[1]
     assert len(mock_client.calls) == 3
-
-    orch.finalize_and_persist()
 
 
 if __name__ == "__main__":

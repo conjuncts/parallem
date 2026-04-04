@@ -105,6 +105,14 @@ class MockOpenAIClient:
             else MockResponse(output_text=self.default)
         )
 
+    def clear(self):
+        """Clear call history and reset responses"""
+        self.calls = []
+        self.response_list = []
+        self.patterns = {}
+        self.default = "Mock response"
+        self.response_index = 0
+
 
 class MockConcurrentOpenAIClient(MockOpenAIClient):
     """Concurrent version of mock OpenAI client"""

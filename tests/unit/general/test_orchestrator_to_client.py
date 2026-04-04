@@ -1,10 +1,10 @@
 import asyncio
 import inspect
+from uuid import uuid4
 
 import pytest
 
 from parallem.core.gateway import resume_directory
-from parallem.testing.simple_mock import mock_openai_client
 from parallem.tools.server import WebSearchTool
 
 
@@ -12,6 +12,12 @@ class _FakeResponsesClient:
     def __init__(self, payloads):
         self.calls = []
         self._payloads = list(payloads)
+
+    def set_payloads(self, payloads):
+        self._payloads = list(payloads)
+
+    def clear(self):
+        self.calls.clear()
 
     def create(self, **kwargs):
         self.calls.append(kwargs)
@@ -28,6 +34,12 @@ class _FakeAnthropicMessagesClient:
         self.calls = []
         self._payloads = list(payloads)
 
+    def set_payloads(self, payloads):
+        self._payloads = list(payloads)
+
+    def clear(self):
+        self.calls.clear()
+
     def create(self, **kwargs):
         self.calls.append(kwargs)
         return self._payloads.pop(0)
@@ -38,17 +50,50 @@ class _FakeAnthropicClient:
         self.messages = _FakeAnthropicMessagesClient(payloads)
 
 
-pytestmark = pytest.mark.skip(reason="slow")
+# pytestmark = pytest.mark.skip(reason="slow")
 
 
-def test_to_client_sync_responses_create(tmp_path):
-    orch_dir = tmp_path / "sync"
-    mock_client = mock_openai_client(responses=["Hello from ask_llm"])
+@pytest.fixture(scope="session")
+def fake_openai_orch(session_orch_root):
+    orch_dir = session_orch_root / "sync-fake-openai"
+    fake_client = _FakeOpenAIClient([])
     orch = resume_directory(
-        str(orch_dir), provider="openai", strategy="sync", client=mock_client
+        orch_dir,
+        provider="openai",
+        strategy="sync",
+        client=fake_client,
     )
+    orch._fake_client = fake_client
+    yield orch
+    orch.finalize_and_persist()
 
-    client = orch.to_client(agent_name="openai-client")
+
+@pytest.fixture(scope="session")
+def fake_anthropic_orch(session_orch_root):
+    orch_dir = session_orch_root / "sync-fake-anthropic"
+    fake_client = _FakeAnthropicClient([])
+    orch = resume_directory(
+        orch_dir,
+        provider="anthropic",
+        strategy="sync",
+        client=fake_client,
+    )
+    orch._fake_client = fake_client
+    yield orch
+    orch.finalize_and_persist()
+
+
+@pytest.fixture
+def test_agent_name(request):
+    return f"{request.node.name}-{uuid4().hex}"
+
+
+def test_to_client_sync_responses_create(shared_sync_orch, test_agent_name):
+    mock_client = shared_sync_orch._mock_client
+    mock_client.clear()
+    mock_client.set_responses(["Hello from ask_llm"])
+
+    client = shared_sync_orch.to_client(agent_name=test_agent_name)
     response = client.responses.create(
         model="gpt-5-nano",
         instructions="You are helpful",
@@ -61,14 +106,12 @@ def test_to_client_sync_responses_create(tmp_path):
     assert response.output[-1]["content"][0]["text"] == "Hello from ask_llm"
 
 
-def test_to_client_sync_responses_parse(tmp_path):
-    orch_dir = tmp_path / "sync-parse"
-    mock_client = mock_openai_client(responses=['{"answer": 42}'])
-    orch = resume_directory(
-        str(orch_dir), provider="openai", strategy="sync", client=mock_client
-    )
+def test_to_client_sync_responses_parse(shared_sync_orch, test_agent_name):
+    mock_client = shared_sync_orch._mock_client
+    mock_client.clear()
+    mock_client.set_responses(['{"answer": 42}'])
 
-    client = orch.to_client(agent_name="openai-client")
+    client = shared_sync_orch.to_client(agent_name=test_agent_name)
     response = client.responses.parse(
         model="gpt-5-nano",
         input="Return JSON",
@@ -79,14 +122,12 @@ def test_to_client_sync_responses_parse(tmp_path):
     assert response.output_parsed == {"answer": 42}
 
 
-def test_to_client_sync_chat_completions_create(tmp_path):
-    orch_dir = tmp_path / "sync-chat"
-    mock_client = mock_openai_client(responses=["Chat completion response"])
-    orch = resume_directory(
-        str(orch_dir), provider="openai", strategy="sync", client=mock_client
-    )
+def test_to_client_sync_chat_completions_create(shared_sync_orch, test_agent_name):
+    mock_client = shared_sync_orch._mock_client
+    mock_client.clear()
+    mock_client.set_responses(["Chat completion response"])
 
-    client = orch.to_client(agent_name="openai-client")
+    client = shared_sync_orch.to_client(agent_name=test_agent_name)
     response = client.chat.completions.create(
         model="gpt-5-nano",
         messages=[{"role": "user", "content": "Summarize"}],
@@ -96,14 +137,14 @@ def test_to_client_sync_chat_completions_create(tmp_path):
     assert response.choices[0]["message"]["content"] == "Chat completion response"
 
 
-def test_to_client_concurrent_responses_create_is_async(tmp_path):
-    orch_dir = tmp_path / "concurrent"
-    mock_client = mock_openai_client(responses=["Async hello"], concurrent=True)
-    orch = resume_directory(
-        str(orch_dir), provider="openai", strategy="concurrent", client=mock_client
-    )
+def test_to_client_concurrent_responses_create_is_async(
+    shared_concurrent_orch, test_agent_name
+):
+    mock_client = shared_concurrent_orch._mock_client
+    mock_client.clear()
+    mock_client.set_responses(["Async hello"])
 
-    client = orch.to_client(agent_name="openai-client")
+    client = shared_concurrent_orch.to_client(agent_name=test_agent_name)
     assert inspect.iscoroutinefunction(client.responses.create)
 
     response = asyncio.run(
@@ -116,16 +157,12 @@ def test_to_client_concurrent_responses_create_is_async(tmp_path):
     assert response.output_text == "Async hello"
 
 
-def test_to_client_sync_caches_identical_requests(tmp_path):
-    orch_dir = tmp_path / "sync-cache"
-    mock_client = mock_openai_client(
-        responses=["First live response", "Second live response"]
-    )
-    orch = resume_directory(
-        str(orch_dir), provider="openai", strategy="sync", client=mock_client
-    )
+def test_to_client_sync_caches_identical_requests(shared_sync_orch, test_agent_name):
+    mock_client = shared_sync_orch._mock_client
+    mock_client.clear()
+    mock_client.set_responses(["First live response", "Second live response"])
 
-    client = orch.to_client(agent_name="openai-client")
+    client = shared_sync_orch.to_client(agent_name=test_agent_name)
 
     response1 = client.responses.create(
         model="gpt-5-nano",
@@ -143,18 +180,14 @@ def test_to_client_sync_caches_identical_requests(tmp_path):
     assert len(mock_client.calls) == 1
 
 
-def test_to_client_sync_hash_by_llm_differentiates_cache(tmp_path):
-    orch_dir = tmp_path / "sync-cache-by-llm"
-    mock_client = mock_openai_client(responses=["nano response", "mini response"])
-    orch = resume_directory(
-        str(orch_dir),
-        provider="openai",
-        strategy="sync",
-        client=mock_client,
-        hash_by=["llm"],
-    )
+def test_to_client_sync_hash_by_llm_differentiates_cache(
+    shared_sync_orch, test_agent_name
+):
+    mock_client = shared_sync_orch._mock_client
+    mock_client.clear()
+    mock_client.set_responses(["nano response", "mini response"])
 
-    client = orch.to_client(agent_name="openai-client")
+    client = shared_sync_orch.to_client(agent_name=test_agent_name)
 
     response1 = client.responses.create(
         model="gpt-5-nano",
@@ -172,9 +205,7 @@ def test_to_client_sync_hash_by_llm_differentiates_cache(tmp_path):
     assert len(mock_client.calls) == 2
 
 
-def test_to_client_sync_surfaces_function_calls(tmp_path):
-    orch_dir = tmp_path / "sync-tools-output"
-
+def test_to_client_sync_surfaces_function_calls(fake_openai_orch, test_agent_name):
     fake_payload = {
         "id": "resp_tool_1",
         "output": [
@@ -196,16 +227,11 @@ def test_to_client_sync_surfaces_function_calls(tmp_path):
             },
         ],
     }
-    fake_client = _FakeOpenAIClient([fake_payload])
+    fake_client = fake_openai_orch._fake_client
+    fake_client.responses.clear()
+    fake_client.responses.set_payloads([fake_payload])
 
-    orch = resume_directory(
-        str(orch_dir),
-        provider="openai",
-        strategy="sync",
-        client=fake_client,
-    )
-
-    client = orch.to_client(agent_name="openai-client")
+    client = fake_openai_orch.to_client(agent_name=test_agent_name)
     response = client.responses.create(
         model="gpt-5-nano",
         input=[{"role": "user", "content": "What's weather in Boston?"}],
@@ -219,10 +245,12 @@ def test_to_client_sync_surfaces_function_calls(tmp_path):
     assert tool_calls[0]["call_id"] == "call_123"
 
 
-def test_to_client_sync_forwards_function_call_output_input(tmp_path):
-    orch_dir = tmp_path / "sync-tools-input"
-
-    fake_client = _FakeAnthropicClient(
+def test_to_client_sync_forwards_function_call_output_input(
+    fake_anthropic_orch, test_agent_name
+):
+    fake_client = fake_anthropic_orch._fake_client
+    fake_client.messages.clear()
+    fake_client.messages.set_payloads(
         [
             {
                 "id": "resp_tool_out_1",
@@ -236,14 +264,7 @@ def test_to_client_sync_forwards_function_call_output_input(tmp_path):
         ]
     )
 
-    orch = resume_directory(
-        str(orch_dir),
-        provider="anthropic",
-        strategy="sync",
-        client=fake_client,
-    )
-
-    client = orch.to_client(agent_name="openai-client")
+    client = fake_anthropic_orch.to_client(agent_name=test_agent_name)
     _ = client.responses.create(
         model="claude-haiku-4-5-20251001",
         input=[
@@ -265,10 +286,12 @@ def test_to_client_sync_forwards_function_call_output_input(tmp_path):
     assert sent_messages[0]["content"][0]["content"] == "72F and sunny"
 
 
-def test_to_client_sync_forwards_web_search_tool_to_openai(tmp_path):
-    orch_dir = tmp_path / "sync-web-search-openai"
-
-    fake_client = _FakeOpenAIClient(
+def test_to_client_sync_forwards_web_search_tool_to_openai(
+    fake_openai_orch, test_agent_name
+):
+    fake_client = fake_openai_orch._fake_client
+    fake_client.responses.clear()
+    fake_client.responses.set_payloads(
         [
             {
                 "id": "resp_ws_openai_1",
@@ -282,14 +305,7 @@ def test_to_client_sync_forwards_web_search_tool_to_openai(tmp_path):
         ]
     )
 
-    orch = resume_directory(
-        str(orch_dir),
-        provider="openai",
-        strategy="sync",
-        client=fake_client,
-    )
-
-    client = orch.to_client(agent_name="openai-client")
+    client = fake_openai_orch.to_client(agent_name=test_agent_name)
     _ = client.responses.create(
         model="gpt-5-nano",
         input=[{"role": "user", "content": "search recent weather"}],
@@ -312,10 +328,12 @@ def test_to_client_sync_forwards_web_search_tool_to_openai(tmp_path):
     assert sent_tools[0]["user_location"]["country"] == "US"
 
 
-def test_to_client_sync_forwards_web_search_tool_to_anthropic(tmp_path):
-    orch_dir = tmp_path / "sync-web-search-anthropic"
-
-    fake_client = _FakeAnthropicClient(
+def test_to_client_sync_forwards_web_search_tool_to_anthropic(
+    fake_anthropic_orch, test_agent_name
+):
+    fake_client = fake_anthropic_orch._fake_client
+    fake_client.messages.clear()
+    fake_client.messages.set_payloads(
         [
             {
                 "id": "resp_ws_anthropic_1",
@@ -324,14 +342,7 @@ def test_to_client_sync_forwards_web_search_tool_to_anthropic(tmp_path):
         ]
     )
 
-    orch = resume_directory(
-        str(orch_dir),
-        provider="anthropic",
-        strategy="sync",
-        client=fake_client,
-    )
-
-    client = orch.to_client(agent_name="openai-client")
+    client = fake_anthropic_orch.to_client(agent_name=test_agent_name)
     _ = client.responses.create(
         model="claude-haiku-4-5-20251001",
         input=[{"role": "user", "content": "search recent weather"}],

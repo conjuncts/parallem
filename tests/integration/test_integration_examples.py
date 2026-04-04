@@ -7,11 +7,17 @@ These tests validate complex scenarios that combine:
 """
 
 import pytest
+from uuid import uuid4
 from parallem.core.gateway import resume_directory
 from parallem.testing.simple_mock import mock_openai_client
 
 
-def test_tournament(temp_integration_dir):
+@pytest.fixture
+def test_agent_name(request):
+    return f"{request.node.name}-{uuid4().hex}"
+
+
+def test_tournament(shared_sync_orch, test_agent_name):
     """Test tournament"""
     responses = [
         # Phase 1: Get contestants
@@ -29,33 +35,28 @@ Diana
         "Alice",  # Alice vs Diana
     ]
 
-    mock_client = mock_openai_client(responses=responses)
-    with resume_directory(
-        temp_integration_dir / "userdata_tournament",
-        provider="openai",
-        strategy="sync",
-        client=mock_client,
-    ) as orch:
-        with orch.agent() as agent:
-            contestants_resp = agent.ask_llm("Get 4 contestants for the tournament")
-            contestants = contestants_resp.resolve().split("```")[1].split("\n")[1:5]
+    mock_client = shared_sync_orch._mock_client
+    mock_client.clear()
+    mock_client.set_responses(responses)
 
-            semifinal_winners = []
+    with shared_sync_orch.agent(test_agent_name) as agent:
+        contestants_resp = agent.ask_llm("Get 4 contestants for the tournament")
+        contestants = contestants_resp.resolve().split("```")[1].split("\n")[1:5]
 
-            # Run semifinals
-            for i in range(0, len(contestants), 2):
-                resp = agent.ask_llm(
-                    f"Who wins: {contestants[i]} vs {contestants[i + 1]}?"
-                )
-                semifinal_winners.append(resp.resolve())
+        semifinal_winners = []
 
-            final_resp = agent.ask_llm(
-                f"Final match: {semifinal_winners[0]} vs {semifinal_winners[1]}?"
-            )
-            winner = final_resp.resolve()
+        # Run semifinals
+        for i in range(0, len(contestants), 2):
+            resp = agent.ask_llm(f"Who wins: {contestants[i]} vs {contestants[i + 1]}?")
+            semifinal_winners.append(resp.resolve())
 
-            assert winner == "Alice"
-        assert len(mock_client.calls) == 4  # 1 contestants + 2 semifinals + 1 final
+        final_resp = agent.ask_llm(
+            f"Final match: {semifinal_winners[0]} vs {semifinal_winners[1]}?"
+        )
+        winner = final_resp.resolve()
+
+        assert winner == "Alice"
+    assert len(mock_client.calls) == 4  # 1 contestants + 2 semifinals + 1 final
 
 
 def test_strategy_switching_persistence(temp_integration_dir):
@@ -102,27 +103,24 @@ def test_strategy_switching_persistence(temp_integration_dir):
         assert len(mock_client_async.calls) == 0
 
 
-def test_complex_userdata_workflow(temp_integration_dir):
+def test_complex_userdata_workflow(shared_sync_orch, test_agent_name):
     """Test complex userdata operations across multiple agents"""
     responses = [
         "Database schema v2.1",
         "Final implementation plan ready",
     ]
 
-    mock_client = mock_openai_client(responses=responses)
-    with resume_directory(
-        temp_integration_dir / "complex_userdata",
-        provider="openai",
-        strategy="sync",
-        client=mock_client,
-    ) as orch:
-        with orch.agent("2") as agent2:
-            schema = agent2.ask_llm("Design database schema")
-            orch.userdata["technical/database_schema"] = schema.resolve()
+    mock_client = shared_sync_orch._mock_client
+    mock_client.clear()
+    mock_client.set_responses(responses)
 
-        with orch.agent("3") as agent3:  # noqa: F841
-            db_schema = orch.userdata["technical/database_schema"]
-            assert db_schema == "Database schema v2.1"
+    with shared_sync_orch.agent(f"{test_agent_name}-writer") as agent2:
+        schema = agent2.ask_llm("Design database schema")
+        shared_sync_orch.userdata["technical/database_schema"] = schema.resolve()
+
+    with shared_sync_orch.agent(f"{test_agent_name}-reader") as agent3:  # noqa: F841
+        db_schema = shared_sync_orch.userdata["technical/database_schema"]
+        assert db_schema == "Database schema v2.1"
 
 
 if __name__ == "__main__":
