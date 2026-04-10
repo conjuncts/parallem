@@ -339,7 +339,7 @@ class CommonQueryParameters(TypedDict):
     instructions: Optional[str]
     strict_documents: List[LLMDocument]
     llm: LLMIdentity
-    structured_output: Optional[dict]
+    structured_output: Optional[Any]
     tools: Optional[List[dict]]
 
 

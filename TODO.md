@@ -81,3 +81,5 @@ High priority:
 - If (sess_id, seq_id) serves as a unique key, then response_id can be removed from the main table.
 - If upserting, preserve old (sess_id, seq_id).
 - SQLite error during metadata transfer: too many SQL variables
+
+- pass the memoize salt into the ask_llm salt. Or otherwise stop it ask_llm(same prompt) from colliding for memoize() blocks with different salts.

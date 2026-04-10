@@ -13,6 +13,7 @@ from parallem.types import (
 
 if TYPE_CHECKING:
     from parallem.core.state.msg_state import MessageState
+    from pydantic import BaseModel
 
 
 class Askable(ABC):
@@ -33,7 +34,7 @@ class Askable(ABC):
         llm: Union[LLMIdentity, str, None] = None,
         salt: Optional[str] = None,
         hash_by: HashByOptions = None,
-        structured_output: Optional[object] = None,
+        structured_output: Optional["BaseModel"] = None,
         tools: Optional[list[Union[dict, ServerTool]]] = None,
         tag: Optional[str] = None,
         save_input: Optional[bool] = None,
