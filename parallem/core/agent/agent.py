@@ -82,6 +82,8 @@ class AgentContext(Askable):
         self._anonymous_counter = 0
 
         self.ask_params = ask_params or {}
+        if self.ask_params:
+            self.ask_llm = self._bind_ask_llm(self.ask_params)
         self.ignore_cache = ignore_cache
 
         self._msg_state: Optional[MessageState] = None
@@ -138,19 +140,6 @@ class AgentContext(Askable):
             )
         if structured_output is None:
             structured_output = legacy_text_format
-
-        # load ask_params defaults
-        for k, v in self.ask_params.items():
-            if k == "hash_by" and hash_by is None:
-                hash_by = v
-            elif k == "save_input" and save_input is None:
-                save_input = v
-            elif k == "llm" and llm is None:
-                llm = v
-            elif k == "structured_output" and structured_output is None:
-                structured_output = v
-            elif k == "text_format" and structured_output is None:
-                structured_output = v
 
         if llm is None:
             llm = self._orch._provider.get_default_llm_identity()
@@ -246,6 +235,30 @@ class AgentContext(Askable):
             call_id=call_id,
             **kwargs,
         )
+
+    def _bind_ask_llm(
+        self,
+        ask_params: Optional[AskParameters] = None,
+        **bound_kwargs,
+    ) -> Callable[..., LLMResponse]:
+        """
+        Return a callable version of ``ask_llm`` with bound default keyword arguments.
+
+        Bound defaults are merged first, then per-call kwargs override them.
+        """
+        merged_defaults = dict(ask_params or {})
+        merged_defaults.update(bound_kwargs)
+
+        def _bound_ask_llm(documents, *additional_documents, **kwargs):
+            call_kwargs = {**merged_defaults, **kwargs}
+            return AgentContext.ask_llm(
+                self,
+                documents,
+                *additional_documents,
+                **call_kwargs,
+            )
+
+        return _bound_ask_llm
 
     def ask_functions(
         self,

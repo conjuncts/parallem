@@ -134,7 +134,7 @@ def test_full_batch_openai(temp_integration_dir, sample_tools, sample_image):
         provider=provider,
         strategy="batch",
         hash_by=["llm"],
-        tweaks=pllm.types.MinorTweaks(batch_user_confirmation=False),
+        tweaks={"batch_user_confirmation": False},
         client=False,  # Don't use real client
         save_input=True,
     ) as orch:
@@ -184,7 +184,7 @@ def test_full_batch_google(temp_integration_dir, sample_tools, sample_image):
         provider=provider,
         strategy="batch",
         hash_by=["llm"],
-        tweaks=pllm.types.MinorTweaks(batch_user_confirmation=False),
+        tweaks={"batch_user_confirmation": False},
         client=False,  # Don't use real client
         save_input=False,
     ) as orch:
@@ -210,7 +210,7 @@ def test_full_batch_anthropic(temp_integration_dir, sample_tools, sample_image):
         provider=provider,
         strategy="batch",
         hash_by=["llm"],
-        tweaks=pllm.types.MinorTweaks(batch_user_confirmation=False),
+        tweaks={"batch_user_confirmation": False},
         client=False,  # Don't use real client
         save_input=False,
     ) as orch:

@@ -343,8 +343,7 @@ class CommonQueryParameters(TypedDict):
     tools: Optional[List[dict]]
 
 
-@dataclass(frozen=True, slots=True)
-class MinorTweaks:
+class MinorTweaks(TypedDict, total=False):
     """
     Minor tweaks for the ParallelLLM framework.
     Holds configs not significant enough to warrant a full keyword argument.

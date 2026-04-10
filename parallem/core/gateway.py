@@ -12,6 +12,14 @@ if TYPE_CHECKING:
     from parallem.core.throttler import Throttler
 
 
+DEFAULT_MINOR_TWEAKS: MinorTweaks = {
+    "max_concurrent": 20,
+    "batch_user_confirmation": True,
+    "batch_wait_until_complete": False,
+    "batch_max_size": 1000,
+}
+
+
 def resume_directory(
     directory,
     *,
@@ -23,7 +31,7 @@ def resume_directory(
     ignore_cache=False,
     rewrite_cache=False,
     throttler: Optional["Throttler"] = None,
-    tweaks: MinorTweaks = MinorTweaks(),
+    tweaks: Optional[MinorTweaks] = None,
     dashboard: bool = False,
     client: Optional[Any] = None,
     hash_by: HashByOptions = None,
@@ -43,7 +51,7 @@ def resume_directory(
     :param ignore_cache: If True, always submit to API instead of using cached responses
     :param rewrite_cache: If True, overwrite cached responses with new ones (uses upsert)
     :param throttler: Throttler instance for rate limiting (default: None, no throttling)
-    :param tweaks: MinorTweaks instance for fine-tuning behavior
+    :param tweaks: Minor tweak overrides for fine-tuning behavior
     :param dashboard: If True, pretty prints sent requests in real time
     :param client: Optional pre-initialized client instance (ie. OpenAI, Google, Anthropic, etc.)
 
@@ -64,8 +72,7 @@ def resume_directory(
         raise ValueError(f"Unknown strategy '{strategy}'")
     if dry_run:
         raise NotImplementedError("Dry run is not implemented yet")
-    if isinstance(tweaks, dict):
-        tweaks = MinorTweaks(**tweaks)
+    tweaks_dict: MinorTweaks = {**DEFAULT_MINOR_TWEAKS, **(tweaks or {})}
     # 2. Setup logger
     dashlog = DashboardLogger(k=10, display=dashboard)
     pllm_log_handler = get_pllm_log_handler(dashlog)
@@ -93,7 +100,7 @@ def resume_directory(
             dashlog=dashlog,
             datastore_cls=datastore_cls,
             rewrite_cache=rewrite_cache,
-            max_concurrent=tweaks.max_concurrent,
+            max_concurrent=tweaks_dict["max_concurrent"],
             throttler=throttler,
         )
     elif strategy == "sync":
@@ -114,8 +121,8 @@ def resume_directory(
             dashlog=dashlog,
             datastore_cls=datastore_cls,
             session_id=fm._get_session_counter(),
-            confirm_batch_submission=tweaks.batch_user_confirmation,
-            max_batch_size=tweaks.batch_max_size,
+            confirm_batch_submission=tweaks_dict["batch_user_confirmation"],
+            max_batch_size=tweaks_dict["batch_max_size"],
             rewrite_cache=rewrite_cache,
         )
     else:
@@ -156,7 +163,7 @@ def resume_directory(
             d.clear(clear_console=False)
         d.finalize_line()
 
-        if statuses["pending"] > 0 and tweaks.batch_wait_until_complete:
+        if statuses["pending"] > 0 and tweaks_dict["batch_wait_until_complete"]:
             # TODO: handle this better
             print("Cannot proceed until all batches are complete.")
             exit(0)

@@ -16,9 +16,9 @@ with pllm.resume_directory(
         max_requests_per_window=4,
         window_seconds=10,
     ),
-    tweaks=pllm.MinorTweaks(
-        max_concurrent=2,
-    ),
+    tweaks={
+        "max_concurrent": 2,
+    },
     dashboard=True,
 ) as orch:
     time_start = time.time()

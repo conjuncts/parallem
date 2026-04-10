@@ -12,7 +12,6 @@ from parallem.types import (
     ProviderType,
     ParsedResponse,
     LLMIdentity,
-    MinorTweaks,
     ParsedError,
     LLMResponse,
 )
@@ -52,7 +51,6 @@ __all__ = [
     "ParsedResponse",
     "LLMIdentity",
     # "CommonQueryParameters",
-    "MinorTweaks",
     "ParsedError",
     "LLMResponse",
     "HumanResponse",
