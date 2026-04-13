@@ -29,4 +29,4 @@ We help you save 50% on all token costs.
 
 ## Quickstart/Documentation
 
-Please refer to the [documentation](https://conjuncts.github.io/parallem).
+Please refer to the [documentation](https://parallem-ai.github.io/parallem).
