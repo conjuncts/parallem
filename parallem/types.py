@@ -4,6 +4,7 @@ from typing import (
     Any,
     List,
     Literal,
+    TypeAlias,
     TypedDict,
     Optional,
     Union,
@@ -84,7 +85,7 @@ class CohortIdentifier:
     """Numeric ID of session. Here, it also serves as a cohort ID."""
 
 
-HashByOptions = Optional[list[Literal["llm"]]]
+HashByOptions: TypeAlias = Optional[list[Literal["llm"]]]
 
 
 class AskParameters(TypedDict):
@@ -316,6 +317,10 @@ class LLMIdentity:
         self.provider_type = provider_type
         self.model_name = model_name
 
+        self.nickname = None
+        if self.identity != self.model_name:
+            self.nickname = self.identity
+
     def __hash__(self):
         """Make LLMIdentity hashable based on provider and model_name."""
         return hash((self.provider_type, self.model_name, self.identity))
@@ -328,6 +333,13 @@ class LLMIdentity:
             self.provider_type == other.provider_type
             and self.model_name == other.model_name
             and self.identity == other.identity
+        )
+
+    def __repr__(self):
+        return (
+            f"LLMIdentity({self.provider_type}/{self.model_name}"
+            + (f' "{self.nickname}"' if self.nickname else "")
+            + ")"
         )
 
 

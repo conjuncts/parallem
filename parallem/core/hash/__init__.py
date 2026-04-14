@@ -1,15 +1,104 @@
 import hashlib
-from typing import List, Optional
+import json
 from io import BytesIO
+from typing import Any, List, Optional, Union
+
 from PIL import Image
 import warnings
 
-from parallem.types import LLMDocument, FunctionCallRequest, FunctionCallOutput
+from parallem.types import (
+    FunctionCallOutput,
+    FunctionCallRequest,
+    HashByOptions,
+    LLMDocument,
+    LLMIdentity,
+    ServerTool,
+)
+
+
+__all__ = ["build_hash_salt_terms", "compute_hash", "serialize_tools_for_hash"]
 
 
 def _updateh(hasher, val: Optional[str]):
     if val is not None:
         hasher.update(val.encode("utf-8"))
+
+
+def _normalize_for_hash(value: Any):
+    if value is None or isinstance(value, (str, int, float, bool)):
+        return value
+
+    if isinstance(value, dict):
+        return {
+            str(key): _normalize_for_hash(val)
+            for key, val in sorted(value.items(), key=lambda item: str(item[0]))
+        }
+
+    if isinstance(value, (list, tuple)):
+        return [_normalize_for_hash(item) for item in value]
+
+    if isinstance(value, ServerTool):
+        attrs = {}
+        if hasattr(value, "__dict__"):
+            attrs = {
+                str(key): _normalize_for_hash(val)
+                for key, val in sorted(value.__dict__.items(), key=lambda item: item[0])
+                if not key.startswith("_")
+            }
+        return {"server_tool_type": value.server_tool_type, "attrs": attrs}
+
+    if callable(value):
+        module_name = getattr(value, "__module__", "")
+        qualname = getattr(value, "__qualname__", getattr(value, "__name__", ""))
+        return f"{module_name}.{qualname}".strip(".")
+
+    return repr(value)
+
+
+def serialize_tools_for_hash(tools: Optional[list[Union[dict, ServerTool]]]) -> str:
+    """
+    Serialize tools deterministically for use in a hash salt.
+
+    :param tools: Tools to serialize.
+    :return: Deterministic JSON string for the provided tools.
+    """
+    return json.dumps(_normalize_for_hash(tools), sort_keys=True, separators=(",", ":"))
+
+
+def build_hash_salt_terms(
+    *,
+    salt: Optional[str] = None,
+    hash_by: HashByOptions = None,
+    llm: Optional[LLMIdentity] = None,
+    provider_type: Optional[str] = None,
+    tools: Optional[list[Union[dict, ServerTool]]] = None,
+) -> list[str]:
+    """
+    Build the salt terms used to differentiate cache keys.
+
+    :param salt: Base salt term.
+    :param hash_by: Extra hash dimensions to include.
+    :param llm: Selected LLM identity, if any.
+    :param provider_type: Provider type for the current call.
+    :param tools: Reserved for future use.
+    :return: Ordered salt terms to join into the final salt string.
+    """
+    salt_terms: list[str] = []
+    if salt is not None:
+        salt_terms.append(str(salt))
+    if hash_by is not None:
+        for term in hash_by:
+            if term in ["llm", "llm+provider"]:
+                if llm is not None:
+                    salt_terms.append(llm.identity)
+                elif term == "llm+provider":
+                    salt_terms.append(provider_type)
+                else:
+                    salt_terms.append(term)
+            elif term == "tools":
+                # salt_terms.append(serialize_tools_for_hash(tools))
+                pass
+    return salt_terms
 
 
 def compute_hash(

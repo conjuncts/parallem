@@ -23,4 +23,4 @@ with pllm.resume_directory(
             hash_by=["llm"],
         )
 
-        agt.print(resp.resolve())
+        agt.print(resp.final_answer)

@@ -41,6 +41,6 @@ with pllm.resume_directory(
         while last_msg.resolve_function_calls():
             conv.ask_functions(multiply=multiply, add=add, divide=divide)
             last_msg = conv.ask_llm()
-            agt.print(conv.resolve())
+            agt.print(conv.final_answer)
 
 # ['Add 3 and 4.', '', FunctionCallOutput(name=add, call_id=, content=7...), '3 + 4 = 7']

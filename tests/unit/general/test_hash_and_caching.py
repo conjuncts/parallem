@@ -12,9 +12,10 @@ import pytest
 from unittest.mock import patch
 import hashlib
 from PIL import Image
-from parallem.core.hash import compute_hash
+from parallem.core.hash import compute_hash, serialize_tools_for_hash
 from parallem.logging.dash_logger import DashboardLogger, HashStatus
 from parallem.core.calls import _call_matches
+from parallem.tools.server import WebSearchTool
 from parallem.types import CallIdentifier
 
 
@@ -116,6 +117,17 @@ class TestComputeHash:
         h1 = compute_hash("instr", ["doc"], salt="s1")
         h2 = compute_hash("instr", ["doc"], salt="s1")
         assert h1 == h2
+
+    def test_serialize_tools_is_deterministic(self):
+        """Tool serialization should ignore dict ordering inside tool kwargs."""
+        tool1 = WebSearchTool(kwargs={"b": 2, "a": 1})
+        tool2 = WebSearchTool(kwargs={"a": 1, "b": 2})
+
+        serialized1 = serialize_tools_for_hash([tool1])
+        serialized2 = serialize_tools_for_hash([tool2])
+
+        assert serialized1 == serialized2
+        assert '"server_tool_type":"web_search"' in serialized1
 
 
 @pytest.mark.skip("Not very informative")

@@ -229,7 +229,7 @@ class MessageState(UserList[Union[LLMDocument, LLMResponse]], Askable):
             Can be helpful multi-agent or multi-model scenarios.
         :param salt: A value to include in the hash for differentiation.
         :param hash_by: The names of additional terms to include in the hash for differentiation.
-            Example: "llm" will also include the LLM name.
+            Example: "llm" includes the LLM name.
         :param structured_output: Schema or format specification for structured output.
             For OpenAI: uses structured output via responses.parse().
             For Google: sets response_mime_type and response_schema.

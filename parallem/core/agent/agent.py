@@ -1,4 +1,5 @@
 import inspect
+from functools import partial
 from typing import (
     TYPE_CHECKING,
     Callable,
@@ -14,7 +15,7 @@ from typing import (
 from parallem.core.ask import Askable
 from parallem.core.cast.fix_docs import cast_documents, reduce_to_list
 from parallem.core.exception import NotAvailable, PendingNotAvailable
-from parallem.core.hash import compute_hash
+from parallem.core.hash import build_hash_salt_terms, compute_hash
 from parallem.core.hydrate import hydrate_msg_state
 from parallem.core.memoize.memoize_context import MemoizeContext
 from parallem.core.state.msg_state import MessageState
@@ -156,20 +157,13 @@ class AgentContext(Askable):
         resolved_docs = cast_documents(documents)
 
         # Compute salt
-        salt_terms: list[str] = []
-        if salt is not None:
-            salt_terms.append(str(salt))
-        if hash_by is not None:
-            for term in hash_by:
-                if term in ["llm", "llm+provider"]:
-                    if llm is not None:
-                        salt_terms.append(llm.identity)
-                    elif term == "llm+provider":
-                        salt_terms.append(self._orch._provider.provider_type)
-                    else:
-                        salt_terms.append(
-                            self._orch._provider.get_default_llm_identity().identity
-                        )
+        salt_terms = build_hash_salt_terms(
+            salt=salt,
+            hash_by=hash_by,
+            llm=llm,
+            provider_type=self._orch._provider.provider_type,
+            tools=tools,
+        )
 
         # Use a null-byte separator so individual terms cannot be confused with one
         # another, and pass as the `salt` parameter (applied via re-hash) so that
@@ -249,16 +243,7 @@ class AgentContext(Askable):
         merged_defaults = dict(ask_params or {})
         merged_defaults.update(bound_kwargs)
 
-        def _bound_ask_llm(documents, *additional_documents, **kwargs):
-            call_kwargs = {**merged_defaults, **kwargs}
-            return AgentContext.ask_llm(
-                self,
-                documents,
-                *additional_documents,
-                **call_kwargs,
-            )
-
-        return _bound_ask_llm
+        return partial(AgentContext.ask_llm, self, **merged_defaults)
 
     def ask_functions(
         self,

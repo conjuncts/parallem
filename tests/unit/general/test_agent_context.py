@@ -183,6 +183,28 @@ class TestAskLLMMethod:
                 "Test instructions", ["Test prompt"], salt=None
             )
 
+    @patch("parallem.core.agent.agent.compute_hash")
+    def test_ask_llm_hash_by_tools(self, mock_compute_hash, mock_orchestrator):
+        """hash_by=['tools'] is currently unwired and should not alter salt."""
+        mock_compute_hash.return_value = "test_hash_123"
+
+        agent = AgentContext("test_agent", mock_orchestrator)
+        tools = [{"type": "web_search", "extra": {"b": 2, "a": 1}}]
+
+        with agent:
+            agent.ask_llm(
+                "Test prompt",
+                instructions="Test instructions",
+                hash_by=["tools"],
+                tools=tools,
+            )
+
+        mock_compute_hash.assert_called_once_with(
+            "Test instructions",
+            ["Test prompt"],
+            salt=None,
+        )
+
     def test_context_manager_preserves_anonymous_counter(self, mock_orchestrator):
         """Test that context manager preserves anonymous counter across contexts"""
         agent = AgentContext("test_agent", mock_orchestrator)

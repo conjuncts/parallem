@@ -205,6 +205,36 @@ def test_to_client_sync_hash_by_llm_differentiates_cache(
     assert len(mock_client.calls) == 2
 
 
+def test_to_client_sync_hash_by_tools_does_not_differentiate_cache_yet(
+    shared_sync_orch, test_agent_name
+):
+    mock_client = shared_sync_orch._mock_client
+    mock_client.clear()
+    mock_client.set_responses(["toolset A response", "toolset B response"])
+
+    client = shared_sync_orch.to_client(
+        agent_name=test_agent_name,
+        ask_params={"hash_by": ["llm", "tools"]},
+    )
+
+    response1 = client.responses.create(
+        model="gpt-5-nano",
+        instructions="Be concise",
+        input=[{"role": "user", "content": "Cache by tools"}],
+        tools=[{"type": "web_search"}],
+    )
+    response2 = client.responses.create(
+        model="gpt-5-nano",
+        instructions="Be concise",
+        input=[{"role": "user", "content": "Cache by tools"}],
+        tools=[{"type": "code_interpreter"}],
+    )
+
+    assert response1.output_text == "toolset A response"
+    assert response2.output_text == "toolset A response"
+    assert len(mock_client.calls) == 1
+
+
 def test_to_client_sync_surfaces_function_calls(fake_openai_orch, test_agent_name):
     fake_payload = {
         "id": "resp_tool_1",
