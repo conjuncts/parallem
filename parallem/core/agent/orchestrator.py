@@ -6,6 +6,7 @@ import polars as pl
 from typing import Any, Callable, Coroutine, List, Literal, Optional, Union
 from parallem.core.agent.agent import AgentContext
 from parallem.core.backend import BaseBackend
+from parallem.core.backend.batch_backend import BatchBackend
 from parallem.core.batch_namespace import BatchNamespace
 from parallem.core.exception import NotAvailable, ParallemSignal, PendingNotAvailable
 from parallem.core.state.non_msg_state import NonMessageState
@@ -218,7 +219,10 @@ class AgentOrchestrator:
 
     def __exit__(self, exc_type, exc_value, traceback):
         """Exit the context manager, automatically calling persist()."""
-        self.finalize_and_persist()
+        if exc_value is None or isinstance(exc_value, ParallemSignal):
+            self.finalize_tasks()
+        self._backend.persist()
+        self._fm.persist()
         if isinstance(exc_value, ParallemSignal):
             # If the signal was emitted by run_agents, we suppress it to allow graceful exits.
             if exc_value._from_run_agents:
@@ -269,7 +273,7 @@ class AgentOrchestrator:
         if self.strategy == "concurrent":
             self._run_pending_agents()
 
-        if getattr(self._backend, "execute_batch", None):
+        if isinstance(self._backend, BatchBackend) and self.strategy == "batch":
             with self.dashboard():
                 # Must print this one
                 self._backend.execute_batch(self._provider, dl=self._dashlog)
