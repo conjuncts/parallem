@@ -69,7 +69,7 @@ def build_hash_salt_terms(
     *,
     salt: Optional[str] = None,
     hash_by: HashByOptions = None,
-    llm: Optional[LLMIdentity] = None,
+    llm: LLMIdentity,
     provider_type: Optional[str] = None,
     tools: Optional[list[Union[dict, ServerTool]]] = None,
 ) -> list[str]:
@@ -89,12 +89,15 @@ def build_hash_salt_terms(
     if hash_by is not None:
         for term in hash_by:
             if term in ["llm", "llm+provider"]:
-                if llm is not None:
-                    salt_terms.append(llm.identity)
-                elif term == "llm+provider":
-                    salt_terms.append(provider_type)
+                if term == "llm+provider":
+                    # legacy support
+                    if llm is None:
+                        salt_terms.append(provider_type)
+                    else:
+                        salt_terms.append(llm.identity)
                 else:
-                    salt_terms.append(term)
+                    # standard:
+                    salt_terms.append(llm.identity)
             elif term == "tools":
                 # salt_terms.append(serialize_tools_for_hash(tools))
                 pass

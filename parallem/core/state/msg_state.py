@@ -1,4 +1,5 @@
 from collections import UserList
+from functools import partial
 from typing import (
     TYPE_CHECKING,
     Callable,
@@ -25,6 +26,7 @@ from parallem.core.memoize.operations import (
     SortOp,
 )
 from parallem.types import (
+    AskParameters,
     FunctionCallOutput,
     HashByOptions,
     HumanResponse,
@@ -55,12 +57,16 @@ class MessageState(UserList[Union[LLMDocument, LLMResponse]], Askable):
         anon_ctr=0,
         chkp_ctr=0,
         true_agent: "AgentContext" = None,
+        ask_params: Optional[AskParameters] = None,
     ):
         super().__init__(initlist)
         self.agent_name = agent_name
         self.anon_ctr = anon_ctr
         self.chkp_ctr = chkp_ctr
         self._true_agent = true_agent
+        self.ask_params = ask_params or {}
+        if self.ask_params:
+            self.ask_llm = self._bind_ask_llm(self.ask_params)
         self._memoize_enabled = False
         self._tracking_operations = False
         self._operation_log: Optional["OperationLog"] = None
@@ -74,9 +80,25 @@ class MessageState(UserList[Union[LLMDocument, LLMResponse]], Askable):
             anon_ctr=self.anon_ctr,
             chkp_ctr=self.chkp_ctr,
             true_agent=self._true_agent,
+            ask_params=self.ask_params,
         )
         new_state.data = self.data.copy()
         return new_state
+
+    def _bind_ask_llm(
+        self,
+        ask_params: Optional[AskParameters] = None,
+        **bound_kwargs,
+    ) -> Callable[..., LLMResponse]:
+        """
+        Return a callable version of ``ask_llm`` with bound default keyword arguments.
+
+        Bound defaults are merged first, then per-call kwargs override them.
+        """
+        merged_defaults = dict(ask_params or {})
+        merged_defaults.update(bound_kwargs)
+
+        return partial(MessageState.ask_llm, self, **merged_defaults)
 
     def get_state_hash(self, salt=None) -> str:
         """Compute a hash of the current MessageState.

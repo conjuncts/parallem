@@ -417,7 +417,11 @@ class AgentContext(Askable):
         :returns: The current message state.
         """
         if self._msg_state is None:
-            msg_state = MessageState(agent_name=self.agent_name, true_agent=self)
+            msg_state = MessageState(
+                agent_name=self.agent_name,
+                true_agent=self,
+                ask_params=self.ask_params,
+            )
             msg_state = hydrate_msg_state(msg_state, self._orch._backend)
             self._msg_state = msg_state
         return self._msg_state

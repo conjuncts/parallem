@@ -109,6 +109,37 @@ class TestAskLLMMethod:
             ]
             assert explicit_override["llm"].identity == "gpt-5-mini"
 
+    def test_msg_state_ask_llm_default_precedence(self, mock_orchestrator):
+        """MessageState.ask_llm should inherit ask_params defaults and allow explicit overrides."""
+        agent = AgentContext(
+            "test_agent",
+            mock_orchestrator,
+            ask_params={
+                "llm": LLMIdentity("gpt-4o-mini", provider_type="openai"),
+            },
+        )
+
+        with agent:
+            msg_state = agent.get_msg_state()
+            msg_state.ask_llm("msg_state default prompt")
+            ask_params_defaults = (
+                mock_orchestrator._backend.submit_query.call_args.args[1]
+            )
+            assert ask_params_defaults["llm"].identity == "gpt-4o-mini"
+
+        mock_orchestrator._backend.submit_query.reset_mock()
+
+        with agent:
+            msg_state = agent.get_msg_state()
+            msg_state.ask_llm(
+                "msg_state explicit override prompt",
+                llm=LLMIdentity("gpt-5-mini", provider_type="openai"),
+            )
+            explicit_override = mock_orchestrator._backend.submit_query.call_args.args[
+                1
+            ]
+            assert explicit_override["llm"].identity == "gpt-5-mini"
+
     def test_ask_llm_basic_call(self, mock_orchestrator):
         """Test basic ask_llm call"""
         agent = AgentContext("test_agent", mock_orchestrator)
