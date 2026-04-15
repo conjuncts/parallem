@@ -16,6 +16,7 @@ from parallem.core.datastore.base import BaseDatastore
 from parallem.core.datastore.sql_migrate import (
     _check_and_migrate,
     _migrate_sql_schema,
+    _ensure_legacy_responses_alias,
 )
 from parallem.core.io.sqlite_to_parquet import export_sqlite_to_folder, sqlite_to_df
 from parallem.core.sink.sequester import sequester_metadata
@@ -119,18 +120,18 @@ class SQLiteDatastore(BaseDatastore):
                 "ALTER TABLE memoize_ops ADD COLUMN target TEXT NOT NULL DEFAULT '.msg'"
             )
 
-    def _ensure_anon_responses_schema(self, conn: sqlite3.Connection) -> None:
-        """Ensure anon_responses contains origin_type column.
+    def _ensure_responses_schema(self, conn: sqlite3.Connection) -> None:
+        """Ensure responses contains origin_type column.
 
         :param conn: SQLite connection.
         :return: None.
         """
         cols = {
             row["name"]
-            for row in conn.execute("PRAGMA table_info(anon_responses)").fetchall()
+            for row in conn.execute("PRAGMA table_info(responses)").fetchall()
         }
         if "origin_type" not in cols:
-            conn.execute("ALTER TABLE anon_responses ADD COLUMN origin_type INTEGER")
+            conn.execute("ALTER TABLE responses ADD COLUMN origin_type INTEGER")
 
     def populate_call_id(
         self, short_call_id: dict, *, metadata=False
@@ -142,7 +143,7 @@ class SQLiteDatastore(BaseDatastore):
         """
         conn = self._get_connection(None)
         cursor = conn.execute(
-            """SELECT doc_hash FROM anon_responses 
+            """SELECT doc_hash FROM responses 
                WHERE agent_name = ? AND seq_id = ? AND session_id = ?
                ORDER BY id DESC LIMIT 1""",
             (
@@ -233,10 +234,11 @@ class SQLiteDatastore(BaseDatastore):
 
             # For main database (db_name is None), create response table
             if db_name is None:
+                _ensure_legacy_responses_alias(conn)
                 # Responses table: agent_name can be NULL
                 # No UNIQUE constraint - allows duplicates, retrieve will get most recent (highest id)
                 conn.execute("""
-                    CREATE TABLE IF NOT EXISTS anon_responses (
+                    CREATE TABLE IF NOT EXISTS responses (
                         id INTEGER PRIMARY KEY AUTOINCREMENT,
                         agent_name TEXT NOT NULL,
                         seq_id INTEGER NOT NULL,
@@ -248,7 +250,7 @@ class SQLiteDatastore(BaseDatastore):
                         origin_type INTEGER
                     )
                 """)
-                self._ensure_anon_responses_schema(conn)
+                self._ensure_responses_schema(conn)
 
                 # Create metadata table (shared between both response tables)
                 conn.execute("""
@@ -337,28 +339,30 @@ class SQLiteDatastore(BaseDatastore):
                 # Migrate existing schema if needed
                 _migrate_sql_schema(conn, None)
 
-                # Create indexes for anon_responses table
+                # Create indexes for responses table
                 conn.execute("""
-                    CREATE INDEX IF NOT EXISTS idx_anon_agent_name ON anon_responses(agent_name)
+                    CREATE INDEX IF NOT EXISTS idx_anon_agent_name ON responses(agent_name)
                 """)
                 conn.execute("""
-                    CREATE INDEX IF NOT EXISTS idx_anon_agent_doc_hash ON anon_responses(agent_name, doc_hash)
+                    CREATE INDEX IF NOT EXISTS idx_anon_agent_doc_hash ON responses(agent_name, doc_hash)
                 """)
                 conn.execute("""
-                    CREATE INDEX IF NOT EXISTS idx_anon_doc_hash ON anon_responses(doc_hash)
+                    CREATE INDEX IF NOT EXISTS idx_anon_doc_hash ON responses(doc_hash)
                 """)
                 conn.execute("""
-                    CREATE INDEX IF NOT EXISTS idx_anon_session_id ON anon_responses(session_id)
+                    CREATE INDEX IF NOT EXISTS idx_anon_session_id ON responses(session_id)
                 """)
                 conn.execute("""
-                    CREATE INDEX IF NOT EXISTS idx_anon_seq_id ON anon_responses(seq_id)
+                    CREATE INDEX IF NOT EXISTS idx_anon_seq_id ON responses(seq_id)
                 """)
                 conn.execute("""
-                    CREATE INDEX IF NOT EXISTS idx_anon_response_id ON anon_responses(response_id)
+                    CREATE INDEX IF NOT EXISTS idx_anon_response_id ON responses(response_id)
                 """)
                 conn.execute("""
-                    CREATE INDEX IF NOT EXISTS idx_anon_origin_type ON anon_responses(origin_type)
+                    CREATE INDEX IF NOT EXISTS idx_anon_origin_type ON responses(origin_type)
                 """)
+
+                _ensure_legacy_responses_alias(conn)
 
                 # Create indexes for metadata table
                 conn.execute("""
@@ -611,7 +615,7 @@ class SQLiteDatastore(BaseDatastore):
         agent_name = call_id["agent_name"]
 
         conn = self._get_connection(None)
-        table = "anon_responses"
+        table = "responses"
 
         if doc_hash is None:
             session_id = call_id.get("session_id")
@@ -811,7 +815,7 @@ class SQLiteDatastore(BaseDatastore):
             # Insert/upsert the response
             self._insert_response(
                 conn,
-                "anon_responses",
+                "responses",
                 record,
                 where_clause="doc_hash = ? AND agent_name = ?" if upsert else None,
                 where_params=[doc_hash, agent_name] if upsert else None,
@@ -1019,7 +1023,7 @@ class SQLiteDatastore(BaseDatastore):
                 # Insert/upsert the response
                 self._insert_response(
                     conn,
-                    "anon_responses",
+                    "responses",
                     record,
                     where_clause="doc_hash = ? AND agent_name = ?" if upsert else None,
                     where_params=[doc_hash, agent_name] if upsert else None,
@@ -1162,7 +1166,8 @@ class SQLiteDatastore(BaseDatastore):
         db_path = self.file_manager.path_datastore() / "datastore.db"
 
         col = sqlite_to_df(db_path)
-        return {table_name: df for table_name, df in col}
+        tables = {table_name: df for table_name, df in col}
+        return tables
 
     def import_polars(
         self,
@@ -1187,8 +1192,15 @@ class SQLiteDatastore(BaseDatastore):
         :param update: If True (default), upsert rows instead of overwriting the table.
         """
         conn = self._get_connection(None)
+        normalized_tables: dict[str, pl.DataFrame] = {}
+        for table_name, df in tables.items():
+            normalized_name = (
+                "responses" if table_name == "anon_responses" else table_name
+            )
+            if normalized_name not in normalized_tables:
+                normalized_tables[normalized_name] = df
         try:
-            for table_name, df in tables.items():
+            for table_name, df in normalized_tables.items():
                 if not update:
                     conn.execute(f"DELETE FROM {table_name}")
                 if df.is_empty():

@@ -126,7 +126,7 @@ class TestSQLite:
 
         conn = temp_datastore._get_connection(None)
         row = conn.execute(
-            "SELECT origin_type FROM anon_responses WHERE agent_name = ? AND doc_hash = ? AND seq_id = ?",
+            "SELECT origin_type FROM responses WHERE agent_name = ? AND doc_hash = ? AND seq_id = ?",
             (
                 generic_call_id["agent_name"],
                 generic_call_id["doc_hash"],
@@ -135,6 +135,17 @@ class TestSQLite:
         ).fetchone()
         assert row is not None
         assert row["origin_type"] == 1
+
+        legacy_row = conn.execute(
+            "SELECT origin_type FROM anon_responses WHERE agent_name = ? AND doc_hash = ? AND seq_id = ?",
+            (
+                generic_call_id["agent_name"],
+                generic_call_id["doc_hash"],
+                generic_call_id["seq_id"],
+            ),
+        ).fetchone()
+        assert legacy_row is not None
+        assert legacy_row["origin_type"] == 1
 
     def test_retrieve_ignores_human_origin_rows(self, temp_datastore, generic_call_id):
         """LLM retrieval should never return origin_type=1 rows."""
@@ -307,13 +318,11 @@ class TestSQLite:
 
         tables = temp_datastore.export_polars()
 
-        assert "anon_responses" in tables
-        assert isinstance(tables["anon_responses"], pl.DataFrame)
-        assert tables["anon_responses"].height == 1
+        assert "responses" in tables
+        assert isinstance(tables["responses"], pl.DataFrame)
+        assert tables["responses"].height == 1
 
-    def test_import_polars_replaces_anon_responses(
-        self, temp_datastore, generic_call_id
-    ):
+    def test_import_polars_replaces_responses(self, temp_datastore, generic_call_id):
         """Import should replace selected table contents."""
         temp_datastore.store(
             generic_call_id,
@@ -321,11 +330,11 @@ class TestSQLite:
         )
 
         exported = temp_datastore.export_polars()
-        anon = exported["anon_responses"].with_columns(
+        responses = exported["responses"].with_columns(
             pl.lit("after").alias("response")
         )
 
-        temp_datastore.import_polars({"anon_responses": anon}, update=False)
+        temp_datastore.import_polars({"responses": responses}, update=False)
 
         retrieved = temp_datastore.retrieve(generic_call_id)
         assert retrieved is not None
@@ -341,9 +350,9 @@ class TestSQLite:
         )
 
         exported = temp_datastore.export_polars()
-        empty_anon = exported["anon_responses"].clear()
+        empty_responses = exported["responses"].clear()
 
-        temp_datastore.import_polars({"anon_responses": empty_anon}, update=False)
+        temp_datastore.import_polars({"responses": empty_responses}, update=False)
 
         assert temp_datastore.retrieve(generic_call_id) is None
 
@@ -363,8 +372,8 @@ class TestSQLite:
 
         exported = temp_datastore.export_polars()
         # modify just the first row
-        anon = (
-            exported["anon_responses"]
+        responses = (
+            exported["responses"]
             .with_columns(
                 pl.when(pl.col("doc_hash") == generic_call_id["doc_hash"])
                 .then(pl.lit("updated"))
@@ -374,7 +383,7 @@ class TestSQLite:
             .filter(pl.col("doc_hash") == generic_call_id["doc_hash"])
         )
 
-        temp_datastore.import_polars({"anon_responses": anon}, update=True)
+        temp_datastore.import_polars({"responses": responses}, update=True)
 
         assert temp_datastore.retrieve(generic_call_id).text == "updated"
         # the other row was not touched
@@ -629,15 +638,14 @@ class TestSQLiteExtras:
         assert isinstance(conn, sqlite3.Connection)
 
         # Check that tables are created
-        cursor = conn.execute("SELECT name FROM sqlite_master WHERE type='table'")
-        tables = [row[0] for row in cursor.fetchall()]
-        expected_tables = [
-            "anon_responses",
-            "metadata",
-            "batch_pending",
-        ]
-        for table in expected_tables:
-            assert table in tables
+        cursor = conn.execute(
+            "SELECT name, type FROM sqlite_master WHERE type IN ('table', 'view')"
+        )
+        objects = {(row[0], row[1]) for row in cursor.fetchall()}
+        assert ("responses", "table") in objects
+        assert ("anon_responses", "view") in objects
+        assert ("metadata", "table") in objects
+        assert ("batch_pending", "table") in objects
 
     def test_null_agent_name_handling(self, temp_datastore, generic_call_id):
         """Test handling of null agent names"""

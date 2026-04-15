@@ -15,6 +15,124 @@ def table_exists(conn: sqlite3.Connection, table_name: str) -> bool:
     return cursor.fetchone() is not None
 
 
+def object_exists(conn: sqlite3.Connection, object_name: str) -> bool:
+    cursor = conn.execute(
+        "SELECT name FROM sqlite_master WHERE name=?",
+        (object_name,),
+    )
+    return cursor.fetchone() is not None
+
+
+def _sqlite_object_type(conn: sqlite3.Connection, object_name: str) -> Optional[str]:
+    """Return the sqlite master object type for a name.
+
+    :param conn: SQLite connection.
+    :param object_name: Name of the table or view.
+    :return: The object type, or None if it does not exist.
+    """
+    cursor = conn.execute(
+        "SELECT type FROM sqlite_master WHERE name = ?",
+        (object_name,),
+    )
+    row = cursor.fetchone()
+    return row[0] if row else None
+
+
+def _ensure_legacy_responses_alias(conn: sqlite3.Connection) -> None:
+    """Create the legacy anon_responses alias for backwards compatibility.
+
+    :param conn: SQLite connection.
+    :return: None.
+    """
+    object_type = _sqlite_object_type(conn, "anon_responses")
+    if object_type == "table":
+        if _sqlite_object_type(conn, "responses") is not None:
+            return
+        conn.execute("ALTER TABLE anon_responses RENAME TO responses")
+        object_type = None
+
+    if object_type is not None:
+        return
+
+    conn.execute(
+        """
+        CREATE VIEW IF NOT EXISTS anon_responses AS
+        SELECT
+            id,
+            agent_name,
+            seq_id,
+            session_id,
+            doc_hash,
+            response,
+            response_id,
+            tool_calls,
+            origin_type
+        FROM responses
+        """
+    )
+
+    conn.execute(
+        """
+        CREATE TRIGGER IF NOT EXISTS anon_responses_insert
+        INSTEAD OF INSERT ON anon_responses
+        BEGIN
+            INSERT INTO responses (
+                id,
+                agent_name,
+                seq_id,
+                session_id,
+                doc_hash,
+                response,
+                response_id,
+                tool_calls,
+                origin_type
+            ) VALUES (
+                NEW.id,
+                NEW.agent_name,
+                NEW.seq_id,
+                NEW.session_id,
+                NEW.doc_hash,
+                NEW.response,
+                NEW.response_id,
+                NEW.tool_calls,
+                NEW.origin_type
+            );
+        END
+        """
+    )
+
+    conn.execute(
+        """
+        CREATE TRIGGER IF NOT EXISTS anon_responses_update
+        INSTEAD OF UPDATE ON anon_responses
+        BEGIN
+            UPDATE responses
+            SET
+                agent_name = NEW.agent_name,
+                seq_id = NEW.seq_id,
+                session_id = NEW.session_id,
+                doc_hash = NEW.doc_hash,
+                response = NEW.response,
+                response_id = NEW.response_id,
+                tool_calls = NEW.tool_calls,
+                origin_type = NEW.origin_type
+            WHERE id = OLD.id;
+        END
+        """
+    )
+
+    conn.execute(
+        """
+        CREATE TRIGGER IF NOT EXISTS anon_responses_delete
+        INSTEAD OF DELETE ON anon_responses
+        BEGIN
+            DELETE FROM responses
+            WHERE id = OLD.id;
+        END
+        """
+    )
+
+
 def _check_and_migrate(ds: "SQLiteDatastore") -> None:
     """
     Check if old directory-based structure exists and migrate if needed.
@@ -44,14 +162,18 @@ def _migrate_sql_schema(conn: sqlite3.Connection, db_name: Optional[str]) -> Non
             if "tag" not in columns:
                 conn.execute("ALTER TABLE batch_pending ADD COLUMN tag TEXT")
 
-        # Add origin_type column to anon_responses table if it doesn't exist
-        if table_exists(conn, "anon_responses"):
-            cursor = conn.execute("PRAGMA table_info(anon_responses)")
+        # Migrate legacy anon_responses table name to responses if needed
+        if table_exists(conn, "anon_responses") and not object_exists(
+            conn, "responses"
+        ):
+            conn.execute("ALTER TABLE anon_responses RENAME TO responses")
+
+        # Add origin_type column to responses table if it doesn't exist
+        if table_exists(conn, "responses"):
+            cursor = conn.execute("PRAGMA table_info(responses)")
             columns = [row[1] for row in cursor.fetchall()]
             if "origin_type" not in columns:
-                conn.execute(
-                    "ALTER TABLE anon_responses ADD COLUMN origin_type INTEGER"
-                )
+                conn.execute("ALTER TABLE responses ADD COLUMN origin_type INTEGER")
 
     except sqlite3.Error as e:
         # If migration fails, continue - tables will be created fresh
