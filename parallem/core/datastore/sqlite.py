@@ -17,6 +17,8 @@ from parallem.core.datastore.sql_migrate import (
     _check_and_migrate,
     _migrate_sql_schema,
     _ensure_legacy_responses_alias,
+    get_schema_version,
+    table_exists,
 )
 from parallem.core.io.sqlite_to_parquet import export_sqlite_to_folder, sqlite_to_df
 from parallem.core.sink.sequester import sequester_metadata
@@ -234,180 +236,7 @@ class SQLiteDatastore(BaseDatastore):
 
             # For main database (db_name is None), create response table
             if db_name is None:
-                _ensure_legacy_responses_alias(conn)
-                # Responses table: agent_name can be NULL
-                # No UNIQUE constraint - allows duplicates, retrieve will get most recent (highest id)
-                conn.execute("""
-                    CREATE TABLE IF NOT EXISTS responses (
-                        id INTEGER PRIMARY KEY AUTOINCREMENT,
-                        agent_name TEXT NOT NULL,
-                        seq_id INTEGER NOT NULL,
-                        session_id INTEGER NOT NULL,
-                        doc_hash TEXT NOT NULL,
-                        response TEXT NOT NULL,
-                        response_id TEXT,
-                        tool_calls TEXT,
-                        origin_type INTEGER
-                    )
-                """)
-                self._ensure_responses_schema(conn)
-
-                # Create metadata table (shared between both response tables)
-                conn.execute("""
-                    CREATE TABLE IF NOT EXISTS metadata (
-                        id INTEGER PRIMARY KEY AUTOINCREMENT,
-                        response_id TEXT,
-                        agent_name TEXT NOT NULL,
-                        seq_id INTEGER NOT NULL,
-                        session_id INTEGER NOT NULL,
-                        metadata TEXT NOT NULL,
-                        provider_type TEXT,
-                        tag TEXT,
-                        UNIQUE(response_id)
-                    )
-                """)
-
-                # Create batch_pending table for storing pending batch requests
-                conn.execute("""
-                    CREATE TABLE IF NOT EXISTS batch_pending (
-                        id INTEGER PRIMARY KEY AUTOINCREMENT,
-                        agent_name TEXT NOT NULL,
-                        seq_id INTEGER NOT NULL,
-                        session_id INTEGER NOT NULL,
-                        doc_hash TEXT NOT NULL,
-                        provider_type TEXT,
-                        batch_uuid TEXT NOT NULL,
-                        custom_id TEXT,
-                        is_pending BOOLEAN DEFAULT 1,
-                        tag TEXT,
-                        UNIQUE(custom_id, batch_uuid)
-                    )
-                """)
-
-                # Create errors table for storing error responses
-                conn.execute("""
-                    CREATE TABLE IF NOT EXISTS errors (
-                        id INTEGER PRIMARY KEY AUTOINCREMENT,
-                        agent_name TEXT NOT NULL,
-                        seq_id INTEGER NOT NULL,
-                        session_id INTEGER NOT NULL,
-                        doc_hash TEXT NOT NULL,
-                        error_message TEXT NOT NULL,
-                        error_code INTEGER NOT NULL,
-                        error_id TEXT,
-                        timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
-                    )
-                """)
-
-                conn.execute("""
-                    CREATE TABLE IF NOT EXISTS memoize (
-                        id INTEGER PRIMARY KEY AUTOINCREMENT,
-                        agent_name TEXT NOT NULL,
-                        state_hash TEXT NOT NULL,
-                        final_state TEXT,
-                        timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
-                        UNIQUE(agent_name, state_hash)
-                    )
-                """)
-
-                # Structured operation-log rows (safe, no pickle)
-                conn.execute("""
-                    CREATE TABLE IF NOT EXISTS memoize_ops (
-                        id INTEGER PRIMARY KEY AUTOINCREMENT,
-                        agent_name TEXT NOT NULL,
-                        state_hash TEXT NOT NULL,
-                        op_seq INTEGER NOT NULL,
-                        item_seq INTEGER NOT NULL DEFAULT 0,
-                        op_type TEXT NOT NULL,
-                        item_value BLOB,
-                        item_type TEXT,
-                        item_extra TEXT,
-                        target TEXT NOT NULL DEFAULT '.msg',
-                        list_index INTEGER
-                    )
-                """)
-                self._ensure_memoize_ops_schema(conn)
-                conn.execute("""
-                    CREATE INDEX IF NOT EXISTS idx_memoize_agent_hash
-                    ON memoize(agent_name, state_hash)
-                """)
-                conn.execute("""
-                    CREATE INDEX IF NOT EXISTS idx_memoize_ops_agent_hash
-                    ON memoize_ops(agent_name, state_hash)
-                """)
-
-                # Migrate existing schema if needed
-                _migrate_sql_schema(conn, None)
-
-                # Create indexes for responses table
-                conn.execute("""
-                    CREATE INDEX IF NOT EXISTS idx_anon_agent_name ON responses(agent_name)
-                """)
-                conn.execute("""
-                    CREATE INDEX IF NOT EXISTS idx_anon_agent_doc_hash ON responses(agent_name, doc_hash)
-                """)
-                conn.execute("""
-                    CREATE INDEX IF NOT EXISTS idx_anon_doc_hash ON responses(doc_hash)
-                """)
-                conn.execute("""
-                    CREATE INDEX IF NOT EXISTS idx_anon_session_id ON responses(session_id)
-                """)
-                conn.execute("""
-                    CREATE INDEX IF NOT EXISTS idx_anon_seq_id ON responses(seq_id)
-                """)
-                conn.execute("""
-                    CREATE INDEX IF NOT EXISTS idx_anon_response_id ON responses(response_id)
-                """)
-                conn.execute("""
-                    CREATE INDEX IF NOT EXISTS idx_anon_origin_type ON responses(origin_type)
-                """)
-
-                _ensure_legacy_responses_alias(conn)
-
-                # Create indexes for metadata table
-                conn.execute("""
-                    CREATE INDEX IF NOT EXISTS idx_metadata_response_id ON metadata(response_id)
-                """)
-                conn.execute("""
-                    CREATE INDEX IF NOT EXISTS idx_metadata_provider_type ON metadata(provider_type)
-                """)
-                conn.execute("""
-                    CREATE INDEX IF NOT EXISTS idx_metadata_triple ON metadata(agent_name, seq_id, session_id)
-                """)
-
-                # Create indexes for batch_pending table
-                conn.execute("""
-                    CREATE INDEX IF NOT EXISTS idx_batch_pending_batch_uuid ON batch_pending(batch_uuid)
-                """)
-                conn.execute("""
-                    CREATE INDEX IF NOT EXISTS idx_batch_pending_custom_id ON batch_pending(custom_id)
-                """)
-                conn.execute("""
-                    CREATE INDEX IF NOT EXISTS idx_batch_pending_agent_name ON batch_pending(agent_name)
-                """)
-                conn.execute("""
-                    CREATE INDEX IF NOT EXISTS idx_batch_pending_doc_hash ON batch_pending(doc_hash)
-                """)
-
-                # Create indexes for errors table
-                conn.execute("""
-                    CREATE INDEX IF NOT EXISTS idx_errors_agent_name ON errors(agent_name)
-                """)
-                conn.execute("""
-                    CREATE INDEX IF NOT EXISTS idx_errors_doc_hash ON errors(doc_hash)
-                """)
-                conn.execute("""
-                    CREATE INDEX IF NOT EXISTS idx_errors_agent_doc_hash ON errors(agent_name, doc_hash)
-                """)
-                conn.execute("""
-                    CREATE INDEX IF NOT EXISTS idx_errors_session_id ON errors(session_id)
-                """)
-                conn.execute("""
-                    CREATE INDEX IF NOT EXISTS idx_errors_seq_id ON errors(seq_id)
-                """)
-                conn.execute("""
-                    CREATE INDEX IF NOT EXISTS idx_errors_error_code ON errors(error_code)
-                """)
+                self._setup_main_table(conn)
             else:
                 raise NotImplementedError(
                     "Only main database connection is implemented"
@@ -418,6 +247,212 @@ class SQLiteDatastore(BaseDatastore):
 
         self._is_dirty = True
         return connections[connection_key]
+
+    def _setup_main_table(self, conn: sqlite3.Connection) -> None:
+        """Create and migrate the main SQLite schema.
+
+        :param conn: SQLite connection.
+        :return: None.
+        """
+        conn.execute("""
+            CREATE TABLE IF NOT EXISTS schema_version (
+                id INTEGER PRIMARY KEY CHECK (id = 1),
+                version INTEGER NOT NULL,
+                updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+
+        current_version = get_schema_version(conn)
+        has_core_tables = all(
+            table_exists(conn, table_name)
+            for table_name in [
+                "responses",
+                "metadata",
+                "batch_pending",
+                "errors",
+                "memoize",
+                "memoize_ops",
+            ]
+        )
+        if current_version >= 1 and has_core_tables:
+            _ensure_legacy_responses_alias(conn)
+            return
+
+        _ensure_legacy_responses_alias(conn)
+
+        # Responses table: agent_name can be NULL
+        # No UNIQUE constraint - allows duplicates, retrieve will get most recent (highest id)
+        conn.execute("""
+            CREATE TABLE IF NOT EXISTS responses (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                agent_name TEXT NOT NULL,
+                seq_id INTEGER NOT NULL,
+                session_id INTEGER NOT NULL,
+                doc_hash TEXT NOT NULL,
+                response TEXT NOT NULL,
+                response_id TEXT,
+                tool_calls TEXT,
+                origin_type INTEGER
+            )
+        """)
+        self._ensure_responses_schema(conn)
+
+        # Create metadata table (shared between both response tables)
+        conn.execute("""
+            CREATE TABLE IF NOT EXISTS metadata (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                response_id TEXT,
+                agent_name TEXT NOT NULL,
+                seq_id INTEGER NOT NULL,
+                session_id INTEGER NOT NULL,
+                metadata TEXT NOT NULL,
+                provider_type TEXT,
+                tag TEXT,
+                UNIQUE(response_id)
+            )
+        """)
+
+        # Create batch_pending table for storing pending batch requests
+        conn.execute("""
+            CREATE TABLE IF NOT EXISTS batch_pending (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                agent_name TEXT NOT NULL,
+                seq_id INTEGER NOT NULL,
+                session_id INTEGER NOT NULL,
+                doc_hash TEXT NOT NULL,
+                provider_type TEXT,
+                batch_uuid TEXT NOT NULL,
+                custom_id TEXT,
+                is_pending BOOLEAN DEFAULT 1,
+                tag TEXT,
+                UNIQUE(custom_id, batch_uuid)
+            )
+        """)
+
+        # Create errors table for storing error responses
+        conn.execute("""
+            CREATE TABLE IF NOT EXISTS errors (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                agent_name TEXT NOT NULL,
+                seq_id INTEGER NOT NULL,
+                session_id INTEGER NOT NULL,
+                doc_hash TEXT NOT NULL,
+                error_message TEXT NOT NULL,
+                error_code INTEGER NOT NULL,
+                error_id TEXT,
+                timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+
+        conn.execute("""
+            CREATE TABLE IF NOT EXISTS memoize (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                agent_name TEXT NOT NULL,
+                state_hash TEXT NOT NULL,
+                final_state TEXT,
+                timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
+                UNIQUE(agent_name, state_hash)
+            )
+        """)
+
+        # Structured operation-log rows (safe, no pickle)
+        conn.execute("""
+            CREATE TABLE IF NOT EXISTS memoize_ops (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                agent_name TEXT NOT NULL,
+                state_hash TEXT NOT NULL,
+                op_seq INTEGER NOT NULL,
+                item_seq INTEGER NOT NULL DEFAULT 0,
+                op_type TEXT NOT NULL,
+                item_value BLOB,
+                item_type TEXT,
+                item_extra TEXT,
+                target TEXT NOT NULL DEFAULT '.msg',
+                list_index INTEGER
+            )
+        """)
+        self._ensure_memoize_ops_schema(conn)
+        conn.execute("""
+            CREATE INDEX IF NOT EXISTS idx_memoize_agent_hash
+            ON memoize(agent_name, state_hash)
+        """)
+        conn.execute("""
+            CREATE INDEX IF NOT EXISTS idx_memoize_ops_agent_hash
+            ON memoize_ops(agent_name, state_hash)
+        """)
+
+        # Migrate existing schema if needed
+        _migrate_sql_schema(conn, None)
+
+        # Create indexes for responses table
+        conn.execute("""
+            CREATE INDEX IF NOT EXISTS idx_anon_agent_name ON responses(agent_name)
+        """)
+        conn.execute("""
+            CREATE INDEX IF NOT EXISTS idx_anon_agent_doc_hash ON responses(agent_name, doc_hash)
+        """)
+        conn.execute("""
+            CREATE INDEX IF NOT EXISTS idx_anon_doc_hash ON responses(doc_hash)
+        """)
+        conn.execute("""
+            CREATE INDEX IF NOT EXISTS idx_anon_session_id ON responses(session_id)
+        """)
+        conn.execute("""
+            CREATE INDEX IF NOT EXISTS idx_anon_seq_id ON responses(seq_id)
+        """)
+        conn.execute("""
+            CREATE INDEX IF NOT EXISTS idx_anon_response_id ON responses(response_id)
+        """)
+        conn.execute("""
+            CREATE INDEX IF NOT EXISTS idx_anon_origin_type ON responses(origin_type)
+        """)
+
+        _ensure_legacy_responses_alias(conn)
+
+        # Create indexes for metadata table
+        conn.execute("""
+            CREATE INDEX IF NOT EXISTS idx_metadata_response_id ON metadata(response_id)
+        """)
+        conn.execute("""
+            CREATE INDEX IF NOT EXISTS idx_metadata_provider_type ON metadata(provider_type)
+        """)
+        conn.execute("""
+            CREATE INDEX IF NOT EXISTS idx_metadata_triple ON metadata(agent_name, seq_id, session_id)
+        """)
+
+        # Create indexes for batch_pending table
+        conn.execute("""
+            CREATE INDEX IF NOT EXISTS idx_batch_pending_batch_uuid ON batch_pending(batch_uuid)
+        """)
+        conn.execute("""
+            CREATE INDEX IF NOT EXISTS idx_batch_pending_custom_id ON batch_pending(custom_id)
+        """)
+        conn.execute("""
+            CREATE INDEX IF NOT EXISTS idx_batch_pending_agent_name ON batch_pending(agent_name)
+        """)
+        conn.execute("""
+            CREATE INDEX IF NOT EXISTS idx_batch_pending_doc_hash ON batch_pending(doc_hash)
+        """)
+
+        # Create indexes for errors table
+        conn.execute("""
+            CREATE INDEX IF NOT EXISTS idx_errors_agent_name ON errors(agent_name)
+        """)
+        conn.execute("""
+            CREATE INDEX IF NOT EXISTS idx_errors_doc_hash ON errors(doc_hash)
+        """)
+        conn.execute("""
+            CREATE INDEX IF NOT EXISTS idx_errors_agent_doc_hash ON errors(agent_name, doc_hash)
+        """)
+        conn.execute("""
+            CREATE INDEX IF NOT EXISTS idx_errors_session_id ON errors(session_id)
+        """)
+        conn.execute("""
+            CREATE INDEX IF NOT EXISTS idx_errors_seq_id ON errors(seq_id)
+        """)
+        conn.execute("""
+            CREATE INDEX IF NOT EXISTS idx_errors_error_code ON errors(error_code)
+        """)
 
     def _transfer_metadata_to_parquet(self) -> None:
         """Transfer supported metadata from SQLite to Parquet files."""

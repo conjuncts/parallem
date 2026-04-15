@@ -141,6 +141,43 @@ def _check_and_migrate(ds: "SQLiteDatastore") -> None:
     # datastore_dir = ds.file_manager.allocate_datastore()
 
 
+def get_schema_version(conn: sqlite3.Connection) -> int:
+    """
+    Get the current schema version from the database.
+
+    :param conn: SQLite connection
+    :return: Current schema version (0 if not set)
+    """
+    try:
+        cursor = conn.execute("SELECT version FROM schema_version WHERE id = 1")
+        row = cursor.fetchone()
+        return row[0] if row else 0
+    except sqlite3.Error:
+        return 0
+
+
+def set_schema_version(conn: sqlite3.Connection, version: int) -> None:
+    """
+    Set the schema version in the database.
+
+    :param conn: SQLite connection
+    :param version: Version number to set
+    """
+    try:
+        # Try to update existing record
+        cursor = conn.execute(
+            "UPDATE schema_version SET version = ?, updated_at = CURRENT_TIMESTAMP WHERE id = 1",
+            (version,),
+        )
+        if cursor.rowcount == 0:
+            # If no record exists, insert new one
+            conn.execute(
+                "INSERT INTO schema_version (id, version) VALUES (1, ?)", (version,)
+            )
+    except sqlite3.Error as e:
+        raise RuntimeError(f"Failed to set schema version: {e}")
+
+
 def _migrate_sql_schema(conn: sqlite3.Connection, db_name: Optional[str]) -> None:
     """
     Migrate SQL schema for a database.
@@ -149,6 +186,12 @@ def _migrate_sql_schema(conn: sqlite3.Connection, db_name: Optional[str]) -> Non
     :param db_name: Name of the database (None for main database, or custom names for additional databases)
     """
     try:
+        current_version = get_schema_version(conn)
+
+        # Only run legacy migration checks for unversioned schemas.
+        if current_version >= 1:
+            return True
+
         # Add tag column to metadata table if it doesn't exist
         cursor = conn.execute("PRAGMA table_info(metadata)")
         columns = [row[1] for row in cursor.fetchall()]
@@ -174,6 +217,9 @@ def _migrate_sql_schema(conn: sqlite3.Connection, db_name: Optional[str]) -> Non
             columns = [row[1] for row in cursor.fetchall()]
             if "origin_type" not in columns:
                 conn.execute("ALTER TABLE responses ADD COLUMN origin_type INTEGER")
+
+        # Initialize schema version after applying legacy migration checks.
+        set_schema_version(conn, 1)
 
     except sqlite3.Error as e:
         # If migration fails, continue - tables will be created fresh
