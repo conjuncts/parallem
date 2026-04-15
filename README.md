@@ -2,17 +2,13 @@
 
 ParaLLeM is a library for orchestrating agentic LLM workflows.
 
-We support the Batch API.
+- Batch API support
+- Concise, readable, and **expressive**
+- Developer-centered and lightweight
+- Parallelize thousands of requests, while keeping reproducible traces for each run
+- **Save 50% on all token costs**
 
-We're concise, readable, and expressive.
-
-We're developer-centered and lightweight.
-
-We help you parallelize thousands of requests, while keeping reproducible traces for each run.
-
-We help you save 50% on all token costs.
-
-Find out more about our mission -- [parallem.org](https://parallem.org)
+Find out more about our mission — [parallem.org](https://parallem.org)
 
 ## Quickstart
 
@@ -36,6 +32,8 @@ with pllm.resume_directory(
         resp = agt.ask_llm("Please name a power of 3.")
         agt.print(resp.final_answer)
 ```
+
+To switch to the Batch API, simply change `strategy="sync"` to `strategy="batch"`.
 
 ## Compatibility
 
