@@ -1,0 +1,20 @@
+nucb:
+  enabled: true
+  raw_path: usecases/enzyme_design_arena/data/raw/nucb/landscape.csv
+  task_type: sequence_activity_landscape
+
+modify_rma:
+  enabled: true
+  raw_path: usecases/enzyme_design_arena/data/raw/modify_rma/supplementary_data_1.xlsx
+  task_type: library_screening
+  subtasks: [c_b, c_si]
+
+mcba:
+  enabled: true
+  raw_path: usecases/enzyme_design_arena/data/raw/mcba/source_data.xlsx
+  task_type: reaction_conditioned_engineering
+
+proteingym_optional:
+  enabled: true
+  raw_path: usecases/enzyme_design_arena/data/raw/proteingym_optional/DMS_substitutions.csv
+  task_type: mutation_effect_extension

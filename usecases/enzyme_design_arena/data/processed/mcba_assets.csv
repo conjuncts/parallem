@@ -1,0 +1,4 @@
+path,exists,size_bytes,sha256
+/Users/shoneran/workspace/parallem/usecases/enzyme_design_arena/data/raw/mcba/source_data.xlsx,True,167412,9a4d180951b85a7f9810182bdf0a161a00cf6a5961f23bebf09e7547467a9fd5
+/Users/shoneran/workspace/parallem/usecases/enzyme_design_arena/data/raw/mcba/supplement.pdf,True,5764328,f91e85739db0221af3aed53a185d794d0bad32960ad1e5a7ffcfdde9aa7dab62
+/Users/shoneran/workspace/parallem/usecases/enzyme_design_arena/data/processed/mcba_repo_stats.json,True,162,213de4588daee48660bea0152d77da2e280dac68493c46e57aad0135537f3e63

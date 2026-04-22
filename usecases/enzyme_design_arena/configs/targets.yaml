@@ -1,0 +1,14 @@
+
+nucb:
+  enabled: true
+  task_type: sequence_activity_landscape
+modify_rma:
+  enabled: true
+  task_type: library_screening
+  subtasks: [c_b, c_si]
+mcba:
+  enabled: true
+  task_type: reaction_conditioned_engineering
+proteingym_optional:
+  enabled: false
+  task_type: mutation_effect_extension

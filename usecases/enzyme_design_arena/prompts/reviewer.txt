@@ -1,0 +1,3 @@
+
+Review scorer disagreements and explain why top candidates were selected.
+Propose one conservative rerun and one exploratory rerun.

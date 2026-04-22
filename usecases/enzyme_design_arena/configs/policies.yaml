@@ -1,0 +1,7 @@
+
+aggregate_policy:
+  method: consensus_weighted_sum
+  top_k: 10
+  diversity_weight: 0.1
+  uncertainty_penalty: 0.05
+  consensus_bonus: 0.1

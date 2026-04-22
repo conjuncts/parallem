@@ -1,0 +1,26 @@
+{
+  "usecase": "enzyme_design_arena",
+  "processed_root": "/Users/shoneran/workspace/parallem/usecases/enzyme_design_arena/data/processed",
+  "datasets": [
+    {
+      "dataset": "nucb",
+      "rows": 55760,
+      "missing_raw": false
+    },
+    {
+      "dataset": "modify_rma",
+      "rows": 2,
+      "missing_raw": false
+    },
+    {
+      "dataset": "mcba",
+      "rows": 3,
+      "missing_raw": false
+    },
+    {
+      "dataset": "proteingym_optional",
+      "rows": 217,
+      "missing_raw": false
+    }
+  ]
+}

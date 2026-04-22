@@ -1,0 +1,8 @@
+
+scorers:
+  - name: function_compatibility
+    type: function
+  - name: activity_surrogate
+    type: activity
+  - name: sequence_baseline
+    type: sequence

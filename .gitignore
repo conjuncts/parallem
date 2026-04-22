@@ -22,3 +22,9 @@ experiments/
 .vscode
 
 site
+
+# Local notes
+instruct.md
+
+# macOS
+.DS_Store
