@@ -521,8 +521,9 @@ class BatchOpenAIProvider(BatchProvider, OpenAIProvider):
         results = []
 
         # Successful completion
-        out_content = self.client.files.content(out_file_id).text
-        results.extend(self.decode_batch_content(out_content))
+        if out_file_id is not None:
+            out_content = self.client.files.content(out_file_id).text
+            results.extend(self.decode_batch_content(out_content))
 
         # Errors
         if err_file_id is not None:

@@ -83,3 +83,5 @@ High priority:
 - SQLite error during metadata transfer: too many SQL variables
 
 - pass the memoize salt into the ask_llm salt. Or otherwise stop it ask_llm(same prompt) from colliding for memoize() blocks with different salts.
+
+- better error handling. One reproducible error is to try to set "max_completion_tokens" (it has been moved to max_output_tokens)

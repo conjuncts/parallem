@@ -472,14 +472,19 @@ class SQLiteDatastore(BaseDatastore):
             mdir = self.file_manager.path_metadata_store()
             sequestered = sequester_metadata(metadata_rows, mdir, self._metadata_index)
             if sequestered:
-                placeholders = ",".join(["?" for _ in sequestered])
-                conn.execute(
-                    f"DELETE FROM metadata WHERE response_id IN ({placeholders}) AND (provider_type IN ('openai', 'google') OR provider_type IS NULL)",
-                    sequestered,
-                )
+                # Batch deletes to avoid SQLite's "too many SQL variables" limit (default 999)
+                # Process in batches of 500 to stay well under the limit
+                batch_size = 500
+                for i in range(0, len(sequestered), batch_size):
+                    batch = sequestered[i : i + batch_size]
+                    placeholders = ",".join(["?" for _ in batch])
+                    conn.execute(
+                        f"DELETE FROM metadata WHERE response_id IN ({placeholders}) AND (provider_type IN ('openai', 'google') OR provider_type IS NULL)",
+                        batch,
+                    )
                 conn.commit()
 
-                # conn.execute("VACUUM")
+                conn.execute("VACUUM")
         except sqlite3.Error as e:
             raise RuntimeError(f"SQLite error during metadata transfer: {e}")
 

@@ -18,6 +18,7 @@ class MockOpenAIClient:
         self.patterns = {}  # Regex patterns -> responses
         self.default = "Mock response"
         self.response_index = 0
+        self.response_counter = 0  # Counter for generating unique response_ids
 
         mock = Mock()
         mock.create = self._create_response
@@ -86,24 +87,34 @@ class MockOpenAIClient:
             }
         )
 
+        # Generate unique response_id
+        unique_response_id = f"mock-response-{self.response_counter}"
+        self.response_counter += 1
+
         # Sequential responses take priority
         if self.response_list and self.response_index < len(self.response_list):
             response = self.response_list[self.response_index]
             self.response_index += 1
-            return asdict(response)
+            response_dict = asdict(response)
+            response_dict["response_id"] = unique_response_id
+            return response_dict
 
         # Check regex patterns
         text = f"{instructions or ''} {self._get_input_text(input or [])}"
         for pattern, response in self.patterns.items():
             if re.search(pattern, text, re.IGNORECASE):
-                return asdict(response)
+                response_dict = asdict(response)
+                response_dict["response_id"] = unique_response_id
+                return response_dict
 
         # Default response
-        return asdict(
+        response_dict = asdict(
             self.default
             if isinstance(self.default, MockResponse)
-            else MockResponse(output_text=self.default)
+            else MockResponse(output_text=self.default, id=unique_response_id)
         )
+        response_dict["response_id"] = unique_response_id
+        return response_dict
 
     def clear(self):
         """Clear call history and reset responses"""
@@ -112,6 +123,7 @@ class MockOpenAIClient:
         self.patterns = {}
         self.default = "Mock response"
         self.response_index = 0
+        self.response_counter = 0
 
 
 class MockConcurrentOpenAIClient(MockOpenAIClient):
