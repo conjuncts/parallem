@@ -28,7 +28,6 @@ with pllm.resume_directory(
     log_level=logging.DEBUG,
     dashboard=True,
     hash_by=["llm"],
-    # ignore_cache=True,
 ) as orch:
     with orch.agent() as agt:
         # See docs on the MessageState abstraction.
@@ -41,6 +40,6 @@ with pllm.resume_directory(
         while last_msg.resolve_function_calls():
             conv.ask_functions(multiply=multiply, add=add, divide=divide)
             last_msg = conv.ask_llm()
-            agt.print(conv.final_answer)
+            agt.print(conv[-1].final_answer)
 
 # ['Add 3 and 4.', '', FunctionCallOutput(name=add, call_id=, content=7...), '3 + 4 = 7']

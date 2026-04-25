@@ -17,7 +17,6 @@ with pllm.resume_directory(
     log_level=logging.DEBUG,
     dashboard=True,
     hash_by=["llm"],
-    # ignore_cache=True,
 ) as orch:
     collector = []
     for row in df.iter_rows(named=True):

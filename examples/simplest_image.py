@@ -12,7 +12,6 @@ with pllm.resume_directory(
     strategy="sync",
     log_level=logging.DEBUG,
     dashboard=True,
-    # ignore_cache=True,
 ) as orch:
     with orch.agent() as agt:
         img = Image.open("tests/data/images/Nokota_Horses_cropped.jpg")

@@ -3,7 +3,6 @@
 import pathlib
 import time
 
-from dotenv import load_dotenv
 from tqdm import tqdm
 
 word_path = pathlib.Path(__file__).parent / "txts" / "words_alpha.txt"
@@ -47,7 +46,6 @@ def syllable_count_agent(agt: pllm.AgentContext, word: str):
 
 
 # Run the agent on all words
-load_dotenv()
 orch = pllm.resume_directory(
     ".pllm/example/stress_test",
     llm="gpt-5-nano",
@@ -57,6 +55,7 @@ orch = pllm.resume_directory(
     tweaks={
         "batch_max_size": 10000,
     },
+    load_dotenv=True,
 )
 
 collector = []

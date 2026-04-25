@@ -26,6 +26,7 @@ def resume_directory(
     strategy: Literal["sync", "concurrent", "batch"] = "sync",
     provider: Literal["openai", "google", "anthropic", "multi"] = "multi",
     datastore: Literal["sqlite", "sqlite_parquet"] = "sqlite",
+    load_dotenv: bool = False,
     dry_run=False,
     log_level=logging.INFO,
     ignore_cache=False,
@@ -46,6 +47,7 @@ def resume_directory(
     :param strategy: Execution strategy for LLM calls
     :param provider: LLM provider to use for API calls. "multi" allows a mixture of providers.
     :param datastore: Backend datastore type for response storage. Recommended: sqlite.
+    :param load_dotenv: If True, calls load_dotenv().
     :param dry_run: If True, validate setup without making actual API calls
     :param log_level: Logging level for the session
     :param ignore_cache: If True, always submit to API instead of using cached responses
@@ -73,6 +75,10 @@ def resume_directory(
     if dry_run:
         raise NotImplementedError("Dry run is not implemented yet")
     tweaks_dict: MinorTweaks = {**DEFAULT_MINOR_TWEAKS, **(tweaks or {})}
+    if load_dotenv:
+        from dotenv import load_dotenv as _load_dotenv
+
+        _load_dotenv()
     # 2. Setup logger
     dashlog = DashboardLogger(k=10, display=dashboard)
     pllm_log_handler = get_pllm_log_handler(dashlog)

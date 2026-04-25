@@ -11,7 +11,6 @@ with pllm.resume_directory(
     strategy="sync",
     log_level=logging.DEBUG,
     dashboard=True,
-    # ignore_cache=True,
 ) as orch:
     with orch.agent() as agt:
         resp = agt.ask_llm(
