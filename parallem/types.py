@@ -414,6 +414,17 @@ class LLMResponse:
         except json.JSONDecodeError:
             return None
 
+    @property
+    def final_json(self) -> Optional[dict]:
+        """
+        Resolve the response and automatically convert it to JSON. Returns None if invalid.
+
+        :param self: Description
+        :return: Description
+        :rtype: dict
+        """
+        return self.resolve_json()
+
     def resolve_function_calls(self) -> list[FunctionCall]:
         """
         Resolve function calls (tool calls to user-defined functions) associated with this response.
@@ -425,6 +436,16 @@ class LLMResponse:
             # cast and jsonify if needed
             return self._pr.function_calls
         return []
+
+    @property
+    def final_function_calls(self) -> list[FunctionCall]:
+        """
+        Resolve function calls (tool calls to user-defined functions) associated with this response.
+
+        :param to_dict: Whether to parse the function calls' arguments into dictionaries (if they're JSON strings)
+        :returns: A list of FunctionCall objects
+        """
+        return self.resolve_function_calls()
 
     def __repr__(self):
         v = self.value

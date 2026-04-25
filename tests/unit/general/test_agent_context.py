@@ -53,20 +53,20 @@ class TestAgentContextBasics:
 
 
 def test_counter_independence(mock_orchestrator):
-    """Test that anonymous conuter works correctly"""
+    """Test that sequence ID counter works correctly"""
     agent = AgentContext("test_agent", mock_orchestrator)
 
     with agent:
         agent.ask_llm("anonymous 1")
         agent.ask_llm("anonymous 2")
-        assert agent._anonymous_counter == 2
+        assert agent._seq_id_counter == 2
 
     agent2 = AgentContext("test_agent", mock_orchestrator)
     with agent2:
         agent2.ask_llm("anonymous 1")
-        assert agent2._anonymous_counter == 1
+        assert agent2._seq_id_counter == 1
 
-    assert agent._anonymous_counter == 2  # Original agent unchanged
+    assert agent._seq_id_counter == 2  # Original agent unchanged
 
 
 class TestAskLLMMethod:
@@ -243,12 +243,12 @@ class TestAskLLMMethod:
         with agent:
             agent.ask_llm("first call")
             agent.ask_llm("second call")
-            assert agent._anonymous_counter == 2
+            assert agent._seq_id_counter == 2
 
         # Second context block - counter should continue
         with agent:
             agent.ask_llm("third call")
-            assert agent._anonymous_counter == 3
+            assert agent._seq_id_counter == 3
 
     def test_ask_human_returns_human_response_and_persists(self, mock_orchestrator):
         """ask_human should persist with origin_type=1 and return HumanResponse."""
@@ -278,7 +278,7 @@ class TestAskLLMMethod:
             agent.ask_human("q1", [], input_fn=lambda _: "a1")
             agent.ask_human("q2", ["a1"], input_fn=lambda _: "a2")
 
-        assert agent._anonymous_counter == 2
+        assert agent._seq_id_counter == 2
 
     @patch("parallem.core.agent.agent.compute_hash")
     def test_ask_human_hash_uses_prompt_and_documents(

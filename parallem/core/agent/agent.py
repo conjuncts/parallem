@@ -80,7 +80,7 @@ class AgentContext(Askable):
         self.agent_name = agent_name
         self._orch = orch
 
-        self._anonymous_counter = 0
+        self._seq_id_counter = 0
 
         self.ask_params = ask_params or {}
         if self.ask_params:
@@ -113,6 +113,80 @@ class AgentContext(Askable):
         """
         self._orch._dashlog.print(*args, **kwargs)
 
+    def _populate_options(
+        self,
+        llm,
+        structured_output,
+        kwargs,
+    ):
+        """Helper method to ensure LLM options are non-null."""
+        # Handle legacy text_format alias
+        legacy_text_format = kwargs.pop("text_format", None)
+        if structured_output is not None and legacy_text_format is not None:
+            raise ValueError(
+                "Cannot specify both structured_output and text_format. "
+                "text_format is a legacy alias for structured_output."
+            )
+        if structured_output is None:
+            structured_output = legacy_text_format
+
+        if llm is None:
+            llm = self._orch._provider.get_default_llm_identity()
+        elif isinstance(llm, str):
+            llm = LLMIdentity(llm)
+
+        provider_type = self._orch._provider.provider_type
+        if provider_type is None:
+            provider_type = llm.provider_type
+        return llm, provider_type, structured_output
+
+    def _compute_hash(
+        self,
+        resolved_docs,
+        *,
+        salt,
+        hash_by,
+        llm,
+        provider_type,
+        tools,
+        instructions,
+    ):
+        """Compute the input hash (doc_hash) for a list of documents."""
+        # Compute salt
+        salt_terms = build_hash_salt_terms(
+            salt=salt,
+            hash_by=hash_by,
+            llm=llm,
+            provider_type=provider_type,
+            tools=tools,
+        )
+
+        # Use a null-byte separator so individual terms cannot be confused with one
+        # another, and pass as the `salt` parameter (applied via re-hash) so that
+        # salt content can never collide with document content.
+        combined_salt = "\x00".join(salt_terms) if salt_terms else None
+        hashed = compute_hash(instructions, resolved_docs, salt=combined_salt)
+        return hashed, salt_terms
+
+    def _get_cached_response(
+        self,
+        call_id,
+        hashed,
+    ):
+        """Helper method to check for and return a cached response, if it exists."""
+        cached = None if self.ignore_cache else self._orch._backend.retrieve(call_id)
+        if cached is not None:
+            self.update_hash_status(hashed, HashStatus.CACHED)
+
+            # populate the old session_id. This helps make to_serial_id deterministic
+            if cached.old_session_id is not None:
+                call_id["session_id"] = cached.old_session_id
+                call_id["seq_id"] = cached.old_seq_id
+            return ReadyLLMResponse(
+                call_id=call_id,
+                pr=cached,
+            )
+
     def ask_llm(
         self,
         documents: Union[
@@ -132,23 +206,13 @@ class AgentContext(Askable):
         save_input: Optional[bool] = None,
         **kwargs,
     ) -> LLMResponse:
-        # Handle legacy text_format alias
-        legacy_text_format = kwargs.pop("text_format", None)
-        if structured_output is not None and legacy_text_format is not None:
-            raise ValueError(
-                "Cannot specify both structured_output and text_format. "
-                "text_format is a legacy alias for structured_output."
-            )
-        if structured_output is None:
-            structured_output = legacy_text_format
+        # 1. assign sequential ID, input checks
+        seq_id = self._seq_id_counter
+        self._seq_id_counter += 1
 
-        if llm is None:
-            llm = self._orch._provider.get_default_llm_identity()
-        elif isinstance(llm, str):
-            llm = LLMIdentity(llm)
-
-        seq_id = self._anonymous_counter
-        self._anonymous_counter += 1
+        llm, provider_type, structured_output = self._populate_options(
+            llm, structured_output, kwargs
+        )
 
         if isinstance(documents, MessageState):
             documents = list(documents)
@@ -156,21 +220,18 @@ class AgentContext(Askable):
         documents = reduce_to_list(documents, list(additional_documents))
         resolved_docs = cast_documents(documents)
 
-        # Compute salt
-        salt_terms = build_hash_salt_terms(
+        # 2. compute hash for inputs
+        hashed, salt_terms = self._compute_hash(
+            resolved_docs,
             salt=salt,
             hash_by=hash_by,
             llm=llm,
-            provider_type=self._orch._provider.provider_type,
+            provider_type=provider_type,
             tools=tools,
+            instructions=instructions,
         )
 
-        # Use a null-byte separator so individual terms cannot be confused with one
-        # another, and pass as the `salt` parameter (applied via re-hash) so that
-        # salt content can never collide with document content.
-        combined_salt = "\x00".join(salt_terms) if salt_terms else None
-        hashed = compute_hash(instructions, resolved_docs, salt=combined_salt)
-
+        # 3. save inputs if needed
         if save_input:
             msg_hashes = [compute_hash(None, [msg]) for msg in resolved_docs]
             self._orch._backend._get_datastore().store_input(
@@ -181,9 +242,6 @@ class AgentContext(Askable):
                 msg_hashes=msg_hashes,
             )
 
-        provider_type = self._orch._provider.provider_type
-        if provider_type is None:
-            provider_type = llm.provider_type
         call_id: CallIdentifier = {
             "agent_name": self.agent_name,
             "doc_hash": hashed,
@@ -195,24 +253,15 @@ class AgentContext(Askable):
             },
         }
 
-        # Cache using datastore
-        cached = None if self.ignore_cache else self._orch._backend.retrieve(call_id)
+        # 4. use cache if available
+        cached = self._get_cached_response(call_id, hashed)
         if cached is not None:
-            self.update_hash_status(hashed, HashStatus.CACHED)
+            return cached
 
-            # populate the old session_id. This helps make to_serial_id deterministic
-            if cached.old_session_id is not None:
-                call_id["session_id"] = cached.old_session_id
-                call_id["seq_id"] = cached.old_seq_id
-            return ReadyLLMResponse(
-                call_id=call_id,
-                pr=cached,
-            )
-
-        if not self._orch._provider.is_compatible(llm.provider_type):
+        # 5. use API
+        if not self._orch._provider.is_compatible(provider_type):
             raise ValueError(
-                f"LLM {llm.identity} is not compatible"
-                + f" with provider {self._orch._provider.provider_type}"
+                f"LLM {llm.identity} is not compatible with provider {provider_type}"
             )
 
         params: CommonQueryParameters = {
@@ -362,8 +411,8 @@ class AgentContext(Askable):
             Defaults to built-in ``input``.
         :returns: Human response object.
         """
-        seq_id = self._anonymous_counter
-        self._anonymous_counter += 1
+        seq_id = self._seq_id_counter
+        self._seq_id_counter += 1
 
         if isinstance(documents, MessageState):
             documents = list(documents)
