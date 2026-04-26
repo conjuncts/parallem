@@ -746,7 +746,7 @@ class TestSQLiteExtras:
             temp_datastore.store(generic_call_id, parsed_response)
 
     @pytest.mark.skip("Fails but idk why")
-    @patch("parallem.core.sink.sequester.sequester_openai_metadata")
+    @patch("parallem.core.compress._metadata.compress_metadata")
     def test_metadata_transfer_on_persist(
         self, mock_sequester, temp_datastore, generic_call_id
     ):
@@ -759,13 +759,13 @@ class TestSQLiteExtras:
 
         temp_datastore.store(generic_call_id, parsed_response)
 
-        # Mock the sequester function to return some succeeded transfers
+        # Mock the compress_metadata function to return some succeeded transfers
         mock_sequester.return_value = ["transfer_123"]
 
         # Persist should trigger metadata transfer
         temp_datastore.persist()
 
-        # Verify sequester was called
+        # Verify compress_metadata was called
         mock_sequester.assert_called_once()
 
     def test_destructor_cleanup(self):

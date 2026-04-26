@@ -21,8 +21,8 @@ from parallem.core.datastore.sql_migrate import (
     table_exists,
 )
 from parallem.core.io.sqlite_to_parquet import export_sqlite_to_folder, sqlite_to_df
-from parallem.core.sink.sequester import sequester_metadata
-from parallem.core.sink.to_parquet import ParquetUniqueWriter, ParquetWriter
+from parallem.core.compress.pack_metadata import compress_metadata
+from parallem.core.compress.to_parquet import ParquetUniqueWriter, ParquetWriter
 from parallem.core.file_manager import FileManager
 from parallem.core.memoize.operations import (
     AppendOp,
@@ -470,13 +470,13 @@ class SQLiteDatastore(BaseDatastore):
                 return
 
             mdir = self.file_manager.path_metadata_store()
-            sequestered = sequester_metadata(metadata_rows, mdir, self._metadata_index)
-            if sequestered:
+            compressed = compress_metadata(metadata_rows, mdir, self._metadata_index)
+            if compressed:
                 # Batch deletes to avoid SQLite's "too many SQL variables" limit (default 999)
                 # Process in batches of 500 to stay well under the limit
                 batch_size = 500
-                for i in range(0, len(sequestered), batch_size):
-                    batch = sequestered[i : i + batch_size]
+                for i in range(0, len(compressed), batch_size):
+                    batch = compressed[i : i + batch_size]
                     placeholders = ",".join(["?" for _ in batch])
                     conn.execute(
                         f"DELETE FROM metadata WHERE response_id IN ({placeholders}) AND (provider_type IN ('openai', 'google') OR provider_type IS NULL)",

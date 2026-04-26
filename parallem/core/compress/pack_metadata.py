@@ -2,14 +2,14 @@ from pathlib import Path
 from typing import Dict, Optional
 import polars as pl
 
-from parallem.core.sink.to_parquet import ParquetWriter, write_to_parquet
+from parallem.core.compress.to_parquet import ParquetWriter, write_to_parquet
 
 
-def sequester_metadata(
+def compress_metadata(
     metadata_rows: list[Dict], folder: Path, master_index: ParquetWriter
 ) -> Optional[list[str]]:
     """
-    Sequester OpenAI metadata from SQLite rows to Parquet files.
+    Compress OpenAI metadata from SQLite rows to Parquet files.
     Returns a list of response_ids that were successfully transferred and can be deleted from SQLite.
     """
     # metadata_rows is actually a sqlite3.Row object
@@ -56,16 +56,16 @@ def sequester_metadata(
     # Process metadata using the existing sinker function
     _openai_met = provider_to_meta["openai"]
     if _openai_met:
-        from parallem.provider.openai._sink import openai_metadata_sinker
+        from parallem.provider.openai._compress import compress_openai_metadata
 
-        processed_dfs = openai_metadata_sinker(_openai_met)
+        processed_dfs = compress_openai_metadata(_openai_met)
         _sequester_dfs(processed_dfs, folder, provider_type="openai")
 
     _google_met = provider_to_meta["google"]
     if _google_met:
-        from parallem.provider.google._sink import google_metadata_sinker
+        from parallem.provider.google._compress import compress_google_metadata
 
-        processed_dfs = google_metadata_sinker(_google_met)
+        processed_dfs = compress_google_metadata(_google_met)
         _sequester_dfs(processed_dfs, folder, provider_type="google")
 
     response_ids_to_delete = master_index.commit(

@@ -10,7 +10,6 @@ Tests the core hashing and caching functionality including:
 
 import pytest
 from unittest.mock import patch
-import hashlib
 from PIL import Image
 from parallem.core.hash import compute_hash, serialize_tools_for_hash
 from parallem.logging.dash_logger import DashboardLogger, HashStatus

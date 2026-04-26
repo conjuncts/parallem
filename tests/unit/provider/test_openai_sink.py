@@ -1,7 +1,7 @@
 import json
 import polars as pl
 
-from parallem.provider.openai._sink import openai_metadata_sinker
+from parallem.provider.openai._compress import compress_openai_metadata
 
 
 def test_openai_metadata_sinker_reasoning_before_message():
@@ -51,7 +51,7 @@ def test_openai_metadata_sinker_reasoning_before_message():
     )
 
     # This should not raise an error about appending string to Null type
-    result = openai_metadata_sinker([({"response_id": "test_123"}, metadata_json)])
+    result = compress_openai_metadata([({"response_id": "test_123"}, metadata_json)])
 
     # Verify the structure
     assert "responses" in result
@@ -98,7 +98,7 @@ def test_openai_metadata_sinker_message_only():
         }
     )
 
-    result = openai_metadata_sinker([({"response_id": "test_456"}, metadata_json)])
+    result = compress_openai_metadata([({"response_id": "test_456"}, metadata_json)])
 
     messages_df = result["messages"]
     assert len(messages_df) == 1

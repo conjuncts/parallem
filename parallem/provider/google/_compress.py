@@ -50,7 +50,7 @@ _schema_overrides = {
 }
 
 
-def google_message_parts_sinker(meta: dict, *, remove_content=True):
+def compress_google_message(meta: dict, *, remove_content=True):
     # standardize a google message.
 
     to_string = deepcopy(meta)
@@ -105,7 +105,7 @@ def fix_to_snake_case(obj: dict) -> dict:
         return obj
 
 
-def google_metadata_sinker(metas: List[str]):
+def compress_google_metadata(metas: List[str]):
     objs = [
         {**as_is, **json.loads(astring)} for as_is, astring in metas if astring.strip()
     ]
@@ -126,7 +126,7 @@ def google_metadata_sinker(metas: List[str]):
     request_collector = []
     for obj in objs:
         for msg in obj.pop("candidates", []):
-            for part in google_message_parts_sinker(msg):
+            for part in compress_google_message(msg):
                 request_collector.append(
                     {
                         **obj,
@@ -139,23 +139,3 @@ def google_metadata_sinker(metas: List[str]):
     return {
         "responses": df,
     }
-
-
-if __name__ == "__main__":
-    # Debug out the openai schema
-
-    from openai.types.responses.response_item import ResponseItem
-
-    r: ResponseItem = None
-
-    with open(
-        "experiments/schema/google_metadata_example.json", "r", encoding="utf-8"
-    ) as json_file:
-        df = google_metadata_sinker([("resp_123", json_file.read())])
-    print("Responses DF:")
-    print(df)
-
-    # df = pl.read_parquet("experiments/debug-compress-test/datastore/apimeta/google-responses.parquet")
-    # print(df.schema)
-
-    # ResponseItem are possibilities for obj["output"][i]
