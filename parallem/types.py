@@ -373,6 +373,9 @@ class MinorTweaks(TypedDict, total=False):
     batch_max_size: int = 1000
     "Maximum number of calls submitted per provider batch request."
 
+    batch_compress_inputs: bool = False
+    "Whether to write compressed copies of supported batch inputs."
+
 
 class LLMResponse:
     """

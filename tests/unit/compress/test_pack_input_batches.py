@@ -1,5 +1,7 @@
 from copy import deepcopy
+import polars as pl
 
+from parallem.core.compress.pack_input_batches import compress_openai_input_batches
 from parallem.core.compress.pack_input_batches import pack_openai_item
 from parallem.core.compress.pack_input_batches import unpack_openai_item
 
@@ -68,3 +70,30 @@ def test_round_trip_preserves_body_and_item_rest_fields():
     unpacked = unpack_openai_item(deepcopy(packed))
 
     assert unpacked == item
+
+
+def test_compress_openai_input_batches_packs_nested_fields():
+    items = [
+        {
+            "custom_id": "req_1",
+            "method": "POST",
+            "url": "/v1/responses",
+            "body": {
+                "model": "gpt-4.1-mini",
+                "instructions": "Be concise",
+                "input": [{"role": "user", "content": "Hi"}],
+                "tools": [],
+                "text": {"format": {"type": "json_schema", "strict": True}},
+            },
+        }
+    ]
+
+    df = compress_openai_input_batches(items)
+
+    assert df.schema["body.model"] == pl.Utf8
+    assert df.select("body.input").to_series().to_list() == [
+        '[{"role": "user", "content": "Hi"}]'
+    ]
+    assert df.select("body.text.format").to_series().to_list() == [
+        '{"type": "json_schema", "strict": true}'
+    ]

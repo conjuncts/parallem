@@ -1,8 +1,12 @@
 from unittest.mock import Mock
+import tempfile
+from pathlib import Path
 
+import polars as pl
 import pytest
 
 from parallem.core.batch_namespace import BatchNamespace
+from parallem.core.file_manager import FileManager
 from parallem.provider.base import BatchProvider
 
 
@@ -22,6 +26,17 @@ def mock_backend_datastore():
     backend = Mock()
     backend._get_datastore.return_value = datastore
     return backend, datastore
+
+
+@pytest.fixture
+def temp_dir():
+    with tempfile.TemporaryDirectory() as d:
+        yield Path(d)
+
+
+@pytest.fixture
+def file_manager(temp_dir):
+    return FileManager(temp_dir)
 
 
 def test_forget_batch_clears_local_pending_without_cancel(mock_backend_datastore):
@@ -84,3 +99,70 @@ def test_forget_batch_cancel_requires_batch_provider(mock_backend_datastore):
         ns.forget_batch("batch_123", provider_type="openai", cancel=True)
 
     datastore.clear_batch_pending.assert_not_called()
+
+
+def test_compress_inputs_writes_companion_parquet(file_manager):
+    orch = Mock()
+    orch._fm = file_manager
+    orch._backend = Mock()
+    orch._provider = Mock()
+
+    ns = BatchNamespace(orch)
+
+    file_manager.save_batch_in(
+        [
+            {
+                "custom_id": "req_1",
+                "method": "POST",
+                "url": "/v1/responses",
+                "body": {
+                    "model": "gpt-4o-mini",
+                    "instructions": "Be concise",
+                    "input": [{"role": "user", "content": "Hi"}],
+                    "tools": [],
+                },
+            }
+        ]
+    )
+    file_manager.save_batch_in(
+        [
+            {
+                "custom_id": "req_2",
+                "method": "POST",
+                "url": "/v1/responses",
+                "body": {
+                    "model": "gpt-4o-mini",
+                    "instructions": "Be concise",
+                    "input": [{"role": "user", "content": "Hello"}],
+                    "tools": [],
+                },
+            }
+        ]
+    )
+
+    ns._compress_inputs(provider_type="openai")
+
+    parquet_files = sorted(file_manager.path_batch_in().glob("*.parquet"))
+    assert len(parquet_files) == 2
+
+    df_custom_ids = []
+    for parquet_file in parquet_files:
+        df = pl.read_parquet(parquet_file)
+        assert df.height == 1
+        df_custom_ids.extend(df["custom_id"].to_list())
+
+    assert sorted(df_custom_ids) == ["req_1", "req_2"]
+
+
+def test_compress_inputs_noop_for_unsupported_provider(file_manager):
+    orch = Mock()
+    orch._fm = file_manager
+    orch._backend = Mock()
+    orch._provider = Mock()
+
+    ns = BatchNamespace(orch)
+
+    file_manager.save_batch_in([{"arbitrary": "value"}])
+    ns._compress_inputs(provider_type="google")
+
+    assert not list(file_manager.path_batch_in().glob("*.parquet"))

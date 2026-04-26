@@ -1,3 +1,4 @@
+from copy import deepcopy
 import json
 import os
 from dataclasses import dataclass
@@ -58,6 +59,7 @@ class BatchBackend(BaseBackend):
         session_id: int,
         confirm_batch_submission: bool = False,
         max_batch_size: int = 1000,
+        compress_inputs: bool = False,
         rewrite_cache: bool = False,
     ):
         self._fm = fm
@@ -70,6 +72,7 @@ class BatchBackend(BaseBackend):
         if max_batch_size < 1:
             raise ValueError("max_batch_size must be >= 1")
         self._max_batch_size = max_batch_size
+        self._compress_inputs = compress_inputs
         self._rewrite_cache = rewrite_cache
 
         self._batch_buffer: list[BatchBufferItem] = []
@@ -296,6 +299,22 @@ class BatchBackend(BaseBackend):
             dl.update_hash(batch_uuid, HashStatus.SENT_BATCH)
             dl.print("Sent batch:", ident.batch_uuid)
             dl._update_console()
+
+            # Compress after the fact
+            if self._compress_inputs and record.llm.provider_type == "openai":
+                try:
+                    from parallem.core.compress.pack_input_batches import (
+                        compress_openai_input_batch_file,
+                    )
+
+                    compress_openai_input_batch_file(
+                        fpath,
+                        deepcopy(record.data),
+                        preserve_source_file=False,
+                    )
+                except Exception:
+                    # Compression is an optional side effect; batch submission should still succeed.
+                    pass
 
         cohort_id = CohortIdentifier(batch_ids=batch_ids, session_id=self.session_id)
         # Clear the batch buffer after execution

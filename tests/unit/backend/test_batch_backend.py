@@ -11,6 +11,8 @@ import tempfile
 from pathlib import Path
 from unittest.mock import Mock
 import pytest
+import polars as pl
+from polars.testing import assert_frame_equal
 
 from parallem.core.backend.batch_backend import BatchBackend
 from parallem.core.file_manager import FileManager
@@ -258,9 +260,85 @@ class TestBatchBackendExecuteBatch:
         # Should create 2 batches (3+1) regardless of LLM
         assert len(cohort.batch_ids) == 2
 
-        # Verify sizes
         assert len(cohort.batch_ids[0].call_ids) == 3
         assert len(cohort.batch_ids[1].call_ids) == 1
+
+    def test_compress_inputs_writes_companion_parquet(
+        self, file_manager, mock_datastore, mock_provider
+    ):
+        backend = BatchBackend(
+            fm=file_manager,
+            dashlog=PrimitiveDashboardLogger(),
+            session_id=1,
+            confirm_batch_submission=False,
+            compress_inputs=True,
+        )
+        backend._ds = mock_datastore
+
+        llm = LLMIdentity(
+            "gpt-4o-mini", provider_type="openai", model_name="gpt-4o-mini"
+        )
+        call_id = create_call_id("agent1", 1)
+        backend.bookkeep_call(
+            call_id,
+            llm,
+            {
+                "custom_id": "req_1",
+                "method": "POST",
+                "url": "/v1/responses",
+                "body": {
+                    "model": "gpt-4o-mini",
+                    "instructions": "Be concise",
+                    "input": [{"role": "user", "content": "Hi"}],
+                    "tools": [],
+                },
+            },
+        )
+
+        cohort = backend.execute_batch(
+            mock_provider,
+            PrimitiveDashboardLogger(),
+            partition_by_model_name=True,
+        )
+
+        assert len(cohort.batch_ids) == 1
+
+        batch_dir = file_manager.path_batch_in()
+        raw_files = list(batch_dir.glob("*.jsonl"))
+        compressed_files = list(batch_dir.glob("*.parquet"))
+
+        assert len(raw_files) == 1
+        assert len(compressed_files) == 1
+
+        actual = pl.read_parquet(compressed_files[0])
+        expected = pl.DataFrame(
+            {
+                "custom_id": ["req_1"],
+                "method": ["POST"],
+                "url": ["/v1/responses"],
+                "body.model": ["gpt-4o-mini"],
+                "body.instructions": ["Be concise"],
+                "body.input": ['[{"role": "user", "content": "Hi"}]'],
+                "body.tools": ["[]"],
+                "body.text.format": [None],
+                "body.rest": [None],
+                "item.rest": [None],
+            },
+            schema={
+                "custom_id": pl.Utf8,
+                "method": pl.Utf8,
+                "url": pl.Utf8,
+                "body.model": pl.Utf8,
+                "body.instructions": pl.Utf8,
+                "body.input": pl.Utf8,
+                "body.tools": pl.Utf8,
+                "body.text.format": pl.Utf8,
+                "body.rest": pl.Utf8,
+                "item.rest": pl.Utf8,
+            },
+        )
+
+        assert_frame_equal(actual, expected)
 
     def test_empty_buffer(self, batch_backend, mock_provider):
         """Test execute_batch with empty buffer"""

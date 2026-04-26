@@ -1,3 +1,4 @@
+import json
 from typing import TYPE_CHECKING
 
 from parallem.provider.base import BatchProvider
@@ -13,6 +14,47 @@ class BatchNamespace:
 
     def __init__(self, orch: "AgentOrchestrator"):
         self._orch = orch
+
+    def _compress_inputs(
+        self,
+        *,
+        provider_type: ProviderType,
+        preserve_source_files: bool = True,
+    ) -> None:
+        """
+        Write compressed companion data for all batch input files when supported.
+
+        Compression is best-effort and should never interrupt main batch flows.
+
+        :param provider_type: Provider type for the batch payload.
+        :param preserve_source_files: Whether raw batch-in .jsonl files are preserved after compression.
+        :return: None.
+        """
+        if provider_type != "openai":
+            return
+
+        try:
+            from parallem.core.compress.pack_input_batches import (
+                compress_openai_input_batch_file,
+            )
+
+            batch_in_dir = self._orch._fm.path_batch_in()
+            for fpath in sorted(batch_in_dir.glob("*.jsonl")):
+                items = []
+                with open(fpath, "r", encoding="utf-8") as f:
+                    for line in f:
+                        line = line.strip()
+                        if not line:
+                            continue
+                        items.append(json.loads(line))
+
+                compress_openai_input_batch_file(
+                    fpath,
+                    items,
+                    preserve_source_file=preserve_source_files,
+                )
+        except Exception:
+            pass
 
     def forget_batch(
         self,

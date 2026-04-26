@@ -1,5 +1,4 @@
 import json
-import os
 from pathlib import Path
 
 import polars as pl
@@ -11,10 +10,12 @@ _schema_overrides = {
     "method": pl.Utf8,
     "url": pl.Utf8,
     "body.model": pl.Utf8,
-    # "body.instructions": pl.Utf8,
-    # "body.input": pl.List(), --> needs to be stored as bytes, since it can be arbitrarily nested.
-    # "body.reasoning.effort": pl.Utf8,
-    # "body.max_output_tokens": pl.Int64,
+    "body.instructions": pl.Utf8,
+    "body.input": pl.Utf8,
+    "body.tools": pl.Utf8,
+    "body.text.format": pl.Utf8,
+    "body.rest": pl.Utf8,
+    "item.rest": pl.Utf8,
 }
 
 _MISSING = object()
@@ -152,35 +153,48 @@ def unpack_openai_item(item):
     return unpacked
 
 
-if __name__ == "__main__":
-    # parent_dir = Path(".pllm/example/stress_test/batch-in")
-    # parent_dir = Path(".pllm/example/batch/batch-in")
-    parent_dirs = [
-        Path(".pllm/example/stress_test/batch-in"),
-        Path(".pllm/example/batch/batch-in"),
-        Path(".pllm/simplest-tool/batch-in"),
-    ]
+def compress_openai_input_batches(items: list[dict]) -> pl.DataFrame:
+    """
+    Compress a list of OpenAI batch request items into a normalized dataframe.
 
-    all_dfs = []
-    for parent_dir in parent_dirs:
-        for fname in os.listdir(parent_dir):
-            if fname.endswith(".jsonl"):
-                # df = pl.read_ndjson(Path(f".pllm/example/stress_test/batch-in/{fname}"))
-                # print(df)
+    WARNING: Mutates input.
 
-                collector = []
-                with open(parent_dir / fname, "r", encoding="utf-8") as f:
-                    for line in f:
-                        obj = json.loads(line)
+    :param items: OpenAI batch request items.
+    :return: Normalized dataframe with packed JSON fields.
+    """
+    collector = []
+    for obj in items:
+        if "body" not in obj:
+            continue
+        collector.append(pack_openai_item(obj))
 
-                        if "body" not in obj:
-                            # characteristic of openai items
-                            continue
-                        collector.append(pack_openai_item(obj))
-                if collector:
-                    df = pl_json_normalize(collector)
-                    all_dfs.append(df)
-                    # print(df)
+    if not collector:
+        return pl.DataFrame(schema=_schema_overrides)
 
-    largest_df = pl.concat(all_dfs, how="diagonal_relaxed")
-    pass
+    return pl_json_normalize(collector, schema_overrides=_schema_overrides)
+
+
+def compress_openai_input_batch_file(
+    fpath: Path,
+    items: list[dict],
+    *,
+    preserve_source_file: bool = True,
+) -> None:
+    """
+    Compress OpenAI batch request items and persist to a companion parquet file.
+
+    :param fpath: Path to source JSONL batch input file.
+    :param items: OpenAI batch request items.
+    :param preserve_source_file: Whether to preserve the source JSONL file.
+    :return: None.
+    """
+    from parallem.core.compress.to_parquet import write_to_parquet
+
+    compressed = compress_openai_input_batches(items)
+    write_to_parquet(
+        fpath.with_suffix(".parquet"),
+        compressed,
+        mode="append",
+    )
+    if not preserve_source_file:
+        fpath.unlink(missing_ok=True)
