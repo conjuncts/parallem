@@ -373,8 +373,11 @@ class MinorTweaks(TypedDict, total=False):
     batch_max_size: int = 1000
     "Maximum number of calls submitted per provider batch request."
 
-    batch_compress_inputs: bool = False
-    "Whether to write compressed copies of supported batch inputs."
+    batch_input_format: Literal["jsonl", "zip"] = "zip"
+    "Whether to compress batch inputs."
+
+    batch_output_format: Literal["jsonl", "zip"] = "zip"
+    "Whether to compress batch outputs."
 
 
 class LLMResponse:

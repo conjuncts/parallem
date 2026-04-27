@@ -338,23 +338,13 @@ class BatchBackend(BaseBackend):
         """
         persist_to_zip(fpath, stuff, inner_fname=inner_fname)
 
-    # TODO: Also need to store the batch_uuid
-    # In that datastore, we need to store
-    # (doc_hash, session_id, seq_id, batch_uuid)
-    # so probably the easiest way is to add a possibly NULL column (batch_uuid)
-    # to the existing SQL database.
-
-    # But that requires response (TEXT) to be not null.
-    # Hence, we will need to create a new table "unready_batch_responses"
-    # That contains (agent_name, seq_id, session_id, doc_hash, provider_type, batch_uuid)
-
     def download_batch_from_provider(
         self,
         provider: "BatchProvider",
         batch_uuid: str,
         *,
         provider_type: str,
-        save_to_disk: Literal[None, "zip"] = "zip",
+        save_to_disk: Literal[None, "jsonl", "zip"] = "zip",
     ) -> List[BatchResult]:
         """
         Given a batch UUID, download the results.
@@ -372,13 +362,18 @@ class BatchBackend(BaseBackend):
         batch_results = provider.download_batch(batch_uuid, provider_type=provider_type)
 
         for res in batch_results:
-            if save_to_disk == "zip":
+            if save_to_disk == "zip" and res.raw_output is not None:
                 ending = ".zip" if res.status == "ready" else "_err.zip"
                 batch_fname = os.path.basename(batch_uuid)
                 fpath = self._fm.path_batch_out() / f"{batch_fname}{ending}"
                 self.persist_to_zip(
                     res.raw_output, fpath=fpath, inner_fname=batch_uuid + ".jsonl"
                 )
+            elif save_to_disk == "jsonl" and res.raw_output is not None:
+                ending = ".jsonl" if res.status == "ready" else "_err.jsonl"
+                batch_fname = os.path.basename(batch_uuid)
+                fpath = self._fm.path_batch_out() / f"{batch_fname}{ending}"
+                fpath.write_text(res.raw_output, encoding="utf-8")
 
             if res.status == "ready":
                 self._ds.store_ready_batch(res, upsert=self._rewrite_cache)
@@ -395,6 +390,8 @@ class BatchBackend(BaseBackend):
         self,
         provider: "BatchProvider",
         dl: DashboardLogger,
+        *,
+        save_to_disk: Literal[None, "jsonl", "zip"] = "zip",
     ):
         """
         Try to download all batches and clean up completed ones
@@ -410,7 +407,10 @@ class BatchBackend(BaseBackend):
             if not provider.is_compatible(batch_provider):
                 continue
             batch_results = self.download_batch_from_provider(
-                provider, batch_uuid, save_to_disk="zip", provider_type=batch_provider
+                provider,
+                batch_uuid,
+                save_to_disk=save_to_disk,
+                provider_type=batch_provider,
             )
             for batch_result in batch_results:
                 if batch_result.status == "ready":

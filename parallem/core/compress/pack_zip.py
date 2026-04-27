@@ -8,7 +8,7 @@ def persist_to_zip(
     stuff: str | list[dict],
     *,
     inner_fname: str | None = None,
-    compression: int | None = None,
+    compression: int | None = zipfile.ZIP_DEFLATED,
 ) -> None:
     """
     Persist data into a zip file as a single file or JSONL.
@@ -22,17 +22,27 @@ def persist_to_zip(
     """
     if inner_fname is None:
         inner_fname = fpath.stem
+    try:
+        with zipfile.ZipFile(fpath, "w", compression=compression) as zf:
+            if isinstance(stuff, str):
+                zf.writestr(inner_fname, stuff)
+                return
 
-    with zipfile.ZipFile(fpath, "w", compression=compression) as zf:
+            inner_jsonl = inner_fname + ".jsonl"
+            with zf.open(inner_jsonl, "w") as f:
+                for item in stuff:
+                    line = json.dumps(item) + "\n"
+                    f.write(line.encode("utf-8"))
+    except (OSError, zipfile.BadZipFile, RuntimeError):
         if isinstance(stuff, str):
-            zf.writestr(inner_fname, stuff)
+            fallback_path = fpath.with_name(inner_fname)
+            fallback_path.write_text(stuff, encoding="utf-8")
             return
 
-        inner_jsonl = inner_fname + ".jsonl"
-        with zf.open(inner_jsonl, "w") as f:
+        fallback_path = fpath.with_name(inner_fname + ".jsonl")
+        with fallback_path.open("w", encoding="utf-8") as f:
             for item in stuff:
-                line = json.dumps(item) + "\n"
-                f.write(line.encode("utf-8"))
+                f.write(json.dumps(item) + "\n")
 
 
 def read_zip_text(fpath: Path, inner_fname: str) -> str:

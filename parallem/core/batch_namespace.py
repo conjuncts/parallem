@@ -1,6 +1,7 @@
 from typing import TYPE_CHECKING
+import zipfile
 
-from parallem.core.compress.pack_zip import compress_file_to_zip
+from parallem.core.compress.pack_zip import compress_file_to_zip, persist_to_zip
 from parallem.provider.base import BatchProvider
 from parallem.types import ProviderType
 
@@ -24,11 +25,8 @@ class BatchNamespace:
         """
         Write compressed companion data for all batch input files when supported.
 
-        Compression is best-effort and should never interrupt main batch flows.
-
         :param provider_type: Provider type for the batch payload.
         :param preserve_source_files: Whether raw batch-in .jsonl files are preserved after compression.
-        :return: None.
         """
         if provider_type != "openai":
             return
@@ -40,6 +38,47 @@ class BatchNamespace:
                     fpath,
                     preserve_source_file=preserve_source_files,
                 )
+        except Exception:
+            pass
+
+    def _recompress_outputs(
+        self,
+        *,
+        preserve_source_files: bool = True,
+    ) -> None:
+        """
+        Recompress batch output files in batch-out.
+
+        :param preserve_source_files: Whether raw .jsonl outputs are preserved after compression.
+        :return: None.
+        """
+        try:
+            batch_out_dir = self._orch._fm.path_batch_out()
+
+            for zip_path in sorted(batch_out_dir.glob("*.zip")):
+                try:
+                    with zipfile.ZipFile(zip_path, "r") as zf:
+                        names = zf.namelist()
+                        if not names:
+                            continue
+                        inner_fname = names[0]
+                        payload = zf.read(inner_fname).decode("utf-8")
+                    persist_to_zip(
+                        zip_path,
+                        payload,
+                        inner_fname=inner_fname,
+                    )
+                except (OSError, zipfile.BadZipFile, RuntimeError, UnicodeDecodeError):
+                    continue
+
+            for fpath in sorted(batch_out_dir.glob("*.jsonl")):
+                try:
+                    compress_file_to_zip(
+                        fpath,
+                        preserve_source_file=preserve_source_files,
+                    )
+                except (OSError, zipfile.BadZipFile, RuntimeError):
+                    continue
         except Exception:
             pass
 

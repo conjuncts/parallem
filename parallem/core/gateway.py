@@ -17,7 +17,8 @@ DEFAULT_MINOR_TWEAKS: MinorTweaks = {
     "batch_user_confirmation": True,
     "batch_wait_until_complete": False,
     "batch_max_size": 1000,
-    "batch_compress_inputs": False,
+    "batch_input_format": "zip",
+    "batch_output_format": "zip",
 }
 
 
@@ -130,7 +131,7 @@ def resume_directory(
             session_id=fm._get_session_counter(),
             confirm_batch_submission=tweaks_dict["batch_user_confirmation"],
             max_batch_size=tweaks_dict["batch_max_size"],
-            compress_inputs=tweaks_dict["batch_compress_inputs"],
+            compress_inputs=tweaks_dict["batch_input_format"] == "zip",
             rewrite_cache=rewrite_cache,
         )
     else:
@@ -166,7 +167,11 @@ def resume_directory(
     # try downloading previous batches if any
     if strategy == "batch":
         with bm.dashboard() as d:
-            statuses = backend.try_download_all_batches(provider_obj, d)
+            statuses = backend.try_download_all_batches(
+                provider_obj,
+                d,
+                save_to_disk=tweaks_dict["batch_output_format"],
+            )
             # Don't store these statuses: batch_hash != msg_hash
             d.clear(clear_console=False)
         d.finalize_line()
