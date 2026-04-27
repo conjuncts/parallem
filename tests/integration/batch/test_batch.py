@@ -18,6 +18,7 @@ from pathlib import Path
 from pydantic import BaseModel
 from PIL import Image
 from unittest.mock import Mock
+import zipfile
 
 import parallem as pllm
 import polars as pl
@@ -69,11 +70,14 @@ def _assert_batch_file_matches_expected(
     batch_dir = temp_integration_dir / f"full_batch_{provider}" / "batch-in"
     assert batch_dir.exists(), "Batch directory not created"
 
-    batch_files = list(batch_dir.glob("*.jsonl"))
-    assert len(batch_files) == 1, f"Expected 1 batch file, found {len(batch_files)}"
+    batch_files = list(batch_dir.glob("*.zip"))
+    assert len(batch_files) == 1, f"Expected 1 batch zip file, found {len(batch_files)}"
 
-    with open(batch_files[0], "r") as f:
-        generated_data = f.read()
+    with zipfile.ZipFile(batch_files[0], "r") as z:
+        jsonl_names = [n for n in z.namelist() if n.endswith(".jsonl")]
+        assert len(jsonl_names) == 1, f"Expected 1 JSONL inside zip, found {len(jsonl_names)}"
+        with z.open(jsonl_names[0], "r") as f:
+            generated_data = f.read().decode("utf-8")
     generated_lines = generated_data.strip().split("\n")
     generated_lines = [line.strip() for line in generated_lines if line.strip()]
 

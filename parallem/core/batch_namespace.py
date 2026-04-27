@@ -1,4 +1,4 @@
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Optional
 import zipfile
 
 from parallem.core.compress.pack_zip import compress_file_to_zip, persist_to_zip
@@ -8,6 +8,50 @@ from parallem.types import ProviderType
 
 if TYPE_CHECKING:
     from parallem.core.agent.orchestrator import AgentOrchestrator
+    from parallem.core.datastore.sqlite import SQLiteDatastore
+
+
+def _archive_inactive_batch_pending(
+    ds: "SQLiteDatastore",
+    *,
+    delete_after_transfer: bool = True,
+) -> int:
+    """
+    Archive inactive batch_pending rows to parquet.
+
+    :param delete_after_transfer: Whether to delete archived rows.
+    :return: Number of rows archived.
+    """
+    from parallem.core.compress.batch_pending_to_parquet import (
+        transfer_batch_pending_to_parquet,
+    )
+    import sqlite3
+
+    conn = ds._get_connection(None)
+    try:
+        cursor = conn.execute(
+            """
+            SELECT DISTINCT batch_uuid
+            FROM batch_pending
+            WHERE is_pending = 0
+            ORDER BY batch_uuid
+            """
+        )
+        batch_uuids = [row["batch_uuid"] for row in cursor.fetchall()]
+        archived = 0
+        for batch_uuid in batch_uuids:
+            archived += transfer_batch_pending_to_parquet(
+                conn,
+                ds.file_manager,
+                batch_uuid,
+                delete_after_transfer=delete_after_transfer,
+                is_pending=False,
+            )
+        conn.commit()
+        return archived
+    except sqlite3.Error as e:
+        conn.rollback()
+        raise RuntimeError(f"SQLite error while archiving batch pending: {e}")
 
 
 class BatchNamespace:
@@ -81,6 +125,50 @@ class BatchNamespace:
                     continue
         except Exception:
             pass
+
+    def _vacuum(
+        self,
+        *,
+        provider_type: Optional[ProviderType] = None,
+        preserve_source_files: bool = True,
+        vacuum_sqlite: bool = True,
+        transfer_metadata: bool = True,
+        transfer_batch_pending: bool = True,
+    ) -> None:
+        """
+        Run disk space saving tasks for batch-related artifacts.
+
+        :param provider_type: Provider type for batch input compression. Defaults to the current provider.
+        :param preserve_source_files: Whether raw batch input/output files are preserved after compression.
+        :param vacuum_sqlite: Whether to run SQLite VACUUM after cleanup.
+        :param transfer_metadata: Whether to transfer supported metadata to parquet.
+        :param transfer_batch_pending: Whether to archive inactive batch_pending rows to parquet.
+        :return: None.
+        """
+        if provider_type is None:
+            provider_type = self._orch._provider.provider_type
+
+        self._compress_inputs(
+            provider_type=provider_type,
+            preserve_source_files=preserve_source_files,
+        )
+        self._recompress_outputs(preserve_source_files=preserve_source_files)
+
+        datastore = self._orch._backend._get_datastore()
+        if transfer_metadata and hasattr(datastore, "_transfer_metadata_to_parquet"):
+            try:
+                datastore._transfer_metadata_to_parquet()
+            except Exception:
+                pass
+
+        if transfer_batch_pending:
+            _archive_inactive_batch_pending(datastore, delete_after_transfer=True)
+
+        if vacuum_sqlite and hasattr(datastore, "_vacuum"):
+            try:
+                datastore._vacuum()
+            except Exception:
+                pass
 
     def forget_batch(
         self,

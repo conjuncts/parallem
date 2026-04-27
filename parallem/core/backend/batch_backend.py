@@ -1,4 +1,5 @@
 import os
+import zipfile
 from dataclasses import dataclass
 from pathlib import Path
 from typing import List, Literal, Optional, Union
@@ -299,15 +300,14 @@ class BatchBackend(BaseBackend):
             dl.print("Sent batch:", ident.batch_uuid)
             dl._update_console()
 
-            # Write companion parquet (compressed) after the fact for OpenAI inputs.
-            # Preserve the raw jsonl file while writing the parquet companion.
-            if self._compress_inputs and record.llm.provider_type == "openai":
+            # Compress batch input files
+            if self._compress_inputs:
                 try:
                     compress_file_to_zip(
                         fpath,
                         preserve_source_file=False,
                     )
-                except Exception:
+                except (OSError, RuntimeError, zipfile.BadZipFile, zipfile.LargeZipFile):
                     # Compression is an optional side effect; batch submission should still succeed.
                     pass
 

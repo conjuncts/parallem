@@ -22,6 +22,9 @@ from parallem.core.datastore.sql_migrate import (
 )
 from parallem.core.io.sqlite_to_parquet import export_sqlite_to_folder, sqlite_to_df
 from parallem.core.compress.pack_metadata import compress_metadata
+from parallem.core.compress.batch_pending_to_parquet import (
+    transfer_batch_pending_to_parquet,
+)
 from parallem.core.compress.to_parquet import ParquetUniqueWriter, ParquetWriter
 from parallem.core.file_manager import FileManager
 from parallem.core.memoize.operations import (
@@ -1144,9 +1147,11 @@ class SQLiteDatastore(BaseDatastore):
         conn = self._get_connection(None)
 
         try:
-            conn.execute(
-                "UPDATE batch_pending SET is_pending = 0 WHERE batch_uuid = ?",
-                (batch_uuid,),
+            transfer_batch_pending_to_parquet(
+                conn,
+                self.file_manager,
+                batch_uuid,
+                delete_after_transfer=True,
             )
             conn.commit()
 
