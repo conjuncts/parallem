@@ -2,10 +2,10 @@ from unittest.mock import Mock
 import tempfile
 from pathlib import Path
 
-import polars as pl
 import pytest
 
 from parallem.core.batch_namespace import BatchNamespace
+from parallem.core.compress.pack_zip import read_jsonl_items_from_zip
 from parallem.core.file_manager import FileManager
 from parallem.provider.base import BatchProvider
 
@@ -142,16 +142,16 @@ def test_compress_inputs_writes_companion_parquet(file_manager):
 
     ns._compress_inputs(provider_type="openai")
 
-    parquet_files = sorted(file_manager.path_batch_in().glob("*.parquet"))
-    assert len(parquet_files) == 2
+    zip_files = sorted(file_manager.path_batch_in().glob("*.zip"))
+    assert len(zip_files) == 2
 
-    df_custom_ids = []
-    for parquet_file in parquet_files:
-        df = pl.read_parquet(parquet_file)
-        assert df.height == 1
-        df_custom_ids.extend(df["custom_id"].to_list())
+    batch_custom_ids = []
+    for zip_file in zip_files:
+        items = read_jsonl_items_from_zip(zip_file)
+        assert len(items) == 1
+        batch_custom_ids.append(items[0]["custom_id"])
 
-    assert sorted(df_custom_ids) == ["req_1", "req_2"]
+    assert sorted(batch_custom_ids) == ["req_1", "req_2"]
 
 
 def test_compress_inputs_noop_for_unsupported_provider(file_manager):
@@ -165,4 +165,4 @@ def test_compress_inputs_noop_for_unsupported_provider(file_manager):
     file_manager.save_batch_in([{"arbitrary": "value"}])
     ns._compress_inputs(provider_type="google")
 
-    assert not list(file_manager.path_batch_in().glob("*.parquet"))
+    assert not list(file_manager.path_batch_in().glob("*.zip"))

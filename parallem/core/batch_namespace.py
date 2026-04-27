@@ -1,6 +1,6 @@
-import json
 from typing import TYPE_CHECKING
 
+from parallem.core.compress.pack_zip import compress_file_to_zip
 from parallem.provider.base import BatchProvider
 from parallem.types import ProviderType
 
@@ -34,23 +34,10 @@ class BatchNamespace:
             return
 
         try:
-            from parallem.core.compress.pack_input_batches import (
-                compress_openai_input_batch_file,
-            )
-
             batch_in_dir = self._orch._fm.path_batch_in()
             for fpath in sorted(batch_in_dir.glob("*.jsonl")):
-                items = []
-                with open(fpath, "r", encoding="utf-8") as f:
-                    for line in f:
-                        line = line.strip()
-                        if not line:
-                            continue
-                        items.append(json.loads(line))
-
-                compress_openai_input_batch_file(
+                compress_file_to_zip(
                     fpath,
-                    items,
                     preserve_source_file=preserve_source_files,
                 )
         except Exception:

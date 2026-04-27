@@ -11,10 +11,9 @@ import tempfile
 from pathlib import Path
 from unittest.mock import Mock
 import pytest
-import polars as pl
-from polars.testing import assert_frame_equal
 
 from parallem.core.backend.batch_backend import BatchBackend
+from parallem.core.compress.pack_zip import read_jsonl_items_from_zip
 from parallem.core.file_manager import FileManager
 from parallem.logging.dash_logger import PrimitiveDashboardLogger
 from parallem.types import LLMIdentity, CallIdentifier
@@ -279,20 +278,21 @@ class TestBatchBackendExecuteBatch:
             "gpt-4o-mini", provider_type="openai", model_name="gpt-4o-mini"
         )
         call_id = create_call_id("agent1", 1)
+        payload = {
+            "custom_id": "req_1",
+            "method": "POST",
+            "url": "/v1/responses",
+            "body": {
+                "model": "gpt-4o-mini",
+                "instructions": "Be concise",
+                "input": [{"role": "user", "content": "Hi"}],
+                "tools": [],
+            },
+        }
         backend.bookkeep_call(
             call_id,
             llm,
-            {
-                "custom_id": "req_1",
-                "method": "POST",
-                "url": "/v1/responses",
-                "body": {
-                    "model": "gpt-4o-mini",
-                    "instructions": "Be concise",
-                    "input": [{"role": "user", "content": "Hi"}],
-                    "tools": [],
-                },
-            },
+            payload,
         )
 
         cohort = backend.execute_batch(
@@ -305,40 +305,14 @@ class TestBatchBackendExecuteBatch:
 
         batch_dir = file_manager.path_batch_in()
         raw_files = list(batch_dir.glob("*.jsonl"))
-        compressed_files = list(batch_dir.glob("*.parquet"))
+        compressed_files = list(batch_dir.glob("*.zip"))
 
-        assert len(raw_files) == 1
+        assert len(raw_files) == 0
         assert len(compressed_files) == 1
 
-        actual = pl.read_parquet(compressed_files[0])
-        expected = pl.DataFrame(
-            {
-                "custom_id": ["req_1"],
-                "method": ["POST"],
-                "url": ["/v1/responses"],
-                "body.model": ["gpt-4o-mini"],
-                "body.instructions": ["Be concise"],
-                "body.input": ['[{"role": "user", "content": "Hi"}]'],
-                "body.tools": ["[]"],
-                "body.text.format": [None],
-                "body.rest": [None],
-                "item.rest": [None],
-            },
-            schema={
-                "custom_id": pl.Utf8,
-                "method": pl.Utf8,
-                "url": pl.Utf8,
-                "body.model": pl.Utf8,
-                "body.instructions": pl.Utf8,
-                "body.input": pl.Utf8,
-                "body.tools": pl.Utf8,
-                "body.text.format": pl.Utf8,
-                "body.rest": pl.Utf8,
-                "item.rest": pl.Utf8,
-            },
-        )
-
-        assert_frame_equal(actual, expected)
+        # Read zipped jsonl and recreate the compressed dataframe for comparison
+        items = read_jsonl_items_from_zip(compressed_files[0])
+        assert items == [payload]
 
     def test_empty_buffer(self, batch_backend, mock_provider):
         """Test execute_batch with empty buffer"""

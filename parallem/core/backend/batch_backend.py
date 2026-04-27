@@ -1,10 +1,9 @@
-from copy import deepcopy
-import json
 import os
 from dataclasses import dataclass
 from pathlib import Path
 from typing import List, Literal, Optional, Union
 from parallem.core.backend import BaseBackend
+from parallem.core.compress.pack_zip import compress_file_to_zip, persist_to_zip
 from parallem.core.datastore.sqlite import SQLiteDatastore
 from parallem.core.exception import PendingNotAvailable
 from parallem.core.response import BatchLLMResponse
@@ -300,16 +299,12 @@ class BatchBackend(BaseBackend):
             dl.print("Sent batch:", ident.batch_uuid)
             dl._update_console()
 
-            # Compress after the fact
+            # Write companion parquet (compressed) after the fact for OpenAI inputs.
+            # Preserve the raw jsonl file while writing the parquet companion.
             if self._compress_inputs and record.llm.provider_type == "openai":
                 try:
-                    from parallem.core.compress.pack_input_batches import (
-                        compress_openai_input_batch_file,
-                    )
-
-                    compress_openai_input_batch_file(
+                    compress_file_to_zip(
                         fpath,
-                        deepcopy(record.data),
                         preserve_source_file=False,
                     )
                 except Exception:
@@ -341,19 +336,7 @@ class BatchBackend(BaseBackend):
         :param inner_fname: The name of the file inside the zip.
             If not given, then `fpath` minus ".zip".
         """
-        import zipfile
-
-        with zipfile.ZipFile(fpath, "w") as zf:
-            if inner_fname is None:
-                inner_fname = fpath.stem
-            if isinstance(stuff, str):
-                zf.writestr(inner_fname, stuff)
-            else:
-                # write a jsonl
-                with zf.open(inner_fname + ".jsonl", "w") as f:
-                    for item in stuff:
-                        line = json.dumps(item) + "\n"
-                        f.write(line.encode("utf-8"))
+        persist_to_zip(fpath, stuff, inner_fname=inner_fname)
 
     # TODO: Also need to store the batch_uuid
     # In that datastore, we need to store
