@@ -1,0 +1,32 @@
+{
+  "config_path": "/Users/shoneran/workspace/parallem/usecases/enzyme_design_arena/user/config.yaml",
+  "target": "nucb",
+  "provider": "openai",
+  "strategy": "concurrent",
+  "llm": "gpt-5-mini",
+  "num_datasets": 3,
+  "num_grid_jobs": 30,
+  "num_llm_extra_jobs": 70,
+  "num_jobs": 100,
+  "split_rule": "sha1(sequence_id) % 10 -> train<7, val==7, test>=8",
+  "results_json": "/Users/shoneran/workspace/parallem/usecases/enzyme_design_arena/data/processed/benchmark_results.json",
+  "results_csv": "/Users/shoneran/workspace/parallem/usecases/enzyme_design_arena/data/processed/benchmark_results.csv",
+  "judge_markdown": "/Users/shoneran/workspace/parallem/usecases/enzyme_design_arena/data/processed/benchmark_judge.md",
+  "best_by_dataset": {
+    "nucb_functional_cls": {
+      "model_name": "svc_rbf",
+      "metric_name": "test_accuracy",
+      "test_primary": 0.8279569892473119
+    },
+    "nucb_num_mut_reg": {
+      "model_name": "svr_rbf",
+      "metric_name": "test_rmse",
+      "test_primary": 1.3952536025267026
+    },
+    "proteingym_total_mut_reg": {
+      "model_name": "rf_reg",
+      "metric_name": "test_rmse",
+      "test_primary": 63478.936150317284
+    }
+  }
+}

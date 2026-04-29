@@ -1,0 +1,21 @@
+parallem:
+  provider: openai
+  strategy: concurrent
+  llm: gpt-5-mini
+  run_dir: runs/enzyme_design_arena_ml
+  dashboard: false
+  hash_by: [llm]
+
+pipeline:
+  target: nucb
+  max_candidates: 2000
+  total_job_budget: 100
+  enable_llm_extra: true
+
+openai:
+  # Preferred: keep secret in environment variable.
+  api_key_env: OPENAI_API_KEY
+  # true: config.yaml api_key overrides an existing env var.
+  prefer_config_key: true
+  # Optional fallback for local private use only. Never commit real key.
+  api_key: ""

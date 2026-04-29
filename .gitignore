@@ -28,3 +28,7 @@ instruct.md
 
 # macOS
 .DS_Store
+
+# Usecase-local private config (keep example tracked)
+usecases/enzyme_design_arena/user/*
+!usecases/enzyme_design_arena/user/config.example.yaml
