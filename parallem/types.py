@@ -226,7 +226,15 @@ LLMResponse: Any response from the LLM.
 """
 
 
-ProviderType = Literal["openai", "anthropic", "google"]
+BuiltinProviderType = Literal["openai", "anthropic", "google"]
+"""Built-in provider names recognised without the registry."""
+
+ProviderType = Union[BuiltinProviderType, str]
+"""
+Provider type string.  Built-in values are ``"openai"``, ``"anthropic"``, and
+``"google"``.  Arbitrary strings are valid for providers registered via
+:func:`parallem.registry.register_provider`.
+"""
 
 
 @dataclass(slots=True)
@@ -357,7 +365,7 @@ class CommonQueryParameters(TypedDict):
 
 class MinorTweaks(TypedDict, total=False):
     """
-    Minor tweaks for the ParallelLLM framework.
+    Minor tweaks for ParaLLeM.
     Holds configs not significant enough to warrant a full keyword argument.
     """
 

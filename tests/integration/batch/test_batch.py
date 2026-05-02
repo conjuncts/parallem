@@ -75,7 +75,9 @@ def _assert_batch_file_matches_expected(
 
     with zipfile.ZipFile(batch_files[0], "r") as z:
         jsonl_names = [n for n in z.namelist() if n.endswith(".jsonl")]
-        assert len(jsonl_names) == 1, f"Expected 1 JSONL inside zip, found {len(jsonl_names)}"
+        assert len(jsonl_names) == 1, (
+            f"Expected 1 JSONL inside zip, found {len(jsonl_names)}"
+        )
         with z.open(jsonl_names[0], "r") as f:
             generated_data = f.read().decode("utf-8")
     generated_lines = generated_data.strip().split("\n")

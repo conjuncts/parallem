@@ -1,4 +1,5 @@
 from parallem.core.gateway import resume_directory
+from parallem.registry import register_provider, unregister_provider
 from parallem.types import (
     AskParameters,
     BatchStatus,
@@ -54,6 +55,9 @@ __all__ = [
     "ParsedError",
     "LLMResponse",
     "HumanResponse",
+    ### .registry
+    "register_provider",
+    "unregister_provider",
     ### .tools
     "tools",
     "to_tool_schema",

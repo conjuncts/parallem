@@ -307,7 +307,12 @@ class BatchBackend(BaseBackend):
                         fpath,
                         preserve_source_file=False,
                     )
-                except (OSError, RuntimeError, zipfile.BadZipFile, zipfile.LargeZipFile):
+                except (
+                    OSError,
+                    RuntimeError,
+                    zipfile.BadZipFile,
+                    zipfile.LargeZipFile,
+                ):
                     # Compression is an optional side effect; batch submission should still succeed.
                     pass
 
