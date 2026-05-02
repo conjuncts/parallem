@@ -282,7 +282,7 @@ class TestCastBytesToDocument:
         result = cast_bytes_to_document(byt, dtype, dextra, retriever=retriever)
         assert isinstance(result, LLMResponse)
         assert result.call_id == full_call_id
-        assert result.value is None
+        assert result._value is None
         retriever.populate_call_id.assert_called_once_with(
             {"agent_name": "a", "seq_id": 1, "session_id": 0}
         )

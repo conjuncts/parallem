@@ -10,6 +10,7 @@ from typing import (
     Union,
     Tuple,
 )
+from typing_extensions import deprecated
 import json
 
 from PIL import Image
@@ -390,58 +391,46 @@ class MinorTweaks(TypedDict, total=False):
 
 class LLMResponse:
     """
-    Any response outputted by an LLM. **You must access the value through `final_answer`**
+    Any response outputted by an LLM. **You must access the value through `final_answer`.**
     """
 
     def __init__(self, value: str, *, call_id: CallIdentifier = None):
-        self.value = value
+        self._value = value
         self.call_id = call_id
         self._pr: Optional[ParsedResponse] = None
 
     @property
     def final_answer(self) -> str:
         """
-        Resolve the response to a string.
+        Returns the text within this response.
 
         :returns: The resolved string response. If this value is not available,
             execution should stop gracefully and proceed to the next batch.
         """
-        return self.value
-
-    def resolve(self) -> str:
-        return self.final_answer
+        return self._value
 
     @property
     def final_json(self) -> Optional[dict]:
         """
-        Resolve the response and automatically loads JSON to dict. Returns None if invalid.
+        Returns the response loaded as a dictionary. Returns None if invalid.
         """
         try:
             return json.loads(self.final_answer)
         except json.JSONDecodeError:
             return None
 
-    def resolve_json(self) -> Optional[dict]:
-        return self.final_json
-
     @property
-    def output_fcs(self) -> list[FunctionCall]:
+    def function_calls(self) -> list[FunctionCall]:
         """
-        Return function calls to user-defined functions.
+        Returns function calls to user-defined functions.
         """
         if self._pr and self._pr.function_calls:
             # cast and jsonify if needed
             return self._pr.function_calls
         return []
 
-    def resolve_function_calls(self) -> list[FunctionCall]:
-        """
-        Return function calls to user-defined functions.
-        """
-        return self.output_fcs
-
     def __repr__(self):
-        v = self.value
+        v = self._value
         if v and len(v) > 50:
             v = v[:47] + "..."
         return (
@@ -449,22 +438,47 @@ class LLMResponse:
         )
 
     def __str__(self):
-        if self.value is not None:
-            return self.value
+        if self._value is not None:
+            return self._value
         return repr(self)
 
     def __await__(self):
         async def _sync_await_response():
-            return self.resolve()
+            return self.final_answer
 
         return _sync_await_response().__await__()
+
+    @deprecated("Use final_answer property instead.")
+    def resolve(self) -> str:
+        return self.final_answer
+
+    @deprecated("Use final_json property instead.")
+    def resolve_json(self) -> Optional[dict]:
+        return self.final_json
+
+    @deprecated("Use function_calls property instead.")
+    def resolve_function_calls(self) -> list[FunctionCall]:
+        """
+        Resolves response, then returns function calls to user-defined functions.
+        """
+        return self.function_calls
+
+    @property
+    def output_text(self) -> str:
+        "Alias for final_answer - OpenAI compliant."
+        return self.final_answer
+
+    @property
+    def output_parsed(self) -> Optional[dict]:
+        "Alias for final_json - OpenAI compliant."
+        return self.final_json
 
 
 class HumanResponse(LLMResponse):
     """
     A response provided by a human. Useful for human-in-the-loop.
 
-    If created without a value, ``resolve()`` lazily loads it from the retriever
+    If created without a value, ``final_answer`` lazily loads it from the retriever
     using ``origin_type=1``.
     """
 
@@ -480,19 +494,19 @@ class HumanResponse(LLMResponse):
 
     @property
     def final_answer(self) -> Optional[str]:
-        if self.value is not None:
-            return self.value
+        if self._value is not None:
+            return self._value
 
         if self._backend is None or self.call_id is None:
-            return self.value
+            return self._value
 
         pr = self._backend.retrieve(self.call_id, origin_type=1)
         if pr is None:
             return None
 
         self._pr = pr
-        self.value = pr.text
-        return self.value
+        self._value = pr.text
+        return self._value
 
 
 class BaseRetriever(ABC):

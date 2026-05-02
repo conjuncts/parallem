@@ -26,13 +26,13 @@ class PendingLLMResponse(LLMResponse):
 
     @property
     def final_answer(self) -> str:
-        if self.value is not None:
-            return self.value
+        if self._value is not None:
+            return self._value
 
         pr = self._backend.retrieve(self.call_id)
-        self.value = pr.text if pr else None
+        self._value = pr.text if pr else None
         self._pr = pr
-        return self.value
+        return self._value
 
     def __getstate__(self):
         """
@@ -46,7 +46,7 @@ class PendingLLMResponse(LLMResponse):
         """
         # self.call_id = _concise_dict_to_call(state["call_id"])
         self.call_id = state["call_id"]
-        self.value = None
+        self._value = None
         self._pr = None
         self._backend = None  # Will be set later
 
@@ -54,8 +54,8 @@ class PendingLLMResponse(LLMResponse):
         "Async obtain response value"
 
         async def _await_response():
-            if self.value is not None:
-                return self.value
+            if self._value is not None:
+                return self._value
 
             backend = self._backend
             if backend is None or self.call_id is None:
@@ -63,13 +63,13 @@ class PendingLLMResponse(LLMResponse):
 
             pr = await backend.await_response(self.call_id)
             if pr is None:
-                self.value = None
+                self._value = None
                 self._pr = None
                 return None
 
             self._pr = pr
-            self.value = pr.text
-            return self.value
+            self._value = pr.text
+            return self._value
 
         return _await_response().__await__()
 
@@ -96,7 +96,7 @@ class ReadyLLMResponse(LLMResponse):
         Support for unpickling. Restore the call_id, but value will need to be resolved later.
         """
         self.call_id = state["call_id"]
-        self.value = None
+        self._value = None
         self._pr = None
 
 
@@ -121,7 +121,7 @@ class BatchLLMResponse(LLMResponse):
         raise NotAvailable()
 
     @property
-    def output_fcs(self):
+    def function_calls(self):
         raise NotAvailable()
 
     def __getstate__(self):
@@ -135,5 +135,5 @@ class BatchLLMResponse(LLMResponse):
         Support for unpickling. Restore the call_id, but value will need to be resolved later.
         """
         self.call_id = state["call_id"]
-        self.value = None
+        self._value = None
         self._pr = None

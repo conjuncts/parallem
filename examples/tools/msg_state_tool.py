@@ -50,7 +50,7 @@ with pllm.resume_directory(
             tools=tools,
         )
 
-        fcs = resp.resolve_function_calls()
+        fcs = resp.function_calls
         assert len(fcs) == 1
         assert fcs[0].name == "count_files"
         conv.ask_functions(count_files=ls_tool)

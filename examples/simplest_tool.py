@@ -37,7 +37,7 @@ with pllm.resume_directory(
             tools=pllm.to_tool_schema([multiply, add, divide]),
         )
 
-        while last_msg.resolve_function_calls():
+        while last_msg.function_calls:
             conv.ask_functions(multiply=multiply, add=add, divide=divide)
             last_msg = conv.ask_llm()
             agt.print(conv[-1].final_answer)

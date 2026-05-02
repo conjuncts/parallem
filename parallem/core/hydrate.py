@@ -27,11 +27,11 @@ def hydrate_ready_llm_response(
     Hydrate an LLMResponse object with any missing information.
     """
     # Implement hydration logic here
-    if response.value is None:
+    if response._value is None:
         parsed_response = backend.retrieve(response.call_id)
         if parsed_response is None:
             raise IntegrityError("Cached value is no longer available")
-        response.value = parsed_response.text
+        response._value = parsed_response.text
         response._pr = parsed_response
     return response
 

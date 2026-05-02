@@ -29,11 +29,11 @@ def agent_with_permission(agt: pllm.AgentContext):
         tools=pllm.to_tool_schema([multiply, add, divide]),
     )
 
-    while last_msg.resolve_function_calls():
+    while last_msg.function_calls:
         # Pass all conversation messages to allow caching
         # But do not add it to the conversation history
         permission = agt.ask_human(
-            f"Permit function calls: {last_msg.resolve_function_calls()}? (y/n)",
+            f"Permit function calls: {last_msg.function_calls}? (y/n)",
             conv,
         )
         if permission.final_answer.strip().lower() != "y":

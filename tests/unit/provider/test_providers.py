@@ -109,7 +109,7 @@ class TestSyncOpenAIProvider:
 
         # Should return ReadyLLMResponse with the actual response
         assert isinstance(result, ReadyLLMResponse)
-        assert result.value == "The capital of France is Paris."
+        assert result._value == "The capital of France is Paris."
 
         # Verify the client was called with correct parameters
         assert len(mock_client.calls) == 1
@@ -141,7 +141,7 @@ class TestSyncOpenAIProvider:
 
         # Should return cached response
         assert isinstance(result, ReadyLLMResponse)
-        assert result.value == "Cached response"
+        assert result._value == "Cached response"
 
         # Client should not have been called since response was cached
         assert len(mock_client.calls) == 0
@@ -163,7 +163,7 @@ class TestSyncOpenAIProvider:
         )
 
         assert isinstance(result, ReadyLLMResponse)
-        assert result.value == "Model-specific response"
+        assert result._value == "Model-specific response"
 
         # Verify correct model was used
         assert len(mock_client.calls) == 1
@@ -339,7 +339,7 @@ class TestProviderIntegration:
 
         # Sync should return ReadyLLMResponse
         assert isinstance(sync_result, ReadyLLMResponse)
-        assert sync_result.value == response_text
+        assert sync_result._value == response_text
 
         # Concurrent should return PendingLLMResponse that resolves to same value
         assert isinstance(concurrent_result, PendingLLMResponse)
@@ -365,7 +365,7 @@ class TestProviderErrorScenarios:
         )
 
         assert isinstance(result, ReadyLLMResponse)
-        assert result.value == "Response with no instructions/documents"
+        assert result._value == "Response with no instructions/documents"
 
         # Verify None instructions were passed through
         assert len(mock_client.calls) == 1

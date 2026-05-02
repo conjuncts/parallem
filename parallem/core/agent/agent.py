@@ -315,7 +315,7 @@ class AgentContext(Askable):
         )
 
         # Check if response has function calls. If so, delegate to user-defined functions.
-        fcs = response.resolve_function_calls()
+        fcs = response.function_calls
         fc_outs = []
         for fc in fcs:
             callme = functions.get(fc.name)

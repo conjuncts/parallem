@@ -9,7 +9,7 @@ def _to_assistant_message(resp: LLMResponse) -> LLMDocument:
     if resp._pr and resp._pr.function_calls:
         return FunctionCallRequest(
             text_content=val,
-            calls=resp.resolve_function_calls(),
+            calls=resp.function_calls,
             call_id=resp.call_id,
         )
     return ("assistant", val)

@@ -42,8 +42,9 @@ def tour_agent(agt: pllm.AgentContext):
     fc_outs = agt.ask_functions(resp5, count_files=count_files)
     resp6 = agt.ask_llm([ls_prompt, resp5, *fc_outs])
 
+    # Print results
     for i, resp in enumerate([resp1, resp2, resp3, resp4, resp5, resp6]):
-        if fcs := resp.resolve_function_calls():
+        if fcs := resp.function_calls:
             agt.print(fcs)
         final_answer = resp.final_answer.replace("\n", " ")
         agt.print(f"{i + 1}. {final_answer}")

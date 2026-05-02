@@ -10,6 +10,7 @@ from typing import (
     Sequence,
     Union,
 )
+from typing_extensions import deprecated
 from parallem.core.ask import Askable
 from parallem.core.cast.fix_docs import reduce_to_list
 from parallem.core.hash import compute_hash
@@ -403,6 +404,7 @@ class MessageState(UserList[Union[LLMDocument, LLMResponse]], Askable):
         self.append(out)
         return out
 
+    @deprecated("Use final_answer property instead.")
     def resolve(self) -> List[LLMDocument]:
         return self.final_answer
 

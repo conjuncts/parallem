@@ -35,7 +35,7 @@ class _LazyOpenAIResponse:
         self._resolved_text = self._llm_response.final_answer or ""
 
         self._resolved_output: list[dict] = []
-        for call in self._llm_response.resolve_function_calls():
+        for call in self._llm_response.function_calls:
             if isinstance(call, FunctionCall):
                 self._resolved_output.append(
                     {

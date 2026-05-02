@@ -37,7 +37,7 @@ def rag_agent(agt: pllm.AgentContext, query: str):
     )
     conv.ask_functions(vector_store_tool=vector_store_tool)
     conv.ask_llm()
-    print(resp.resolve_function_calls())
+    print(resp.function_calls)
     return conv[-1].final_answer
 
 

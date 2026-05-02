@@ -46,7 +46,7 @@ with pllm.resume_directory(
         )
 
         agt.print(resp.final_answer)
-        tool_calls = resp.resolve_function_calls()
+        tool_calls = resp.function_calls
         for call in tool_calls:
             agt.print(
                 f"Tool call: `{call.name}` with args {call.args} call_id {call.call_id}"
