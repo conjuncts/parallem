@@ -404,7 +404,6 @@ class MessageState(UserList[Union[LLMDocument, LLMResponse]], Askable):
         return out
 
     def resolve(self) -> List[LLMDocument]:
-        """Helper to make sure that all messages have been resolved."""
         return self.final_answer
 
     @property

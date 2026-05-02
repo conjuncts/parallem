@@ -24,7 +24,8 @@ class PendingLLMResponse(LLMResponse):
         super().__init__(value=None, call_id=call_id)
         self._backend = backend
 
-    def resolve(self) -> str:
+    @property
+    def final_answer(self) -> str:
         if self.value is not None:
             return self.value
 
@@ -58,7 +59,7 @@ class PendingLLMResponse(LLMResponse):
 
             backend = self._backend
             if backend is None or self.call_id is None:
-                return self.resolve()
+                return self.final_answer
 
             pr = await backend.await_response(self.call_id)
             if pr is None:
@@ -111,13 +112,16 @@ class BatchLLMResponse(LLMResponse):
     ):
         super().__init__(value=None, call_id=call_id)
 
-    def resolve(self):
+    @property
+    def final_answer(self):
         raise NotAvailable()
 
-    def resolve_json(self):
+    @property
+    def final_json(self):
         raise NotAvailable()
 
-    def resolve_function_calls(self):
+    @property
+    def output_fcs(self):
         raise NotAvailable()
 
     def __getstate__(self):

@@ -50,9 +50,9 @@ with pllm.resume_directory(
             tools=tools,
         )
 
-        tool_calls = resp.resolve_function_calls()
-        assert len(tool_calls) == 1
-        assert tool_calls[0].name == "count_files"
+        fcs = resp.resolve_function_calls()
+        assert len(fcs) == 1
+        assert fcs[0].name == "count_files"
         conv.ask_functions(count_files=ls_tool)
         conv.ask_llm()
         agt.print(conv.final_answer)

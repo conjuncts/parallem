@@ -398,7 +398,8 @@ class LLMResponse:
         self.call_id = call_id
         self._pr: Optional[ParsedResponse] = None
 
-    def resolve(self) -> str:
+    @property
+    def final_answer(self) -> str:
         """
         Resolve the response to a string.
 
@@ -407,59 +408,37 @@ class LLMResponse:
         """
         return self.value
 
-    @property
-    def final_answer(self) -> str:
-        """
-        Resolve the response to a string. If not available, execution should
-        stop gracefully and proceed to the next batch.
-        """
-        return self.resolve()
-
-    def resolve_json(self) -> Optional[dict]:
-        """
-        Resolve the response and automatically convert it to JSON. Returns None if invalid.
-
-        :param self: Description
-        :return: Description
-        :rtype: dict
-        """
-        try:
-            return json.loads(self.resolve())
-        except json.JSONDecodeError:
-            return None
+    def resolve(self) -> str:
+        return self.final_answer
 
     @property
     def final_json(self) -> Optional[dict]:
         """
-        Resolve the response and automatically convert it to JSON. Returns None if invalid.
-
-        :param self: Description
-        :return: Description
-        :rtype: dict
+        Resolve the response and automatically loads JSON to dict. Returns None if invalid.
         """
-        return self.resolve_json()
+        try:
+            return json.loads(self.final_answer)
+        except json.JSONDecodeError:
+            return None
 
-    def resolve_function_calls(self) -> list[FunctionCall]:
+    def resolve_json(self) -> Optional[dict]:
+        return self.final_json
+
+    @property
+    def output_fcs(self) -> list[FunctionCall]:
         """
-        Resolve function calls (tool calls to user-defined functions) associated with this response.
-
-        :param to_dict: Whether to parse the function calls' arguments into dictionaries (if they're JSON strings)
-        :returns: A list of FunctionCall objects
+        Return function calls to user-defined functions.
         """
         if self._pr and self._pr.function_calls:
             # cast and jsonify if needed
             return self._pr.function_calls
         return []
 
-    @property
-    def final_function_calls(self) -> list[FunctionCall]:
+    def resolve_function_calls(self) -> list[FunctionCall]:
         """
-        Resolve function calls (tool calls to user-defined functions) associated with this response.
-
-        :param to_dict: Whether to parse the function calls' arguments into dictionaries (if they're JSON strings)
-        :returns: A list of FunctionCall objects
+        Return function calls to user-defined functions.
         """
-        return self.resolve_function_calls()
+        return self.output_fcs
 
     def __repr__(self):
         v = self.value
@@ -499,7 +478,8 @@ class HumanResponse(LLMResponse):
         super().__init__(value=value, call_id=call_id)
         self._backend = backend
 
-    def resolve(self) -> Optional[str]:
+    @property
+    def final_answer(self) -> Optional[str]:
         if self.value is not None:
             return self.value
 
