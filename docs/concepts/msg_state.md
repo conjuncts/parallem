@@ -70,7 +70,7 @@ def calculation_agent(agt: pllm.AgentContext):
     conv = agt.get_msg_state()
     last_msg = conv.ask_llm(
         "Add 3 and 4.",
-        tools=pllm.to_tool_schema([multiply, add]),
+        tools=[multiply, add],
     )
 
     conv.ask_functions(add=add, multiply=multiply)

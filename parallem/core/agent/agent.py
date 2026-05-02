@@ -23,6 +23,7 @@ from parallem.core.response import (
     ReadyLLMResponse,
 )
 from parallem.logging.dash_logger import HashStatus
+from parallem.tools.auto_schema import to_tool_schema
 from parallem.types import (
     AskParameters,
     CallIdentifier,
@@ -113,13 +114,40 @@ class AgentContext(Askable):
         """
         self._orch._dashlog.print(*args, **kwargs)
 
-    def _populate_options(
+    def _coerce_tools(
+        self,
+        tools: Optional[list[Union[dict, ServerTool, Callable]]],
+    ):
+        """
+        Coerce tools into a consistent format: list of function call dicts or ServerTools
+        Turns Callable into dict using pllm.to_tool_schema
+        """
+        # coerce callable tools to dict format with name and parameters
+        if tools is not None:
+            coerced_tools = []
+
+            # if not sequence
+            if not isinstance(tools, (list, tuple)):
+                tools = [tools]
+            for tool in tools:
+                if isinstance(tool, (dict, ServerTool)):
+                    coerced_tools.append(tool)
+                elif callable(tool):
+                    coerced_tools.extend(to_tool_schema(tool))
+                else:
+                    raise ValueError(
+                        f"Tool {tool} is not a dict, ServerTool, or callable."
+                    )
+            return coerced_tools
+        return tools
+
+    def _coerce_options(
         self,
         llm,
         structured_output,
         kwargs,
     ):
-        """Helper method to ensure LLM options are non-null."""
+        """Helper method to ensure LLM options have the right type, coercing fields as needed."""
         # Handle legacy text_format alias
         legacy_text_format = kwargs.pop("text_format", None)
         if structured_output is not None and legacy_text_format is not None:
@@ -138,6 +166,7 @@ class AgentContext(Askable):
         provider_type = self._orch._provider.provider_type
         if provider_type is None:
             provider_type = llm.provider_type
+
         return llm, provider_type, structured_output
 
     def _compute_hash(
@@ -201,7 +230,7 @@ class AgentContext(Askable):
         salt: Optional[str] = None,
         hash_by: HashByOptions = None,
         structured_output: Optional["BaseModel"] = None,
-        tools: Optional[list[Union[dict, ServerTool]]] = None,
+        tools: Optional[list[Union[dict, ServerTool, Callable]]] = None,
         tag: Optional[str] = None,
         save_input: Optional[bool] = None,
         **kwargs,
@@ -210,9 +239,10 @@ class AgentContext(Askable):
         seq_id = self._seq_id_counter
         self._seq_id_counter += 1
 
-        llm, provider_type, structured_output = self._populate_options(
+        llm, provider_type, structured_output = self._coerce_options(
             llm, structured_output, kwargs
         )
+        tools = self._coerce_tools(tools)
 
         if isinstance(documents, MessageState):
             documents = list(documents)

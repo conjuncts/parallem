@@ -33,7 +33,7 @@ def rag_agent(agt: pllm.AgentContext, query: str):
     resp = conv.ask_llm(
         query,
         instructions="Only supply information relevant to the user's question.",
-        tools=pllm.to_tool_schema([vector_store_tool]),
+        tools=[vector_store_tool],
     )
     conv.ask_functions(vector_store_tool=vector_store_tool)
     conv.ask_llm()

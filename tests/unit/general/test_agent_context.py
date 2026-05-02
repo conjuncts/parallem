@@ -69,6 +69,41 @@ def test_counter_independence(mock_orchestrator):
     assert agent._seq_id_counter == 2  # Original agent unchanged
 
 
+class TestAgentContextCoercion:
+    """Test coercion methods in AgentContext"""
+
+    def test_coerce_tools_single_dict(self, mock_orchestrator):
+        agent = AgentContext("test", mock_orchestrator)
+        tool = {"name": "test_tool", "parameters": {}}
+        coerced = agent._coerce_tools(tool)
+        assert coerced == [tool]
+
+    def test_coerce_tools_list_mixed(self, mock_orchestrator):
+        agent = AgentContext("test", mock_orchestrator)
+
+        def my_tool(x: int):
+            """My tool description"""
+            return x
+
+        dict_tool = {"name": "dict_tool", "parameters": {}}
+        tools = [dict_tool, my_tool]
+
+        coerced = agent._coerce_tools(tools)
+
+        assert len(coerced) == 2
+        assert coerced[0] == dict_tool
+        # to_tool_schema returns a LIST of schemas
+        tool_schema = coerced[1]
+        assert tool_schema["type"] == "function"
+        assert tool_schema["name"] == "my_tool"
+        assert "parameters" in tool_schema
+
+    def test_coerce_tools_invalid_type(self, mock_orchestrator):
+        agent = AgentContext("test", mock_orchestrator)
+        with pytest.raises(ValueError, match="is not a dict, ServerTool, or callable"):
+            agent._coerce_tools(123)
+
+
 class TestAskLLMMethod:
     """Test the ask_llm method functionality"""
 
@@ -139,6 +174,27 @@ class TestAskLLMMethod:
                 1
             ]
             assert explicit_override["llm"].identity == "gpt-5-mini"
+
+    def test_ask_llm_callable_tool_coercion(self, mock_orchestrator):
+        """Test that passing a callable to ask_llm tools is correctly coerced to a schema."""
+        agent = AgentContext("test_agent", mock_orchestrator)
+
+        def get_weather(city: str):
+            """Get weather for a city"""
+            return f"Sunny in {city}"
+
+        with agent:
+            agent.ask_llm("What is the weather in NYC?", tools=[get_weather])
+
+            # Check what was passed to submit_query
+            submit_args = mock_orchestrator._backend.submit_query.call_args.args
+            params = submit_args[1]
+            tool_list = params["tools"]
+
+            assert isinstance(tool_list, list)
+            assert tool_list[0]["type"] == "function"
+            assert tool_list[0]["name"] == "get_weather"
+            assert "city" in tool_list[0]["parameters"]["properties"]
 
     def test_ask_llm_basic_call(self, mock_orchestrator):
         """Test basic ask_llm call"""

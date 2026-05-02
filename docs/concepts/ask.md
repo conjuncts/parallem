@@ -33,6 +33,16 @@ print(resp.final_json)  # {"capital":"Paris"}
 --8<-- "examples/simplest_tool.py"
 ```
 
+Output:
+```python
+[
+    'Add 3 and 4.',
+    '',
+    FunctionCallOutput(name=add, call_id=, content=7...),
+    '3 + 4 = 7'
+]
+```
+
 ## `ask_functions`
 
 After `ask_llm` returns a response that contains function calls, `ask_functions` executes them by running the actual Python functions.

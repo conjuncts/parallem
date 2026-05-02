@@ -14,7 +14,7 @@ def planner_agent(agt: pllm.AgentContext):
     conv = agt.get_msg_state()
     conv.ask_llm(
         "Generate summaries of 3 popular travel destinations.",
-        tools=pllm.to_tool_schema([city_summary_agent]),
+        tools=[city_summary_agent],
     )
 
     # ask_functions creates subagents on the fly
@@ -33,7 +33,9 @@ def planner_agent(agt: pllm.AgentContext):
 if __name__ == "__main__":
     load_dotenv()
     with pllm.resume_directory(
-        ".pllm/example/subagent-dynamic", dashboard=True
+        ".pllm/example/subagent-dynamic",
+        dashboard=True,
+        provider="google",
     ) as orch:
         with orch.agent("planner") as agt:
             planner_agent(agt)

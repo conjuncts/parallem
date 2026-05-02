@@ -34,12 +34,11 @@ with pllm.resume_directory(
         conv = agt.get_msg_state()
         last_msg = conv.ask_llm(
             "Add 3 and 4.",
-            tools=pllm.to_tool_schema([multiply, add, divide]),
+            tools=[multiply, add, divide],
+            # tools=pllm.to_tool_schema([multiply, add, divide]),  # Or explicitly pass schema
         )
 
         while last_msg.function_calls:
             conv.ask_functions(multiply=multiply, add=add, divide=divide)
             last_msg = conv.ask_llm()
             agt.print(conv[-1].final_answer)
-
-# ['Add 3 and 4.', '', FunctionCallOutput(name=add, call_id=, content=7...), '3 + 4 = 7']

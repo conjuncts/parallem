@@ -37,7 +37,7 @@ def tour_agent(agt: pllm.AgentContext):
     ls_prompt = "How many files are in ~/examples? Give the final answer in words."
     resp5 = agt.ask_llm(
         ls_prompt,
-        tools=pllm.to_tool_schema([count_files]),
+        tools=[count_files],
     )
     fc_outs = agt.ask_functions(resp5, count_files=count_files)
     resp6 = agt.ask_llm([ls_prompt, resp5, *fc_outs])

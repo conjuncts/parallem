@@ -26,7 +26,7 @@ def agent_with_permission(agt: pllm.AgentContext):
     conv = agt.get_msg_state()
     last_msg = conv.ask_llm(
         "Add 3 and 4.",
-        tools=pllm.to_tool_schema([multiply, add, divide]),
+        tools=[multiply, add, divide],
     )
 
     while last_msg.function_calls:
