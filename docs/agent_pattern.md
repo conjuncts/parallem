@@ -1,10 +1,8 @@
 # Agents
 
-## Philosophy
+We treat agents differently. Traditionally, the agent concept has been tightly coupled with a single LLM: one agent equals one LLM. 
 
-We treat agents a little differently. Traditionally, the agent concept has been tightly coupled with a single LLM: one agent equals one LLM. 
-
-In contrast, parallem associates an agent with a program. What does this mean?
+In contrast, ParaLLeM associates an agent with a program.
 
 ## An agent is just a python function
 
@@ -14,7 +12,7 @@ The most idiomatic way to declare an agent is with a **vanilla Python function**
 --8<-- "examples/simplest_agent.py"
 ```
 
-But it is just a python function! Nothing is stopping you from embedding all the logic directly in the main function, as is the case in `simplest.py`. The choice is up to you.
+It is just a python function! Nothing stops you from embedding all the logic directly in the main function, as is the case in `simplest.py`. The choice is up to you.
 
 ## More parameters
 
@@ -51,7 +49,7 @@ def best_animal_agent(agt: pllm.AgentContext):
     resp2 = agt.ask_human(f"Would you agree that {resp.final_answer} is the best animal?")
 ```
 
-The [Ask API](concepts/ask.md) epitomizes the philosophy that the agent is not an LLM, but a program.
+Because an agent is a program, it can ask not just LLMs, but also [functions and humans](concepts/ask.md).
 
 ## See also
 

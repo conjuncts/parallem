@@ -1,10 +1,10 @@
 # Memoize API
 
-`memoize` lets you cache an entire block of code — including LLM calls and arbitrary Python side effects — so that subsequent runs skip execution and replay the recorded results instantly.
+`memoize` caches an entire block of code, including LLM calls and arbitrary Python side effects. Later runs will skip execution and replay the recorded results.
 
 ## When to use it
 
-For example, `memoize` is well-suited for blocks that are:
+`memoize` is well-suited for blocks that are:
 
 - **Non-deterministic** (e.g. `random`, live API calls)  
 - **Expensive** (long clock time, heavy computation)  

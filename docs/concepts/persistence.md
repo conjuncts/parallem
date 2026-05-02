@@ -1,6 +1,6 @@
 # Persistence
 
-ParaLLeM saves every LLM response to a local datastore keyed by a **hash** of the request content. On subsequent runs, a matching hash returns the cached response instantly — no API call is made.
+ParaLLeM saves LLM responses locally by **hashing request content**. On subsequent runs, a matching hash returns the cached response instantly — no API call is made.
 
 ## How caching works
 
@@ -13,7 +13,11 @@ Every call to `ask_llm` computes a SHA-256 hash of:
 If parallem has already seen your hash, then the previous value is returned immediately. Otherwise, a request is sent to the provider and stored.
 
 ```python
-with pllm.resume_directory(".pllm/myproject", provider="openai", strategy="sync") as orch:
+with pllm.resume_directory(
+    ".pllm/myproject",
+    provider="openai",
+    strategy="sync"
+) as orch:
     with orch.agent() as agt:
         resp = agt.ask_llm("Name a prime number.")
         agt.print(resp.final_answer)  # live on first run, instant on subsequent runs

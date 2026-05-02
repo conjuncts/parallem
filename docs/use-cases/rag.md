@@ -1,12 +1,9 @@
 
 By design, we do **not** offer a native API for retrieval augmented generation (RAG). 
 
-There are many vector stores (Chroma, FAISS, Qdrant, Weaviate, Milvus, Pinecone, Elastisearch, pgvector), and we do not want to enforce a single vector store. 
+Of the many vector stores (Chroma, FAISS, Qdrant, Weaviate, Milvus, Pinecone, Elastisearch, pgvector), we do not want to enforce just one, and we don't want to bundle a vector store library. To keep parallem lightweight, we think RAG is outside our scope. 
 
-Nor do we want to bundle a vector store library. To keep parallem **slim** and **lightweight**, RAG is outside our scope. However, RAG can still be easily accomplished with function calling. 
-
-For example, interface with your vector store with a simple vanilla Python function.
-Here is a minimal in-memory `chromadb` example:
+Nonetheless, you can access this functionality via function calling. For example, here's an in-memory `chromadb` example:
 
 ```bash
 pip install chromadb

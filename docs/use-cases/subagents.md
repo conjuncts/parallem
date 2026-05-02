@@ -2,7 +2,7 @@
 
 In the **subagent pattern**, a main agent creates child subagents to break down and complete a task in parallel. 
 
-This pattern is supported by parallem:
+This pattern is supported by ParaLLeM:
 
 1. Create a parent agent.
 2. Within the parent block, create a child agent. (No special syntax required.)

@@ -3,7 +3,7 @@ from dotenv import load_dotenv
 import parallem as pllm
 
 # RAG implementation.
-# parallem does not bundle any RAG libraries, but it can be easily implemented.
+# parallem does not bundle any RAG libraries, but it can be implemented.
 
 client = chromadb.Client()
 collection = client.create_collection(name="rag_demo")

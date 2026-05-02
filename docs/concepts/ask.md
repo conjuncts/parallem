@@ -1,6 +1,6 @@
 # Ask API
 
-We believe that an agent is a **program**, not an LLM. While that program often uses LLMs to automate its decision making, agents can also ask functions and humans. As a result, we can unify `ask_llm`, `ask_functions`, and `ask_human` into a common interface!
+An agent is a program that can ask not just LLMs, but also functions and humans. ParaLLeM unifies `ask_llm`, `ask_functions`, and `ask_human` into a common interface.
 
 ## `ask_llm`
 
@@ -13,23 +13,6 @@ print(resp.final_answer)
 
 The response is lazy-loaded — it is not resolved until you call `.final_answer` or iterate over function calls. This lets the runtime batch and cache calls efficiently.
 
-### Signature
-
-```python
-ask_llm(
-    documents,            # str | image | LLMResponse | MessageState | list thereof
-    *additional_documents,
-    instructions=None,    # system prompt
-    llm=None,             # override model, e.g. "gpt-4o"
-    salt=None,            # manual hash differentiator
-    hash_by=None,         # e.g. ["llm"] to include model name in hash
-    structured_output=None,  # Pydantic model for structured output
-    tools=None,           # list of tool dicts or ServerTool objects
-    tag=None,             # optional label for dashboards
-    save_input=None,      # whether to persist input documents
-)
-```
-
 ### Structured output
 
 Pass a Pydantic model to `structured_output` to get back a validated object:
@@ -41,7 +24,7 @@ class Answer(BaseModel):
     capital: str
 
 resp = agt.ask_llm("What is the capital of France?", structured_output=Answer)
-print(resp.final_answer)  # {"capital":"Paris"}
+print(resp.final_json)  # {"capital":"Paris"}
 ```
 
 ### Tool use
@@ -60,7 +43,7 @@ def count_files(directory: str) -> int:
     return 4
 
 # ...
-resp = agt.ask_llm(prompt, tools=pllm.to_tool_schema([count_files]))
+resp = agt.ask_llm(prompt, tools=[count_files])
 fc_outs = agt.ask_functions(resp, count_files=count_files)
 final = agt.ask_llm([prompt, resp, *fc_outs])
 ```

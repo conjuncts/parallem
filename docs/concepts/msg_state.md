@@ -1,10 +1,10 @@
 # MessageState API
 
-`MessageState` is simply a **list** of messages — strings, images, and LLM responses — that automatically tracks conversation history and reduces boilerplate when doing multi-turn or tool-use workflows.
+`MessageState` is simply a **list of messages** — strings, images, and LLM responses.
 
 ## Basic usage
 
-Let's say that you're having a long conversation. Using `agt.ask_llm`, you would have to keep track of messages manually:
+With `agt.ask_llm`, the developer must keep track of messages manually:
 
 ```python
 def long_conversation_agent(agt: pllm.AgentContext):
@@ -25,7 +25,7 @@ def long_conversation_agent(agt: pllm.AgentContext):
     print(resp4)
 ```
 
-It can be cumbersome and repetitive to keep track of long conversations. To address this, parallem has the concept of `MessageState`. Instead of asking on `agt`, ask directly on `MessageState`. Documents/responses will automatically be tracked and appended.
+This can be cumbersome for long conversations. To address this, we introduce `MessageState`. Instead of asking on `agt`, you can ask directly on `MessageState`, and documents/responses will automatically be tracked and appended to the conversation.
 
 ```python
 def long_conversation_agent(agt: pllm.AgentContext):
@@ -37,7 +37,7 @@ def long_conversation_agent(agt: pllm.AgentContext):
     print(conv[-1])
 ```
 
-`conv` is simply a list, so you can do list-y things to it:
+`conv` is simply a list, so you can do list-like things to it:
 ```python
 print(conv[0:2])
 conv.append("What year was that person born?")
@@ -56,7 +56,7 @@ MessageState supports any of the following types:
 
 ## With tool use
 
-MessageState takes care of feeding prior responses back into `ask_llm`, making multi-step function-calling loops concise:
+MessageState feeds prior responses back into `ask_llm`, making multi-step function-calling loops concise:
 
 ```python
 def add(a: int, b: int) -> int:

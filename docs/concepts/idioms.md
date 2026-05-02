@@ -1,4 +1,4 @@
-There are many ways to parallelize code, so `parallem` tries to be accomodating.
+Code parallelization can take many forms. ParaLLeM supports these 3.
 
 ## Sync Idiom
 
@@ -32,9 +32,9 @@ That is a limitation of python: you need `await`, `async`, and `asyncio.run` to 
 
 ## Async Idiom
 
-The async idiom uses asyncio, involves async/await and async, and works seamlessly with other async functions.
+If you have async functions, you can use the async idiom.
 
-It is effective with `sync`, `concurrent`, and `batch`.
+It is effective with `sync`, `concurrent`, and `batch` strategies.
 
 ```python
 --8<-- "examples/async/simplest_async.py"
@@ -46,11 +46,13 @@ However, the async idiom is trickier to write.
     `orch.run_agents` is similar to `asyncio.run(asyncio.gather(agts))`. However, `orch.run_agents` is recommended when using batch mode, because `orch.run_agents` properly handles parallem's interrupt semantics.
 
 
-## Pseudo-Async Idiom
+## Concurrent Idiom
 
 You can use the `concurrent` strategy even with synchronous functions to achieve parallelization. However, you must ensure that one agent does not block the other. 
 
-This idiom is less efficient than true async. In true async, `await` yields control between tasks, but here that is not possible.
+This idiom is less efficient than true async. Typically, `await` yields control between tasks, but here that is not possible.
+
+However, you still achieve parallelization which resembles async execution. 
 
 ```python
 import parallem as pllm
@@ -74,4 +76,3 @@ with pllm.resume_directory(
     out = orch.resolve_all(collector)
     agt.print(out)
 ```
-
