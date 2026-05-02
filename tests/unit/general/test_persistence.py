@@ -313,10 +313,10 @@ class TestAgentOrchestratorIntegration:
 
         assert isinstance(loaded_pending, PendingLLMResponse)
         assert loaded_pending._backend == backend
-        assert loaded_pending.resolve() == "backend_test_value"
+        assert loaded_pending.final_answer == "backend_test_value"
 
         assert isinstance(loaded_ready, ReadyLLMResponse)
-        assert loaded_ready.resolve() == "test_value"
+        assert loaded_ready.final_answer == "test_value"
 
     def test_orchestrator_ignore_cache_parameter(
         self, generic_call_id, persistence_ignore_cache_orch, test_agent_name
@@ -330,7 +330,7 @@ class TestAgentOrchestratorIntegration:
         with persistence_ignore_cache_orch.agent(test_agent_name) as agent:
             response = agent.ask_llm("Test prompt")
 
-            assert response.resolve() == "fresh_response"
+            assert response.final_answer == "fresh_response"
 
 
 class TestFileManagerPersistence:

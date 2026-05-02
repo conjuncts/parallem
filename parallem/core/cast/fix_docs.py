@@ -5,7 +5,7 @@ from parallem.types import FunctionCallRequest, LLMDocument, LLMResponse
 
 def _to_assistant_message(resp: LLMResponse) -> LLMDocument:
     """Converts LLMResponse back into a LLMDocument."""
-    val = resp.resolve()
+    val = resp.final_answer
     if resp._pr and resp._pr.function_calls:
         return FunctionCallRequest(
             text_content=val,

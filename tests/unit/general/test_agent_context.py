@@ -165,7 +165,7 @@ class TestAskLLMMethod:
             response = agent.ask_llm("Cached prompt")
 
             assert isinstance(response, ReadyLLMResponse)
-            assert response.resolve() == "Cached response"
+            assert response.final_answer == "Cached response"
             # Backend submit_query should not be called for cached responses
             mock_orchestrator._backend.submit_query.assert_not_called()
 
@@ -260,7 +260,7 @@ class TestAskLLMMethod:
             response = agent.ask_human("Question?", [], input_fn=lambda _: "answer")
 
         assert isinstance(response, HumanResponse)
-        assert response.resolve() == "answer"
+        assert response.final_answer == "answer"
         ds.store.assert_called_once()
         ds.retrieve.assert_called_once()
         assert ds.retrieve.call_args.kwargs["origin_type"] == 1
@@ -326,7 +326,7 @@ class TestAskLLMMethod:
             response = agent.ask_human("Question?", "foo", input_fn=_boom)
 
         assert isinstance(response, HumanResponse)
-        assert response.resolve() == "cached-human"
+        assert response.final_answer == "cached-human"
         assert response.call_id["seq_id"] == 9
         assert response.call_id["session_id"] == 7
         ds.store.assert_not_called()
@@ -344,7 +344,7 @@ class TestAskLLMMethod:
             response = msg_state.ask_human("Question?", input_fn=lambda _: "answer")
 
         assert isinstance(response, HumanResponse)
-        assert response.resolve() == "answer"
+        assert response.final_answer == "answer"
         assert len(msg_state) == before_len + 1
         assert msg_state[-1] is response
 

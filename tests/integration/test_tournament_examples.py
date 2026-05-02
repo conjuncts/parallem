@@ -51,7 +51,7 @@ Steelers
             "Please name 8 NFL teams. Place your final answer in a code block, separated by newlines."
         )
 
-        teams = resp.resolve().split("```")[1].split("\n")[1:9]
+        teams = resp.final_answer.split("```")[1].split("\n")[1:9]
         assert len(teams) == 8
         assert "Patriots" in teams
         assert "Cowboys" in teams
@@ -67,7 +67,7 @@ Steelers
         # Get results
         game_descriptions = []
         for resp in games:
-            game_descriptions.append(resp.resolve())
+            game_descriptions.append(resp.final_answer)
 
         assert len(game_descriptions) == 4
         assert "Patriots" in game_descriptions[0]
@@ -120,7 +120,7 @@ Chymotrypsin
             "Please name 8 enzymes. Place your final answer in a code block, separated by newlines."
         )
 
-        teams = [x for x in resp.resolve().split("```")[1].split("\n")[1:] if x]
+        teams = [x for x in resp.final_answer.split("```")[1].split("\n")[1:] if x]
         assert len(teams) == 8
 
         # Tournament elimination
@@ -180,9 +180,9 @@ Team D
         game1_resp = agent.ask_llm("Team A vs Team B")
         game2_resp = agent.ask_llm("Team C vs Team D")
 
-        teams = teams_resp.resolve()
-        game1 = game1_resp.resolve()
-        game2 = game2_resp.resolve()
+        teams = teams_resp.final_answer
+        game1 = game1_resp.final_answer
+        game2 = game2_resp.final_answer
 
     pllm1.finalize_and_persist()
 
@@ -204,9 +204,9 @@ Team D
         game1_resp2 = agent.ask_llm("Team A vs Team B")
         game2_resp2 = agent.ask_llm("Team C vs Team D")
 
-        teams2 = teams_resp2.resolve()
-        game1_2 = game1_resp2.resolve()
-        game2_2 = game2_resp2.resolve()
+        teams2 = teams_resp2.final_answer
+        game1_2 = game1_resp2.final_answer
+        game2_2 = game2_resp2.final_answer
 
     pllm2.finalize_and_persist()
 
@@ -246,7 +246,7 @@ Delta
         game_responses.append(agent.ask_llm("Gamma vs Delta"))
 
         # Resolve all at once (tests async batching)
-        teams = teams_resp.resolve()
+        teams = teams_resp.final_answer
         games = agent.resolve_all(game_responses)
 
     assert "Alpha" in teams

@@ -390,7 +390,7 @@ class MinorTweaks(TypedDict, total=False):
 
 class LLMResponse:
     """
-    Any response outputted by an LLM. **You must call resolve() to obtain the final value.**
+    Any response outputted by an LLM. **You must access the value through `final_answer`**
     """
 
     def __init__(self, value: str, *, call_id: CallIdentifier = None):

@@ -41,19 +41,19 @@ Diana
 
     with shared_sync_orch.agent(test_agent_name) as agent:
         contestants_resp = agent.ask_llm("Get 4 contestants for the tournament")
-        contestants = contestants_resp.resolve().split("```")[1].split("\n")[1:5]
+        contestants = contestants_resp.final_answer.split("```")[1].split("\n")[1:5]
 
         semifinal_winners = []
 
         # Run semifinals
         for i in range(0, len(contestants), 2):
             resp = agent.ask_llm(f"Who wins: {contestants[i]} vs {contestants[i + 1]}?")
-            semifinal_winners.append(resp.resolve())
+            semifinal_winners.append(resp.final_answer)
 
         final_resp = agent.ask_llm(
             f"Final match: {semifinal_winners[0]} vs {semifinal_winners[1]}?"
         )
-        winner = final_resp.resolve()
+        winner = final_resp.final_answer
 
         assert winner == "Alice"
     assert len(mock_client.calls) == 4  # 1 contestants + 2 semifinals + 1 final
@@ -91,7 +91,7 @@ def test_strategy_switching_persistence(temp_integration_dir):
         # Add new data with async strategy
         with orch_async.agent() as agent:
             new_resp = agent.ask_llm("Test question")  # Should hit cache
-            assert new_resp.resolve() == "Sync response"  # Cached from sync run
+            assert new_resp.final_answer == "Sync response"  # Cached from sync run
 
             with agent.memoize() as mem:
                 mem.begin()  # load value
@@ -116,7 +116,7 @@ def test_complex_userdata_workflow(shared_sync_orch, test_agent_name):
 
     with shared_sync_orch.agent(f"{test_agent_name}-writer") as agent2:
         schema = agent2.ask_llm("Design database schema")
-        shared_sync_orch.userdata["technical/database_schema"] = schema.resolve()
+        shared_sync_orch.userdata["technical/database_schema"] = schema.final_answer
 
     with shared_sync_orch.agent(f"{test_agent_name}-reader") as agent3:  # noqa: F841
         db_schema = shared_sync_orch.userdata["technical/database_schema"]

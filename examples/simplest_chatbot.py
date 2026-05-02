@@ -19,7 +19,7 @@ with pllm.resume_directory(
         while out:
             msgs.append(out)
             msgs.ask_llm()
-            agt.print("Response:", msgs[-1].resolve())
+            agt.print("Response:", msgs[-1].final_answer)
             out = input("Send a message: ")
 
         msgs.save()

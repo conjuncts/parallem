@@ -75,7 +75,7 @@ def calculation_agent(agt: pllm.AgentContext):
 
     conv.ask_functions(add=add, multiply=multiply)
     last_msg = conv.ask_llm()
-    agt.print(conv.resolve())
+    agt.print(conv.final_answer)
 ```
 
 ## Persistence — `save` and `load`
@@ -91,7 +91,7 @@ def chatbot(agt: pllm.AgentContext):
     while out:
         msgs.append(out)
         msgs.ask_llm()
-        agt.print("Response:", msgs[-1].resolve())
+        agt.print("Response:", msgs[-1].final_answer)
         out = input("Send a message: ")
 
     msgs.save()
@@ -106,4 +106,4 @@ def chatbot(agt: pllm.AgentContext):
 | `ask_human(...)` | Asks the user, then adds their response to the conversation. |
 | `save()` | Persist the current message list to disk. |
 | `load()` | Load a previously saved message list from disk. |
-| `resolve()` | Resolves all LLMResponses in this conversation. |
+| `final_answer` | Resolves all LLMResponses in this conversation. |

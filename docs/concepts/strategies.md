@@ -6,7 +6,7 @@
 
 - **Batch**: collects requests for provider-side Batch API execution. 50% discount. ParaLLeM's caching lets you resume where you left off. Great for high-throughput use cases. 
 
-- **Concurrent**: similar to async, but is not true async because `await` and `.resolve()` do not truly yield control to other processes. It still allows requests to be parallelized and executed concurrently.
+- **Concurrent**: similar to async, but is not true async because `await` and `.final_answer` do not truly yield control to other processes. It still allows requests to be parallelized and executed concurrently.
 
 ## See also
 

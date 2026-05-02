@@ -19,7 +19,7 @@ with pllm.resume_directory(
             save_input=True,
         )
 
-        agt.print(resp.resolve())
+        agt.print(resp.final_answer)
 
 
 df = pl.read_parquet(".pllm/simple/finetune/inputs/history_table.parquet")

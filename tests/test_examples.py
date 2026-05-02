@@ -17,9 +17,9 @@ def test_simple_mock_responses(shared_sync_orch):
         resp3 = a.ask_llm("Third question")
 
     # Check responses
-    assert resp1.resolve() == "First response"
-    assert resp2.resolve() == "Second response"
-    assert resp3.resolve() == "Third response"
+    assert resp1.final_answer == "First response"
+    assert resp2.final_answer == "Second response"
+    assert resp3.final_answer == "Third response"
 
     # Check calls were recorded
     assert len(mock_client.calls) == 3
@@ -52,10 +52,10 @@ def test_pattern_based_responses(shared_sync_orch):
         # This won't match any pattern, so gets default response
         other_resp = a.ask_llm("Random question")
 
-    assert "42" in calc_resp.resolve()
-    assert "sunny" in weather_resp.resolve()
-    assert "chicken" in joke_resp.resolve()
-    assert "Mock response" in other_resp.resolve()  # Default response
+    assert "42" in calc_resp.final_answer
+    assert "sunny" in weather_resp.final_answer
+    assert "chicken" in joke_resp.final_answer
+    assert "Mock response" in other_resp.final_answer  # Default response
 
     assert len(mock_client.calls) == 4
 
@@ -80,9 +80,9 @@ def test_exact_instruction_matching(shared_sync_orch):
         resp2 = a.ask_llm("What is 2 + 2?")
         resp3 = a.ask_llm("What is the meaning of life?")
 
-    assert "Paris" in resp1.resolve()
-    assert "equals 4" in resp2.resolve()
-    assert "don't know" in resp3.resolve()
+    assert "Paris" in resp1.final_answer
+    assert "equals 4" in resp2.final_answer
+    assert "don't know" in resp3.final_answer
 
 
 def test_mixed_pattern_methods(shared_sync_orch):
@@ -107,10 +107,10 @@ def test_mixed_pattern_methods(shared_sync_orch):
         greeting_resp = a.ask_llm("Hello world")
         other_resp = a.ask_llm("Random question")
 
-    assert "Math result: 42" in math_resp.resolve()
-    assert "sunny" in weather_resp.resolve()
-    assert "Hello there!" in greeting_resp.resolve()
-    assert "Default response" in other_resp.resolve()
+    assert "Math result: 42" in math_resp.final_answer
+    assert "sunny" in weather_resp.final_answer
+    assert "Hello there!" in greeting_resp.final_answer
+    assert "Default response" in other_resp.final_answer
 
     assert len(mock_client.calls) == 4
 
@@ -128,8 +128,8 @@ def test_concurrent_provider(shared_concurrent_orch):
         resp2 = a.ask_llm("Second async question")
 
     # Responses should resolve correctly
-    assert resp1.resolve() == "Async response 1"
-    assert resp2.resolve() == "Async response 2"
+    assert resp1.final_answer == "Async response 1"
+    assert resp2.final_answer == "Async response 2"
 
     assert len(mock_client.calls) == 2
 
@@ -167,7 +167,7 @@ Steelers
             "Please name 8 NFL teams. Place your final answer in a code block, separated by newlines."
         )
 
-        teams = resp.resolve().split("```")[1].split("\n")[1:9]
+        teams = resp.final_answer.split("```")[1].split("\n")[1:9]
         print(f"Teams: {teams}")
 
         # Run games
@@ -181,7 +181,7 @@ Steelers
         # Get results
         game_descriptions = []
         for resp in games:
-            game_descriptions.append(resp.resolve())
+            game_descriptions.append(resp.final_answer)
 
         print(f"Game results: {game_descriptions}")
 

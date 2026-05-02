@@ -3,7 +3,7 @@ Unit tests for core response classes
 
 Tests the LLMResponse hierarchy including:
 - LLMIdentity creation and provider guessing
-- PendingLLMResponse state management and resolve()
+- PendingLLMResponse state management and final_answer
 - ReadyLLMResponse immediate resolution
 - Serialization/deserialization (__getstate__, __setstate__)
 """
@@ -28,7 +28,7 @@ class TestReadyLLMResponse:
         response = ReadyLLMResponse(call_id=generic_call_id, value="Immediate content")
 
         assert response.call_id == generic_call_id
-        assert response.resolve() == "Immediate content"
+        assert response.final_answer == "Immediate content"
 
     def test_ready_response_serialization(self, generic_call_id):
         """Test ready response can be serialized"""
@@ -51,7 +51,7 @@ class TestReadyLLMResponse:
             return await response
 
         result = asyncio.run(_run())
-        assert result == response.resolve()
+        assert result == response.final_answer
 
 
 class TestPendingLLMResponse:
@@ -72,7 +72,7 @@ class TestPendingLLMResponse:
 
         response = PendingLLMResponse(call_id=generic_call_id, backend=mock_backend)
 
-        result = response.resolve()
+        result = response.final_answer
 
         assert result == "Backend response"
 
@@ -92,11 +92,11 @@ class TestPendingLLMResponse:
         response = PendingLLMResponse(call_id=generic_call_id, backend=mock_backend)
 
         # First call should hit backend
-        result1 = response.resolve()
+        result1 = response.final_answer
         assert result1 == "Cached response"
 
         # Second call should use cached value
-        result2 = response.resolve()
+        result2 = response.final_answer
         assert result2 == "Cached response"
 
         # Note: MockBackend doesn't track call counts like unittest.Mock,
@@ -129,7 +129,7 @@ class TestPendingLLMResponse:
         # Should handle None backend gracefully
         # (The exact behavior depends on implementation)
         with pytest.raises((AttributeError, RuntimeError)):
-            response.resolve()
+            response.final_answer
 
 
 if __name__ == "__main__":

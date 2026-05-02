@@ -9,7 +9,6 @@ msg_state.ask_functions()
 - [ ] If there are pending but not submitted batch calls, they are automatically sent
 - [ ] Same for pending calls
 - [ ] See if we can use SQLite's upsert
-- [ ] msg_state.resolve()
 - [ ] msg_state.ask_human()
 - [ ] tools.auto_schema
 - [ ] ask_params

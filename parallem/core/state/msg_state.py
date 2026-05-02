@@ -405,10 +405,15 @@ class MessageState(UserList[Union[LLMDocument, LLMResponse]], Askable):
 
     def resolve(self) -> List[LLMDocument]:
         """Helper to make sure that all messages have been resolved."""
+        return self.final_answer
+
+    @property
+    def final_answer(self) -> Optional[LLMDocument]:
+        """Helper to get the final answer from the last LLMResponse."""
         resolved = []
         for msg in self.data:
             if isinstance(msg, LLMResponse):
-                resolved.append(msg.resolve())
+                resolved.append(msg.final_answer)
             else:
                 resolved.append(msg)
         return resolved

@@ -510,4 +510,4 @@ class AgentContext(Askable):
         :param responses: List of LLMResponse objects to resolve.
         :returns: List of resolved string values corresponding to each response.
         """
-        return [resp.resolve() for resp in responses]
+        return [resp.final_answer for resp in responses]

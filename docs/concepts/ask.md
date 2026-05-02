@@ -11,7 +11,7 @@ resp = agt.ask_llm("What is the capital of France?")
 print(resp.final_answer)
 ```
 
-The response is lazy-loaded — it is not resolved until you call `.final_answer`, `.resolve()`, or iterate over function calls. This lets the runtime batch and cache calls efficiently.
+The response is lazy-loaded — it is not resolved until you call `.final_answer` or iterate over function calls. This lets the runtime batch and cache calls efficiently.
 
 ### Signature
 

@@ -16,7 +16,7 @@ def test_session_id_restoration(temp_integration_dir):
             resp1 = agent.ask_llm("Test query")
             call_id_1 = resp1.call_id
             assert call_id_1["session_id"] == 0
-            result1 = resp1.resolve()
+            result1 = resp1.final_answer
             assert result1 == "Response from session 0"
 
     # Session 1: Retrieve cached response
@@ -34,7 +34,7 @@ def test_session_id_restoration(temp_integration_dir):
             assert resp2.call_id["session_id"] == 0
             assert resp3.call_id["session_id"] == 0
 
-            result2 = resp2.resolve()
+            result2 = resp2.final_answer
             assert result2 == "Response from session 0"
 
             # Check that seq_id is NOT sequential but in fact restored from cache

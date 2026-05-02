@@ -45,7 +45,7 @@ with pllm.resume_directory(
             tools=tools,
         )
 
-        agt.print(resp.resolve())
+        agt.print(resp.final_answer)
         tool_calls = resp.resolve_function_calls()
         for call in tool_calls:
             agt.print(
@@ -63,4 +63,4 @@ with pllm.resume_directory(
         )
 
         resp = agt.ask_llm(msgs + [computed_tool_output])
-        agt.print(resp.resolve())
+        agt.print(resp.final_answer)

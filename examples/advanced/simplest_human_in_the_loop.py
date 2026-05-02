@@ -44,7 +44,7 @@ def agent_with_permission(agt: pllm.AgentContext):
 
         conv.ask_functions(multiply=multiply, add=add, divide=divide)
         last_msg = conv.ask_llm()
-        agt.print(conv.resolve())
+        agt.print(conv.final_answer)
 
 
 with pllm.resume_directory(

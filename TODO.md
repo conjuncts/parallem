@@ -14,8 +14,8 @@ explicitly not-agentic philosophy (more of an input/output machine) although age
 
 - [x] Regenerate tree-based history of MessageState with a Trie.
 - [ ] Error handling: 
-    - sync: ask_llm raises an error OR ask_llm produces an error object (ErrorResponse), which is raised when resolve() is called
-    - Concurrent: ask_llm is fine, but resolve() raises an error
+    - sync: ask_llm raises an error OR ask_llm produces an error object (ErrorResponse), which is raised when final_answer is called
+    - Concurrent: ask_llm is fine, but final_answer raises an error
     - mode 1: exceptions are fatal
     - mode 2: log exceptions and continue
     - three error handling modes: None, skip, retry (exponential backoff)
