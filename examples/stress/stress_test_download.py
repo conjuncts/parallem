@@ -20,3 +20,9 @@ if __name__ == "__main__":
         # Download the file automatically
         url = "https://github.com/zydou/high-frequency-words/raw/refs/heads/master/100k.txt"
         download_word_list(url, path_100k)
+
+    path_reviews = pathlib.Path(__file__).parent / "txts" / "amazon_reviews.csv"
+    if not path_reviews.exists():
+        # Download the file automatically
+        url = "https://huggingface.co/datasets/hugginglearners/amazon-reviews-sentiment-analysis/raw/main/amazon_reviews.csv"
+        download_word_list(url, path_reviews)
