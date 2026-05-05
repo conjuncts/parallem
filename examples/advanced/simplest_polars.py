@@ -1,10 +1,14 @@
 import logging
-from dotenv import load_dotenv
 import parallem as pllm
 import polars as pl
 
-load_dotenv()
 
+def molar_mass_agent(agt: pllm.AgentContext, compound: str) -> str:
+    resp = agt.ask_llm(
+        f"What is the molar mass of {compound}? Just give the number in g/mol.",
+        tools=[pllm.tools.WebSearchTool()],
+    )
+    return resp.final_answer
 
 df = pl.DataFrame(
     ["CO2", "toluene", "methane", "CaCO3", "Pb(C2H5)4"],
@@ -16,17 +20,14 @@ with pllm.resume_directory(
     strategy="sync",
     log_level=logging.DEBUG,
     dashboard=True,
+    load_dotenv=True,
     hash_by=["llm"],
 ) as orch:
     collector = []
-    for row in df.iter_rows(named=True):
-        with orch.agent() as agt:
-            resp = agt.ask_llm(
-                f"What is the molar mass of {row['compound']}? Just give the number in g/mol.",
-                tools=[pllm.tools.WebSearchTool()],
-            )
-
-            collector.append({**row, "molar_mass": resp.final_answer})
+    for i, row in enumerate(df.iter_rows(named=True)):
+        with orch.agent(f"agent_{i}") as agt:
+            mm = molar_mass_agent(agt, row["compound"])
+            collector.append({**row, "molar_mass": mm})
 
 result_df = pl.DataFrame(collector)
 print(result_df)
