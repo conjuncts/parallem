@@ -1,4 +1,4 @@
-# Stress test: use GPT to count syllables for >370k words
+# Stress test: use GPT to count syllables for >100k words
 import time
 from tqdm import tqdm
 import polars as pl
@@ -24,7 +24,7 @@ def syllable_count_agent(agt: pllm.AgentContext, word: str):
 
 # Run the agent on all words
 orch = pllm.resume_directory(
-    ".pllm/example/fresh2/stress_test",
+    ".pllm/example/fresh3/stress_test",
     llm="gpt-5-nano",
     hash_by=["llm"],
     provider="openai",

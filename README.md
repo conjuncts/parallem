@@ -17,16 +17,15 @@ pip install parallem
 ```
 
 ```python
-from dotenv import load_dotenv
 import parallem as pllm
 
-load_dotenv()  # Put OPENAI_API_KEY in the .env file
-
+# Place OPENAI_API_KEY in .env file
 with pllm.resume_directory(
     ".pllm/simplest",
     provider="openai",
     strategy="sync",
     dashboard=True,
+    load_dotenv=True,
 ) as orch:
     with orch.agent() as agt:
         resp = agt.ask_llm("Please name a power of 3.")
