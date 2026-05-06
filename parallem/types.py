@@ -227,7 +227,7 @@ LLMResponse: Any response from the LLM.
 """
 
 
-BuiltinProviderType = Literal["openai", "anthropic", "google"]
+BuiltinProviderType = Literal["openai", "anthropic", "google", "bedrock"]
 """Built-in provider names recognised without the registry."""
 
 ProviderType = Union[BuiltinProviderType, str]

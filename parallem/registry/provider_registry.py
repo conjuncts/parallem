@@ -55,7 +55,7 @@ def register_provider(
     if not name:
         raise ValueError("Provider name must be a non-empty string.")
 
-    _builtin_names = {"openai", "anthropic", "google", "multi"}
+    _builtin_names = {"openai", "anthropic", "google", "bedrock", "multi"}
     if name in _builtin_names:
         raise ValueError(
             f"'{name}' is a built-in provider name and cannot be overridden."

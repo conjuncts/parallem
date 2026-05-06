@@ -10,6 +10,7 @@ def molar_mass_agent(agt: pllm.AgentContext, compound: str) -> str:
     )
     return resp.final_answer
 
+
 df = pl.DataFrame(
     ["CO2", "toluene", "methane", "CaCO3", "Pb(C2H5)4"],
     schema=["compound"],

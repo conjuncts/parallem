@@ -12,7 +12,7 @@ class RatingScore(BaseModel):
 
 def rating_agent(agt: pllm.AgentContext, review: str) -> str:
     resp = agt.ask_llm(
-        f"Attached is an amazon review. What is its expected star rating out of 5?",
+        "Attached is an amazon review. What is its expected star rating out of 5?",
         review,
         reasoning={"effort": "minimal"},
         structured_output=RatingScore,

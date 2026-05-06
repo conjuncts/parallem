@@ -16,6 +16,10 @@ def guess_provider_and_name(identity: str) -> tuple[Optional[str], str]:
         # split by first '/', assume format 'provider/model_name'
         provider, model_name = identity.split("/", 1)
         return provider, model_name
+    if "." in identity:
+        # aws format 'provider.model_name'
+        # provider, _ = identity.split(".", 1)
+        return "bedrock", identity
 
     # import openai.types.shared.chat_model
     _openai_prefixes = ["gpt-", "o1-", "o3-", "o4-", "chatgpt"]

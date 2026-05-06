@@ -82,6 +82,28 @@ def dynamic_select_provider(
 
                 client = Anthropic()
             provider = SyncAnthropicProvider(client=client)
+    elif provider_type == "bedrock":
+        from parallem.provider.bedrock.sdk import (
+            ConcurrentBedrockProvider,
+            SyncBedrockProvider,
+        )
+
+        if client is None:
+            try:
+                import boto3
+            except ImportError as exc:
+                raise ImportError(
+                    "Bedrock provider requires boto3. Install it with 'pip install boto3'."
+                ) from exc
+
+            client = boto3.client("bedrock-runtime", region_name="us-east-2")
+
+        if strategy == "concurrent":
+            provider = ConcurrentBedrockProvider(client=client)
+        elif strategy == "batch":
+            raise NotImplementedError("Bedrock provider does not support batch mode.")
+        else:
+            provider = SyncBedrockProvider(client=client)
     elif multi_allowed and provider_type == "multi":
         from parallem.provider.multi.multiplexer import (
             SyncMultiProvider,
