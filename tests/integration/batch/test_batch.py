@@ -110,7 +110,10 @@ def _assert_batch_file_matches_expected(
 
 def _common_asks(agt: pllm.AgentContext, sample_tools, sample_image, _do_web_search=True):
     # Test 1: Simple text query
-    agt.ask_llm("Please name a power of 3.")
+    agt.ask_llm(
+        "Please name a power of 3.",
+        instructions="No explanations needed.",
+    )
 
     # Test 2: Web search tool
     agt.ask_llm(

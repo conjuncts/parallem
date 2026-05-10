@@ -6,7 +6,7 @@ data_gpt_batch_tool_2 = r"""{"custom_id": "-0-1-0", "method": "POST", "url": "/v
 
 
 data_batch_full_google = r"""
-{"key": "-0-0-0", "request": {"contents": [{"role": "user", "parts": [{"text": "Please name a power of 3."}]}]}}
+{"key": "-0-0-0", "request": {"contents": [{"role": "user", "parts": [{"text": "Please name a power of 3."}]}], "systemInstruction": "No explanations needed."}}
 {"key": "-0-1-1", "request": {"contents": [{"role": "user", "parts": [{"text": "In 1 sentence, what is AAPL's current price?"}]}], "tools": [{"googleSearch": {}}]}}
 {"key": "-0-2-2", "request": {"contents": [{"role": "user", "parts": [{"text": "How many files are in ~/examples? Give the final answer in words."}]}], "tools": [{"functionDeclarations": [{"name": "count_files", "description": "Count the number of files in a directory.", "parameters": {"type": "OBJECT", "properties": {"directory": {"type": "STRING", "description": "The path to the directory to count files in."}}, "required": ["directory"]}}]}]}}
 {"key": "-0-3-3", "request": {"contents": [{"role": "user", "parts": [{"text": "What is the capital of France?"}]}], "generationConfig": {"responseJsonSchema": {"properties": {"final_answer": {"title": "Final Answer", "type": "string"}}, "required": ["final_answer"], "title": "MyModel", "type": "object"}, "responseMimeType": "application/json"}}}
@@ -14,7 +14,7 @@ data_batch_full_google = r"""
 """.replace("<img-data>", _img_data)
 
 data_batch_full_openai = r"""
-{"custom_id": "-0-0-0", "method": "POST", "url": "/v1/responses", "body": {"model": "gpt-5-nano", "instructions": null, "input": [{"role": "user", "content": "Please name a power of 3."}], "tools": []}}
+{"custom_id": "-0-0-0", "method": "POST", "url": "/v1/responses", "body": {"model": "gpt-5-nano", "instructions": "No explanations needed.", "input": [{"role": "user", "content": "Please name a power of 3."}], "tools": []}}
 {"custom_id": "-0-1-1", "method": "POST", "url": "/v1/responses", "body": {"model": "gpt-5-nano", "instructions": null, "input": [{"role": "user", "content": "In 1 sentence, what is AAPL's current price?"}], "tools": [{"type": "web_search"}]}}
 {"custom_id": "-0-2-2", "method": "POST", "url": "/v1/responses", "body": {"model": "gpt-5-nano", "instructions": null, "input": [{"role": "user", "content": "How many files are in ~/examples? Give the final answer in words."}], "tools": [{"type": "function", "name": "count_files", "description": "Count the number of files in a directory.", "parameters": {"type": "object", "properties": {"directory": {"type": "string", "description": "The path to the directory to count files in."}}, "required": ["directory"]}}]}}
 {"custom_id": "-0-3-3", "method": "POST", "url": "/v1/responses", "body": {"model": "gpt-5-nano", "instructions": null, "input": [{"role": "user", "content": "What is the capital of France?"}], "tools": [], "text": {"format": {"type": "json_schema", "strict": true, "name": "MyModel", "schema": {"properties": {"final_answer": {"title": "Final Answer", "type": "string"}}, "required": ["final_answer"], "title": "MyModel", "type": "object", "additionalProperties": false}}}}}
@@ -22,7 +22,7 @@ data_batch_full_openai = r"""
 """.replace("<img-data>", _img_data)
 
 data_batch_full_openai_chat = r"""
-{"custom_id": "-0-0-0", "method": "POST", "url": "/v1/chat/completions", "body": {"model": "gpt-5-nano", "messages": [{"role": "user", "content": "Please name a power of 3."}], "tools": []}}
+{"custom_id": "-0-0-0", "method": "POST", "url": "/v1/chat/completions", "body": {"model": "gpt-5-nano", "messages": [{"role": "system", "content": "No explanations needed."}, {"role": "user", "content": "Please name a power of 3."}], "tools": []}}
 {"custom_id": "-0-1-1", "method": "POST", "url": "/v1/chat/completions", "body": {"model": "gpt-5-nano", "messages": [{"role": "user", "content": "In 1 sentence, what is AAPL's current price?"}], "tools": []}}
 {"custom_id": "-0-2-2", "method": "POST", "url": "/v1/chat/completions", "body": {"model": "gpt-5-nano", "messages": [{"role": "user", "content": "How many files are in ~/examples? Give the final answer in words."}], "tools": [{"type": "function", "function": {"name": "count_files", "description": "Count the number of files in a directory.", "parameters": {"type": "object", "properties": {"directory": {"type": "string", "description": "The path to the directory to count files in."}}, "required": ["directory"]}}}]}}
 {"custom_id": "-0-3-3", "method": "POST", "url": "/v1/chat/completions", "body": {"model": "gpt-5-nano", "messages": [{"role": "user", "content": "What is the capital of France?"}], "tools": [], "response_format": {"type": "json_schema", "json_schema": {"name": "MyModel", "schema": {"properties": {"final_answer": {"title": "Final Answer", "type": "string"}}, "required": ["final_answer"], "title": "MyModel", "type": "object", "additionalProperties": false}, "strict": true}}}}
@@ -30,7 +30,7 @@ data_batch_full_openai_chat = r"""
 """.replace("<img-data>", _img_data)
 
 data_batch_full_anthropic = r"""
-{"custom_id": "-0-0-0", "params": {"model": "claude-haiku-4-5-20251001", "max_tokens": 4096, "messages": [{"role": "user", "content": "Please name a power of 3."}]}}
+{"custom_id": "-0-0-0", "params": {"model": "claude-haiku-4-5-20251001", "max_tokens": 4096, "messages": [{"role": "user", "content": "Please name a power of 3."}], "system": "No explanations needed."}}
 {"custom_id": "-0-1-1", "params": {"model": "claude-haiku-4-5-20251001", "max_tokens": 4096, "messages": [{"role": "user", "content": "In 1 sentence, what is AAPL's current price?"}], "tools": [{"type": "web_search_20260209", "name": "web_search", "max_uses": 5}]}}
 {"custom_id": "-0-2-2", "params": {"model": "claude-haiku-4-5-20251001", "max_tokens": 4096, "messages": [{"role": "user", "content": "How many files are in ~/examples? Give the final answer in words."}], "tools": [{"name": "count_files", "description": "Count the number of files in a directory.", "input_schema": {"type": "object", "properties": {"directory": {"type": "string", "description": "The path to the directory to count files in."}}, "required": ["directory"]}}]}}
 {"custom_id": "-0-3-3", "params": {"model": "claude-haiku-4-5-20251001", "max_tokens": 4096, "messages": [{"role": "user", "content": "What is the capital of France?"}], "output_config": {"format": {"type": "json_schema", "schema": {"properties": {"final_answer": {"title": "Final Answer", "type": "string"}}, "required": ["final_answer"], "title": "MyModel", "type": "object", "additionalProperties": false}}}}}

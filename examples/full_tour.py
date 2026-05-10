@@ -3,6 +3,7 @@ from dotenv import load_dotenv
 from PIL import Image
 
 import parallem as pllm
+from parallem.core.exception import ProviderCompatibilityError
 
 
 class MyModel(BaseModel):
@@ -14,24 +15,35 @@ def count_files(directory: str) -> int:
     return 4
 
 
-def tour_agent(agt: pllm.AgentContext):
+def power_of_3_agent(agt: pllm.AgentContext):
     # 1. Basic LLM call
-    resp1 = agt.ask_llm("Please name a power of 3.")
+    resp = agt.ask_llm(
+        "Please name a power of 3.",
+        instructions="No explanation needed.",
+    )
+    return resp.final_answer
 
+def web_search_agent(agt: pllm.AgentContext):
     # 2. Web search tool
-    resp2 = agt.ask_llm(
+    resp = agt.ask_llm(
         "In 1 sentence, what is AAPL's current price?",
         tools=[pllm.tools.WebSearchTool()],
     )
+    return resp.final_answer
 
+def structured_output_agent(agt: pllm.AgentContext):
     # 3. Structured output
-    resp3 = agt.ask_llm("What is the capital of France?", structured_output=MyModel)
+    resp = agt.ask_llm("What is the capital of France?", structured_output=MyModel)
+    return resp.final_answer
 
+def image_input_agent(agt: pllm.AgentContext):
     # 4. Image input. NOTE: Adjust image as needed.
     img = Image.open("tests/data/images/Nokota_Horses_cropped.jpg")
     img.thumbnail((100, 100))  # Downsample
-    resp4 = agt.ask_llm("What animal is this?", img)
+    resp = agt.ask_llm("What animal is this?", img)
+    return resp.final_answer
 
+def function_calling_agent(agt: pllm.AgentContext):
     # 5,6. Function calling.
     # Keeping track of message state can be tedious. see the MessageState abstraction.
     ls_prompt = "How many files are in ~/examples? Give the final answer in words."
@@ -41,13 +53,12 @@ def tour_agent(agt: pllm.AgentContext):
     )
     fc_outs = agt.ask_functions(resp5, count_files=count_files)
     resp6 = agt.ask_llm([ls_prompt, resp5, *fc_outs])
+    
+    if resp5.function_calls:
+        final_answer = f"Function calls: {resp5.function_calls}\n"
+    final_answer += resp5.final_answer + "\n" + resp6.final_answer
+    return final_answer
 
-    # Print results
-    for i, resp in enumerate([resp1, resp2, resp3, resp4, resp5, resp6]):
-        if fcs := resp.function_calls:
-            agt.print(fcs)
-        final_answer = resp.final_answer.replace("\n", " ")
-        agt.print(f"{i + 1}. {final_answer}")
 
 
 if __name__ == "__main__":
@@ -55,10 +66,26 @@ if __name__ == "__main__":
 
     with pllm.resume_directory(
         ".pllm/example/batch",
-        provider="openai",
         strategy="sync",
         dashboard=True,
+        # llm=LLMIdentity(
+        #     "moonshotai.kimi-k2.5", 
+        #     # "mistral.ministral-3-8b-instruct",
+        #     provider_type="openai-chat",
+        # ),
+        llm="gemini-2.5-flash",
         hash_by=["llm"],
     ) as orch:
         with orch.agent() as agt:
-            tour_agent(agt)
+            agt.print(power_of_3_agent(agt))
+        with orch.agent() as agt:
+            try:
+                agt.print(web_search_agent(agt))
+            except ProviderCompatibilityError as e:
+                agt.print(e)
+        with orch.agent() as agt:
+            agt.print(structured_output_agent(agt))
+        with orch.agent() as agt:
+            agt.print(image_input_agent(agt))
+        with orch.agent() as agt:
+            agt.print(function_calling_agent(agt))
