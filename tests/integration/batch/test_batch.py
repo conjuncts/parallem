@@ -26,6 +26,7 @@ from tests.integration.batch.data import (
     data_batch_full_anthropic,
     data_batch_full_google,
     data_batch_full_openai,
+    data_batch_full_openai_chat,
 )
 
 
@@ -107,14 +108,14 @@ def _assert_batch_file_matches_expected(
     )
 
 
-def _common_asks(agt, sample_tools, sample_image):
+def _common_asks(agt: pllm.AgentContext, sample_tools, sample_image, _do_web_search=True):
     # Test 1: Simple text query
     agt.ask_llm("Please name a power of 3.")
 
     # Test 2: Web search tool
     agt.ask_llm(
         "In 1 sentence, what is AAPL's current price?",
-        tools=[pllm.tools.WebSearchTool()],
+        tools=[pllm.tools.WebSearchTool()] if _do_web_search else None,
     )
 
     # Test 3: Custom function tool
@@ -178,6 +179,31 @@ def test_full_batch_openai(temp_integration_dir, sample_tools, sample_image):
         "tests/data/inputs/test_batch/msg_content_table.parquet"
     )
     assert_frame_equal(df_msg, df_msg_exp)
+
+
+def test_full_batch_openai_chat(temp_integration_dir, sample_tools, sample_image):
+    """Test full batch file generation with chat completions for OpenAI"""
+    provider = "openai-chat"
+    expected_data = data_batch_full_openai_chat
+
+    with pllm.resume_directory(
+        temp_integration_dir / f"full_batch_{provider}",
+        provider=provider,
+        strategy="batch",
+        hash_by=["llm"],
+        tweaks={"batch_user_confirmation": False},
+        client=False,  # Don't use real client
+        save_input=False,
+    ) as orch:
+        mock_submit = Mock(return_value=f"msgbatch_uuid_{provider}")
+        orch._provider.submit_batch_to_provider = mock_submit
+
+        with orch.agent() as agt:
+            # ChatCompletions does not support web search
+            _common_asks(agt, sample_tools, sample_image, _do_web_search=False)
+
+    assert mock_submit.called, "Batch submission was not attempted"
+    _assert_batch_file_matches_expected(temp_integration_dir, provider, expected_data)
 
 
 def test_full_batch_google(temp_integration_dir, sample_tools, sample_image):
