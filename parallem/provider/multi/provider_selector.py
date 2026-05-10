@@ -39,6 +39,31 @@ def dynamic_select_provider(
 
                 client = OpenAI()
             provider = SyncOpenAIProvider(client=client)
+    elif provider_type == "openai-chat":
+        from parallem.provider.openai_chat.sdk import (
+            BatchOpenAIChatProvider,
+            ConcurrentOpenAIChatProvider,
+            SyncOpenAIChatProvider,
+        )
+
+        if strategy == "concurrent":
+            if client is None:
+                from openai import AsyncOpenAI
+
+                client = AsyncOpenAI()
+            provider = ConcurrentOpenAIChatProvider(client=client)
+        elif strategy == "batch":
+            if client is None:
+                from openai import OpenAI
+
+                client = OpenAI()
+            provider = BatchOpenAIChatProvider(client=client)
+        else:
+            if client is None:
+                from openai import OpenAI
+
+                client = OpenAI()
+            provider = SyncOpenAIChatProvider(client=client)
     elif provider_type == "google":
         from parallem.provider.google.sdk import (
             ConcurrentGoogleProvider,
