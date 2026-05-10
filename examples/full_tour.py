@@ -4,6 +4,7 @@ from PIL import Image
 
 import parallem as pllm
 from parallem.core.exception import ProviderCompatibilityError
+from parallem.types import LLMIdentity
 
 
 class MyModel(BaseModel):
@@ -68,24 +69,24 @@ if __name__ == "__main__":
         ".pllm/example/batch",
         strategy="sync",
         dashboard=True,
-        # llm=LLMIdentity(
-        #     "moonshotai.kimi-k2.5", 
-        #     # "mistral.ministral-3-8b-instruct",
-        #     provider_type="openai-chat",
-        # ),
-        llm="gemini-2.5-flash",
+        llm=LLMIdentity(
+            "moonshotai.kimi-k2.5", 
+            # "mistral.ministral-3-8b-instruct",
+            provider_type="openai-chat",
+        ),
+        # llm="gemini-2.5-flash",
         hash_by=["llm"],
     ) as orch:
         with orch.agent() as agt:
-            agt.print(power_of_3_agent(agt))
+            print(power_of_3_agent(agt))
         with orch.agent() as agt:
             try:
-                agt.print(web_search_agent(agt))
+                print(web_search_agent(agt))
             except ProviderCompatibilityError as e:
-                agt.print(e)
+                print(e)
         with orch.agent() as agt:
-            agt.print(structured_output_agent(agt))
+            print(structured_output_agent(agt))
         with orch.agent() as agt:
-            agt.print(image_input_agent(agt))
+            print(image_input_agent(agt))
         with orch.agent() as agt:
-            agt.print(function_calling_agent(agt))
+            print(function_calling_agent(agt))

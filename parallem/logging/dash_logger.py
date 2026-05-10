@@ -1,4 +1,6 @@
+import contextlib
 import sys
+import builtins
 import shutil
 import threading
 from collections import OrderedDict
@@ -9,6 +11,44 @@ from enum import Enum
 
 # Initialize colorama for colored output
 init()
+
+
+class DashboardStdout:
+    """File-like wrapper used with redirect_stdout to coordinate with the dashboard.
+
+    It writes directly to the real stdout (`sys.__stdout__`) and clears the
+    dashboard line before printing user output so that interleaving looks clean.
+    """
+
+    def __init__(self, dashlog: "DashboardLogger", real_stdout):
+        self._dashlog = dashlog
+        self._real = real_stdout
+
+    def write(self, s: str):
+        if not s:
+            return
+        # If dashboard is currently shown, clear it on the real stdout first
+        if self._dashlog._console_written and self._dashlog.display:
+            try:
+                self._real.write("\r\033[K")
+                self._real.flush()
+            except (OSError, ValueError):
+                pass
+            # After clearing, mark that console line is no longer occupied
+            self._dashlog._console_written = False
+
+        try:
+            self._real.write(s)
+            self._real.flush()
+        except (OSError, ValueError):
+            # best-effort: ignore write errors
+            pass
+
+    def flush(self):
+        try:
+            self._real.flush()
+        except (OSError, ValueError):
+            pass
 
 
 class HashStatus(Enum):
@@ -65,6 +105,11 @@ class DashboardLogger:
         # Track if we've written to console before
         self._console_written = False
 
+        self._context_depth = 0
+        self._context_prev_display: bool | None = None
+        self._context_keep_when_done = True
+        self._stdout_cm = None
+
         # Colors for different statuses
         self._status_colors = {
             HashStatus.CACHED: Fore.GREEN,
@@ -76,6 +121,69 @@ class DashboardLogger:
             HashStatus.STORED_BATCH: Fore.GREEN,
             HashStatus.STORED_ERROR_BATCH: Fore.MAGENTA,
         }
+
+    def __enter__(self):
+        self._push_context(keep_when_done=True)
+        return self
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        return self._pop_context(exc_type, exc_value, traceback)
+
+    @contextlib.contextmanager
+    def context(self, *, keep_when_done: bool = True):
+        self._push_context(keep_when_done=keep_when_done)
+        try:
+            yield self
+        except BaseException as exc:
+            self._pop_context(type(exc), exc, exc.__traceback__)
+            raise
+        else:
+            self._pop_context(None, None, None)
+
+    def _get_stdout(self):
+        if self._stdout_cm is not None:
+            return self._stdout_cm._real
+        else:
+            return sys.stdout
+
+    def _push_context(self, *, keep_when_done: bool):
+        if self._context_depth == 0:
+            self._context_prev_display = self.display
+            self._context_keep_when_done = keep_when_done
+            self.set_display(True, clear_console=False)
+            self._stdout_cm = contextlib.redirect_stdout(
+                DashboardStdout(self, sys.__stdout__)
+            )
+            self._stdout_cm.__enter__()
+        else:
+            self._context_keep_when_done = (
+                self._context_keep_when_done and keep_when_done
+            )
+        self._context_depth += 1
+
+    def _pop_context(self, exc_type, exc_value, traceback):
+        if self._context_depth == 0:
+            return False
+
+        self._context_depth -= 1
+        if self._context_depth > 0:
+            return False
+
+        if self._stdout_cm is not None:
+            self._stdout_cm.__exit__(exc_type, exc_value, traceback)
+            self._stdout_cm = None
+
+        prev_display = self._context_prev_display
+        keep_when_done = self._context_keep_when_done
+
+        self._context_prev_display = None
+        self._context_keep_when_done = True
+
+        if prev_display is not None:
+            self.set_display(prev_display, clear_console=True)
+        if not keep_when_done:
+            self.clear(clear_console=True)
+        return False
 
     def update_hash(self, full_hash: str, status: HashStatus):
         """
@@ -160,13 +268,13 @@ class DashboardLogger:
         if self._console_written:
             # Move cursor to beginning of line and clear the entire line, then print new content
             # Use ANSI escape sequence to clear the entire line
-            sys.stdout.write(f"\r\033[K{display_line}\r")
+            self._get_stdout().write(f"\r\033[K{display_line}\r")
         else:
             # First time writing - just print normally
-            sys.stdout.write(display_line)
+            self._get_stdout().write(display_line)
             self._console_written = True
 
-        sys.stdout.flush()
+        self._get_stdout().flush()
 
     def set_display(self, display: bool, clear_console: bool = True):
         """Enable or disable console display"""
@@ -175,8 +283,8 @@ class DashboardLogger:
             # do not show it if we are turning it on, until the next update_hash call
             if self._console_written:
                 if clear_console:
-                    sys.stdout.write("\r\033[K")
-                    sys.stdout.flush()
+                    self._get_stdout().write("\r\033[K")
+                    self._get_stdout().flush()
                 self._console_written = False
 
     def clear(self, clear_console=True):
@@ -185,8 +293,8 @@ class DashboardLogger:
             self._hashes.clear()
             if self._console_written:
                 if clear_console:
-                    sys.stdout.write("\r\033[K")
-                    sys.stdout.flush()
+                    self._get_stdout().write("\r\033[K")
+                    self._get_stdout().flush()
                 self._console_written = False
 
     def print(self, *args, **kwargs):
@@ -194,18 +302,25 @@ class DashboardLogger:
         Print to console.
         """
         if not self.display:
-            # Dashboard not active, use regular print
-            print(*args, **kwargs)
+            # Dashboard not active, print to real stdout
+            builtins.print(*args, file=sys.__stdout__, **kwargs)
             return
 
         with self._lock:
             # Clear the current dashboard line if it exists
             if self._console_written:
-                sys.stdout.write("\r\033[K")
-                sys.stdout.flush()
+                try:
+                    sys.__stdout__.write("\r\033[K")
+                    sys.__stdout__.flush()
+                except (OSError, ValueError, AttributeError):
+                    try:
+                        sys.stdout.write("\r\033[K")
+                        sys.stdout.flush()
+                    except (OSError, ValueError, AttributeError):
+                        pass
 
-            # Print the user's content
-            print(*args, **kwargs)
+            # Print the user's content to the real stdout
+            builtins.print(*args, file=sys.__stdout__, **kwargs)
 
     def finalize_line(self):
         """
@@ -213,8 +328,8 @@ class DashboardLogger:
         Call this when you want to ensure subsequent print() calls appear on new lines.
         """
         if self._console_written:
-            sys.stdout.write("\n")
-            sys.stdout.flush()
+            self._get_stdout().write("\n")
+            self._get_stdout().flush()
             self._console_written = False
 
     def ask_for_confirmation(

@@ -1,3 +1,4 @@
+from contextlib import nullcontext
 from logging import Logger
 import asyncio
 from concurrent.futures import Future
@@ -10,7 +11,6 @@ from parallem.core.backend.batch_backend import BatchBackend
 from parallem.core.batch_namespace import BatchNamespace
 from parallem.core.exception import NotAvailable, ParallemSignal, PendingNotAvailable
 from parallem.core.state.non_msg_state import NonMessageState
-from parallem.logging.dashlog_context import DashboardLoggerContext
 from parallem.provider.base import BaseProvider
 from parallem.provider.openai.client import OpenAICompatClient
 from parallem.core.file_manager import FileManager
@@ -82,12 +82,16 @@ class AgentOrchestrator:
         agent_coro: Optional[Coroutine[Any, Any, Any]] = None
 
         is_coro = inspect.iscoroutinefunction(fn)
+
+        # whether to patch stdout
+        cm = self._dashlog if self._dashlog.display else nullcontext()
         if not is_coro:
             # Then it's a regular function
             if self.strategy in ["sync", "batch"]:
                 # If sync mode = execute immediately and set result on promise
                 try:
-                    result = fn(agt, *fn_args, **fn_kwargs)
+                    with cm:
+                        result = fn(agt, *fn_args, **fn_kwargs)
                 except Exception as exc:
                     promise.set_exception(exc)
                     return promise
@@ -96,7 +100,8 @@ class AgentOrchestrator:
             else:
                 # If concurrent mode, turn regular function into coroutine and queue
                 async def _coro_wrapper():
-                    return fn(agt, *fn_args, **fn_kwargs)
+                    with cm:
+                        return fn(agt, *fn_args, **fn_kwargs)
 
                 agent_coro = _coro_wrapper()
         else:
@@ -104,14 +109,19 @@ class AgentOrchestrator:
             if self.strategy in ["sync", "batch"]:
                 # If sync mode = execute immediately and set result on promise
                 try:
-                    agent_coro = fn(agt, *fn_args, **fn_kwargs)
-                    resolved = asyncio.run(agent_coro)
+                    with cm:
+                        agent_coro = fn(agt, *fn_args, **fn_kwargs)
+                        resolved = asyncio.run(agent_coro)
                 except Exception as exc:
                     promise.set_exception(exc)
                     return promise
                 promise.set_result(resolved)
                 return promise
-            agent_coro = fn(agt, *fn_args, **fn_kwargs)
+            async def _coro_wrapper():
+                with cm:
+                    return await fn(agt, *fn_args, **fn_kwargs)
+
+            agent_coro = _coro_wrapper()
 
         if self.strategy != "concurrent" or agent_coro is None:
             promise.set_exception(
@@ -313,7 +323,7 @@ class AgentOrchestrator:
         """
         Context manager for activating a dashlog only for a specific block of code.
         """
-        return DashboardLoggerContext(self._dashlog, keep_when_done=keep_when_done)
+        return self._dashlog.context(keep_when_done=keep_when_done)
 
     def to_client(
         self,

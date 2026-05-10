@@ -90,12 +90,21 @@ class AgentContext(Askable):
 
         self._msg_state: Optional[MessageState] = None
         "MessageState for this agent. Some pipelines won't use this (so it will be None)."
+        self._print_context = None
 
     def __enter__(self):
-        # No setup needed
+        # Only redirect stdout when the dashboard display is enabled.
+        if self._orch._dashlog is not None and self._orch._dashlog.display:
+            self._print_context = self._orch._dashlog
+            self._print_context.__enter__()
+        else:
+            self._print_context = None
         return self
 
     def __exit__(self, exc_type, exc_value, traceback):
+        if self._print_context is not None:
+            self._print_context.__exit__(exc_type, exc_value, traceback)
+            self._print_context = None
         if exc_type in (NotAvailable, PendingNotAvailable):
             # swallow NotAvailable and its subclasses (like PendingNotAvailable)
             return True
@@ -112,7 +121,7 @@ class AgentContext(Askable):
         Print to console above the dashboard output.
         This ensures proper display ordering when the dashboard is active.
         """
-        self._orch._dashlog.print(*args, **kwargs)
+        print(*args, **kwargs)
 
     def _coerce_tools(
         self,
