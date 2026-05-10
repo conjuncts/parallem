@@ -16,4 +16,4 @@ with pllm.resume_directory(
         resp = agt.ask_llm("What is your model name?")  # gpt-5-nano
 
         resp2 = agt.ask_llm("What is your model name?", llm="gemini-2.5-flash")
-        agt.print([resp.final_answer, resp2.final_answer])
+        print([resp.final_answer, resp2.final_answer])

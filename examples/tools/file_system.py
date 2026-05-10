@@ -45,10 +45,10 @@ with pllm.resume_directory(
             tools=tools,
         )
 
-        agt.print(resp.final_answer)
+        print(resp.final_answer)
         tool_calls = resp.function_calls
         for call in tool_calls:
-            agt.print(
+            print(
                 f"Tool call: `{call.name}` with args {call.args} call_id {call.call_id}"
             )
 
@@ -63,4 +63,4 @@ with pllm.resume_directory(
         )
 
         resp = agt.ask_llm(msgs + [computed_tool_output])
-        agt.print(resp.final_answer)
+        print(resp.final_answer)

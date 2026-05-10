@@ -17,4 +17,4 @@ with pllm.resume_directory(
     with orch.agent() as agt:
         resp = agt.ask_llm("What is 3 cubed?", hash_by=["llm"])
 
-        agt.print(resp.final_answer)
+        print(resp.final_answer)

@@ -13,5 +13,5 @@ with pllm.resume_directory(
 ) as orch:
     with orch.agent() as agt:
         resp = agt.ask_llm("Please name a power of 3.", hash_by=["llm"])
-        agt.print(resp.final_answer)
+        print(resp.final_answer)
     # print(orch.export_polars())

@@ -27,4 +27,4 @@ with pllm.resume_directory(
             ],
         )
 
-        agt.print(resp.final_answer)
+        print(resp.final_answer)

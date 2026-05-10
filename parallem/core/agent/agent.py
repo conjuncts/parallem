@@ -12,6 +12,7 @@ from typing import (
     get_args,
     get_origin,
 )
+from typing_extensions import deprecated
 from parallem.core.ask import Askable
 from parallem.core.cast.fix_docs import cast_documents, reduce_to_list
 from parallem.core.exception import NotAvailable, PendingNotAvailable
@@ -116,11 +117,8 @@ class AgentContext(Askable):
             return True
         return False
 
+    @deprecated("Use builtin print() directly.")
     def print(self, *args, **kwargs):
-        """
-        Print to console above the dashboard output.
-        This ensures proper display ordering when the dashboard is active.
-        """
         print(*args, **kwargs)
 
     def _coerce_tools(

@@ -31,7 +31,7 @@ with pllm.resume_directory(
 ) as orch:
     with orch.agent() as agt:
         resp = agt.ask_llm("Please name a power of 3.", hash_by=["llm"])
-        agt.print(resp.final_answer)
+        print(resp.final_answer)
 ```
 
 <div class="highlight session-log-html"><pre><code>[<span class="log-tag">INFO</span>] Resuming with session_id=0

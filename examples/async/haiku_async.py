@@ -8,7 +8,7 @@ async def haiku_writer_agent(agt: pllm.AgentContext):
     conv.ask_llm("Please name an animal in 1 word.")
     conv.ask_llm(f"Write a haiku about {conv[-1].final_answer}(s).")
     out = await conv[-1]
-    agt.print(out)
+    print(out)
     return out
 
 

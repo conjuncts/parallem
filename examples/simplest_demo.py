@@ -16,7 +16,7 @@ with pllm.resume_directory(
         with orch.agent(i) as agt:
             img = Image.open(f"experiments/images/animal_{i}.jpg")
             animal = agt.ask_llm("What animal is this?", img)
-            agt.print(animal.final_answer)
+            print(animal.final_answer)
 
             haiku = agt.ask_llm(f"Write a haiku about {animal.final_answer}.")
-            agt.print(haiku.final_answer)
+            print(haiku.final_answer)

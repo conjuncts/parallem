@@ -12,12 +12,12 @@ def memoized_agent(agt: pllm.AgentContext):
     conv = agt.get_msg_state()
     with agt.memoize() as mem:
         mem.begin()  # Required to start tracking
-        agt.print("Long and ardous computation begins...")
+        print("Long and ardous computation begins...")
         time.sleep(10)
         output = random.randint(1, 100)
         conv.ask_llm(f"In <5 sentences, what is special about the number {output}?")
 
-    agt.print(conv[-1].final_answer)
+    print(conv[-1].final_answer)
     # First run: >10 seconds
     # Subsequent runs: instant.
     # Only changes to `conv` is saved.

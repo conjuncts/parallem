@@ -10,9 +10,9 @@ def chatbot(agt: pllm.AgentContext):
     while True:
         # No exit: Ctrl+C to stop.
         user_input = conv.ask_human("Send a message:")
-        agt.print(f"[USER] {user_input.final_answer}")
+        print(f"[USER] {user_input.final_answer}")
         resp = conv.ask_llm()
-        agt.print(f"[LLM] {resp.final_answer}")
+        print(f"[LLM] {resp.final_answer}")
 
 
 with pllm.resume_directory(

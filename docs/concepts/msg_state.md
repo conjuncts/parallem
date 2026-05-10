@@ -75,7 +75,7 @@ def calculation_agent(agt: pllm.AgentContext):
 
     conv.ask_functions(add=add, multiply=multiply)
     last_msg = conv.ask_llm()
-    agt.print(conv.final_answer)
+    print(conv.final_answer)
 ```
 
 ## Persistence — `save` and `load`
@@ -86,12 +86,12 @@ def calculation_agent(agt: pllm.AgentContext):
 def chatbot(agt: pllm.AgentContext):
     msgs = agt.get_msg_state().load()
 
-    agt.print("Current messages:", msgs)
+    print("Current messages:", msgs)
     out = input("Send a message: ")
     while out:
         msgs.append(out)
         msgs.ask_llm()
-        agt.print("Response:", msgs[-1].final_answer)
+        print("Response:", msgs[-1].final_answer)
         out = input("Send a message: ")
 
     msgs.save()

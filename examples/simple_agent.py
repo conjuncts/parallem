@@ -22,7 +22,7 @@ if __name__ == "__main__":
     ) as orch:
         # Instantiate the agent.
         with orch.agent("Yosa Buson") as agt:
-            agt.print(haiku_writer_agent(agt))
+            print(haiku_writer_agent(agt))
 
         with orch.agent("Matsuo Basho") as agt:
-            agt.print(haiku_writer_agent(agt))
+            print(haiku_writer_agent(agt))

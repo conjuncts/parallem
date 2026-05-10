@@ -12,14 +12,14 @@ def nfl_tournament(agt: pllm.AgentContext):
 
     teams = resp.final_answer.split("```")[1].split("\n")[1:9]
 
-    agt.print(f"Got teams: {teams}")
+    print(f"Got teams: {teams}")
     teams = [x for x in resp.final_answer.split("```")[1].split("\n")[1:] if x]
 
-    agt.print("===Candidates===")
-    agt.print(teams)
+    print("===Candidates===")
+    print(teams)
 
     while len(teams) > 1:
-        agt.print(f"===Round of {len(teams)}===")
+        print(f"===Round of {len(teams)}===")
         responses = []
         for i in range(0, len(teams), 2):
             if i + 1 < len(teams):
@@ -38,7 +38,7 @@ def nfl_tournament(agt: pllm.AgentContext):
         teams = []
         for resp in responses:
             teams.append(resp.final_answer)
-        agt.print("Teams:", teams)
+        print("Teams:", teams)
 
 
 with pllm.resume_directory(

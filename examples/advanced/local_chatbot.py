@@ -72,12 +72,12 @@ def exit_to_quit(x):
 def chatbot(agt: pllm.AgentContext):
     conv = agt.get_msg_state().load()
 
-    agt.print("Current messages:", conv.final_answer)
+    print("Current messages:", conv.final_answer)
     out = input("Send a message (enter to quit): ")
     while out:
         conv.append(out)
         conv.ask_llm()
-        agt.print("Response:", conv[-1].final_answer)
+        print("Response:", conv[-1].final_answer)
         out = input("Send a message (enter to quit): ")
 
     conv.save()

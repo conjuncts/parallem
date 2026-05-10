@@ -24,4 +24,4 @@ with pllm.resume_directory(
             structured_output=MyModel,
         )
 
-        agt.print(resp.final_json)
+        print(resp.final_json)

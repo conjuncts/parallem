@@ -41,4 +41,4 @@ with pllm.resume_directory(
         while last_msg.function_calls:
             conv.ask_functions(multiply=multiply, add=add, divide=divide)
             last_msg = conv.ask_llm()
-            agt.print(conv[-1].final_answer)
+            print(conv[-1].final_answer)

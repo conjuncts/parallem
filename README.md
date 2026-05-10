@@ -29,7 +29,7 @@ with pllm.resume_directory(
 ) as orch:
     with orch.agent() as agt:
         resp = agt.ask_llm("Please name a power of 3.")
-        agt.print(resp.final_answer)
+        print(resp.final_answer)
 ```
 
 To switch to the Batch API, simply change `strategy="sync"` to `strategy="batch"`.

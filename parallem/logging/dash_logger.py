@@ -1,6 +1,6 @@
 import contextlib
 import sys
-import builtins
+from typing_extensions import deprecated
 import shutil
 import threading
 from collections import OrderedDict
@@ -109,6 +109,7 @@ class DashboardLogger:
         self._context_prev_display: bool | None = None
         self._context_keep_when_done = True
         self._stdout_cm = None
+        self._stdout_holder = None
 
         # Colors for different statuses
         self._status_colors = {
@@ -141,8 +142,8 @@ class DashboardLogger:
             self._pop_context(None, None, None)
 
     def _get_stdout(self):
-        if self._stdout_cm is not None:
-            return self._stdout_cm._real
+        if self._stdout_holder is not None:
+            return self._stdout_holder._real
         else:
             return sys.stdout
 
@@ -151,9 +152,8 @@ class DashboardLogger:
             self._context_prev_display = self.display
             self._context_keep_when_done = keep_when_done
             self.set_display(True, clear_console=False)
-            self._stdout_cm = contextlib.redirect_stdout(
-                DashboardStdout(self, sys.__stdout__)
-            )
+            self._stdout_holder = DashboardStdout(self, sys.__stdout__)
+            self._stdout_cm = contextlib.redirect_stdout(self._stdout_holder)
             self._stdout_cm.__enter__()
         else:
             self._context_keep_when_done = (
@@ -172,6 +172,7 @@ class DashboardLogger:
         if self._stdout_cm is not None:
             self._stdout_cm.__exit__(exc_type, exc_value, traceback)
             self._stdout_cm = None
+            self._stdout_holder = None
 
         prev_display = self._context_prev_display
         keep_when_done = self._context_keep_when_done
@@ -297,30 +298,9 @@ class DashboardLogger:
                     self._get_stdout().flush()
                 self._console_written = False
 
+    @deprecated("Use builtin print() directly.")
     def print(self, *args, **kwargs):
-        """
-        Print to console.
-        """
-        if not self.display:
-            # Dashboard not active, print to real stdout
-            builtins.print(*args, file=sys.__stdout__, **kwargs)
-            return
-
-        with self._lock:
-            # Clear the current dashboard line if it exists
-            if self._console_written:
-                try:
-                    sys.__stdout__.write("\r\033[K")
-                    sys.__stdout__.flush()
-                except (OSError, ValueError, AttributeError):
-                    try:
-                        sys.stdout.write("\r\033[K")
-                        sys.stdout.flush()
-                    except (OSError, ValueError, AttributeError):
-                        pass
-
-            # Print the user's content to the real stdout
-            builtins.print(*args, file=sys.__stdout__, **kwargs)
+        print(*args, **kwargs)
 
     def finalize_line(self):
         """

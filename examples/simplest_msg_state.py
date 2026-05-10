@@ -16,6 +16,6 @@ with pllm.resume_directory(
             conv = agt.get_msg_state()
             conv.ask_llm("Please name an animal in 1 word.")
             conv.ask_llm(f"Write a haiku about {conv[-1].final_answer}(s).")
-            agt.print(conv)
+            print(conv)
 
 # ['Please name an animal in 1 word.', ReadyLLMResponse('lion', doc_hash=69237628), 'Write a haiku about lion(s).', ReadyLLMResponse('Golden savanna\nLions rest beneath the stars\nRoa...', doc_hash=947e27c0)]

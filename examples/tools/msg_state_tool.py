@@ -55,4 +55,4 @@ with pllm.resume_directory(
         assert fcs[0].name == "count_files"
         conv.ask_functions(count_files=ls_tool)
         conv.ask_llm()
-        agt.print(conv.final_answer)
+        print(conv.final_answer)

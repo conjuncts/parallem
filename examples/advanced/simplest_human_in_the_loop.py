@@ -37,14 +37,14 @@ def agent_with_permission(agt: pllm.AgentContext):
             conv,
         )
         if permission.final_answer.strip().lower() != "y":
-            agt.print("Function calls denied by human.")
+            print("Function calls denied by human.")
             continue
         else:
-            agt.print("Function calls permitted.")
+            print("Function calls permitted.")
 
         conv.ask_functions(multiply=multiply, add=add, divide=divide)
         last_msg = conv.ask_llm()
-        agt.print(conv.final_answer)
+        print(conv.final_answer)
 
 
 with pllm.resume_directory(

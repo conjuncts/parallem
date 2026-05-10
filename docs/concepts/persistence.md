@@ -20,7 +20,7 @@ with pllm.resume_directory(
 ) as orch:
     with orch.agent() as agt:
         resp = agt.ask_llm("Name a prime number.")
-        agt.print(resp.final_answer)  # live on first run, instant on subsequent runs
+        print(resp.final_answer)  # live on first run, instant on subsequent runs
 ```
 
 

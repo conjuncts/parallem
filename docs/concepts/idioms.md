@@ -74,5 +74,5 @@ with pllm.resume_directory(
             collector.append(power_of_n_agent(agt, i))
     
     out = orch.resolve_all(collector)
-    agt.print(out)
+    print(out)
 ```

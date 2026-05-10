@@ -26,8 +26,8 @@ with pllm.resume_directory(
         with orch.agent() as agt:
             req_start = time.time()
             resp = agt.ask_llm(f"Please name a power of {i + 2}.", hash_by=["llm"])
-            # agt.print(resp.final_answer)
+            # print(resp.final_answer)
             req_end = time.time()
-            agt.print(
+            print(
                 f"Response {i} at {req_start - time_start} took {req_end - req_start:.2f}s"
             )
