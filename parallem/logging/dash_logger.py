@@ -324,7 +324,7 @@ class DashboardLogger:
         :param valid_responses: Optional set of valid responses (e.g., {'y', 'n'})
         :return: What the user responded
         """
-        self.print(end="")
+        print(end="")
         response = input(prompt).strip().lower()
         while valid_responses is not None and response not in valid_responses:
             print(
@@ -381,21 +381,24 @@ class PrimitiveDashboardLogger(DashboardLogger):
             k: Maximum number of hashes/batches to display (default 10)
             display: Whether to display console output (default True)
         """
-        super().__init__()
+        super().__init__(display=False)
 
-    def update_hash(self, full_hash: str, status: HashStatus):
+    def context(self, *args, **kwargs):
+        return contextlib.nullcontext()
+
+    def update_hash(self, *args, **kwargs):
         pass
 
-    def _update_console(self):
+    def _update_console(self, *args, **kwargs):
         pass
 
-    def set_display(self, display: bool):
+    def set_display(self, *args, **kwargs):
         pass
 
-    def clear(self):
+    def clear(self, *args, **kwargs):
         pass
 
-    def finalize_line(self):
+    def finalize_line(self, *args, **kwargs):
         pass
 
     # ask_for_confirmation and confirm_batch_submission remain unchanged

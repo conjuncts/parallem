@@ -8,3 +8,4 @@ applyTo: '**'
 - Be concise.
 - Do not use `os.path.join`. Use pathlib instead.
 - Docstrings should follow the ":param" and ":return:" format.
+- Avoid "getattr", "setattr", and "hasattr". Prefer explicit attribute access.

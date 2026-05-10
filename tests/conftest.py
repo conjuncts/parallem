@@ -39,6 +39,7 @@ def mock_orchestrator():
     """Create a mock orchestrator with proper responses for testing"""
     mock_orch = Mock()
     mock_orch.get_session_counter.return_value = 1
+    mock_orch._dashlog = PrimitiveDashboardLogger()
     mock_orch._provider.provider_type = "openai"
     mock_orch._provider.get_default_llm_identity.return_value = LLMIdentity(
         "gpt-5-nano", provider_type="openai"
@@ -132,7 +133,7 @@ def persistence_sync_orch(session_orch_root):
         backend=backend,
         provider=Mock(),
         logger=Mock(),
-        dashlog=Mock(),
+        dashlog=PrimitiveDashboardLogger(),
     )
     yield orch
     orch.finalize_and_persist()
@@ -147,7 +148,7 @@ def persistence_mock_backend_orch(session_orch_root):
         backend=backend,
         provider=Mock(),
         logger=Mock(),
-        dashlog=Mock(),
+        dashlog=PrimitiveDashboardLogger(),
     )
     yield orch
     orch.finalize_and_persist()
@@ -163,7 +164,7 @@ def persistence_ignore_cache_orch(session_orch_root):
         backend=backend,
         provider=Mock(),
         logger=Mock(),
-        dashlog=Mock(),
+        dashlog=PrimitiveDashboardLogger(),
         ignore_cache=True,
     )
     yield orch
