@@ -82,8 +82,6 @@ class AgentContext(Askable):
         self.agent_name = agent_name
         self._orch = orch
 
-        self._seq_id_counter = 0
-
         self.ask_params = ask_params or {}
         if self.ask_params:
             self.ask_llm = self._bind_ask_llm(self.ask_params)
@@ -243,8 +241,7 @@ class AgentContext(Askable):
         **kwargs,
     ) -> LLMResponse:
         # 1. assign sequential ID, input checks
-        seq_id = self._seq_id_counter
-        self._seq_id_counter += 1
+        seq_id = self._orch.next_seq_id(self.agent_name)
 
         llm, provider_type, structured_output = self._coerce_options(
             llm, structured_output, kwargs
@@ -451,8 +448,7 @@ class AgentContext(Askable):
             Defaults to built-in ``input``.
         :returns: Human response object.
         """
-        seq_id = self._seq_id_counter
-        self._seq_id_counter += 1
+        seq_id = self._orch.next_seq_id(self.agent_name)
 
         if isinstance(documents, MessageState):
             documents = list(documents)

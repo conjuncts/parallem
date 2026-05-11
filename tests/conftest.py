@@ -38,6 +38,7 @@ def temp_integration_dir():
 def mock_orchestrator():
     """Create a mock orchestrator with proper responses for testing"""
     mock_orch = Mock()
+    seq_counters = {}
     mock_orch.get_session_counter.return_value = 1
     mock_orch._dashlog = PrimitiveDashboardLogger()
     mock_orch._provider.provider_type = "openai"
@@ -45,6 +46,14 @@ def mock_orchestrator():
         "gpt-5-nano", provider_type="openai"
     )
     mock_orch._backend.retrieve.return_value = None  # No cache by default
+
+    def _next_seq_id(agent_name: str) -> int:
+        key = (mock_orch.get_session_counter.return_value, agent_name)
+        current = seq_counters.get(key, 0)
+        seq_counters[key] = current + 1
+        return current
+
+    mock_orch.next_seq_id = Mock(side_effect=_next_seq_id)
 
     mock_orch._logger.info = Mock()
 

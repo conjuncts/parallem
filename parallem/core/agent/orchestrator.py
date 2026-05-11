@@ -11,6 +11,7 @@ from parallem.core.backend.batch_backend import BatchBackend
 from parallem.core.batch_namespace import BatchNamespace
 from parallem.core.exception import NotAvailable, ParallemSignal, PendingNotAvailable
 from parallem.core.state.non_msg_state import NonMessageState
+from parallem.core.seq_id_store import InMemorySeqIdStore, SeqIdStore
 from parallem.provider.base import BaseProvider
 from parallem.provider.openai.client import OpenAICompatClient
 from parallem.core.file_manager import FileManager
@@ -33,6 +34,7 @@ class AgentOrchestrator:
         ask_params: Optional[AskParameters] = None,
         ignore_cache: bool = False,
         strategy: Optional[Literal["sync", "concurrent", "batch"]] = None,
+        seq_id_store: Optional[SeqIdStore] = None,
     ):
         """
         Initialize the AgentOrchestrator.
@@ -44,6 +46,7 @@ class AgentOrchestrator:
         :param dashlog: Dashboard logger for pretty printing hash status
         :param ask_params: Default parameters for ask_llm() calls
         :param ignore_cache: If True, always submit to the API instead of using cached responses
+        :param seq_id_store: Optional sequence ID store implementation
         """
         self._backend = backend
         self._fm = file_manager
@@ -61,6 +64,7 @@ class AgentOrchestrator:
         self._pending_agent_coroutines: list[
             tuple[Coroutine[Any, Any, Any], Future[Any]]
         ] = []
+        self._seq_id_store = seq_id_store or InMemorySeqIdStore()
 
     def create_agent(
         self,
@@ -398,3 +402,13 @@ class AgentOrchestrator:
         :param update: If True (default), upsert rows instead of overwriting the table.
         """
         return self._backend._get_datastore().import_polars(tables, update=update)
+
+    def next_seq_id(self, agent_name: str) -> int:
+        """
+        Allocate the next sequence ID for an agent within this session.
+
+        :param agent_name: Agent name.
+        :return: Next sequence ID for this agent in the current session.
+        """
+        session_id = self.get_session_counter()
+        return self._seq_id_store.next_seq_id(session_id, agent_name)

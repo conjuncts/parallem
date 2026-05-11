@@ -59,14 +59,24 @@ def test_counter_independence(mock_orchestrator):
     with agent:
         agent.ask_llm("anonymous 1")
         agent.ask_llm("anonymous 2")
-        assert agent._seq_id_counter == 2
+        seq_ids = [
+            call.kwargs["call_id"]["seq_id"]
+            for call in mock_orchestrator._backend.submit_query.call_args_list
+        ]
+        assert seq_ids == [0, 1]
 
+    mock_orchestrator._backend.submit_query.reset_mock()
     agent2 = AgentContext("test_agent", mock_orchestrator)
     with agent2:
         agent2.ask_llm("anonymous 1")
-        assert agent2._seq_id_counter == 1
+        call_id = mock_orchestrator._backend.submit_query.call_args.kwargs["call_id"]
+        assert call_id["seq_id"] == 2
 
-    assert agent._seq_id_counter == 2  # Original agent unchanged
+    agent3 = AgentContext("other_agent", mock_orchestrator)
+    with agent3:
+        agent3.ask_llm("anonymous 1")
+        call_id = mock_orchestrator._backend.submit_query.call_args.kwargs["call_id"]
+        assert call_id["seq_id"] == 0
 
 
 class TestAgentContextCoercion:
@@ -299,12 +309,18 @@ class TestAskLLMMethod:
         with agent:
             agent.ask_llm("first call")
             agent.ask_llm("second call")
-            assert agent._seq_id_counter == 2
+            call_ids = [
+                call.kwargs["call_id"]["seq_id"]
+                for call in mock_orchestrator._backend.submit_query.call_args_list
+            ]
+            assert call_ids[-2:] == [0, 1]
 
         # Second context block - counter should continue
+        mock_orchestrator._backend.submit_query.reset_mock()
         with agent:
             agent.ask_llm("third call")
-            assert agent._seq_id_counter == 3
+            call_id = mock_orchestrator._backend.submit_query.call_args.kwargs["call_id"]
+            assert call_id["seq_id"] == 2
 
     def test_ask_human_returns_human_response_and_persists(self, mock_orchestrator):
         """ask_human should persist with origin_type=1 and return HumanResponse."""
@@ -334,7 +350,11 @@ class TestAskLLMMethod:
             agent.ask_human("q1", [], input_fn=lambda _: "a1")
             agent.ask_human("q2", ["a1"], input_fn=lambda _: "a2")
 
-        assert agent._seq_id_counter == 2
+        call_ids = [
+            call.args[0]["seq_id"]
+            for call in ds.store.call_args_list
+        ]
+        assert call_ids == [0, 1]
 
     @patch("parallem.core.agent.agent.compute_hash")
     def test_ask_human_hash_uses_prompt_and_documents(
