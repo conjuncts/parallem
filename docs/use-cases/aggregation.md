@@ -5,7 +5,7 @@ This tutorial is a continuation of the [subagent](subagents.md) doc.
 In the MapReduce paradigm, parallel workers are recombined in a "reduce" or "aggregation" step. That is no problem for parallem:
 
 ```python
---8<-- "examples/advanced/simplest_subagent_agg.py"
+--8<-- "examples/advanced/simplest_subagent.py"
 ```
 
 Output:

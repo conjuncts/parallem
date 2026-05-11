@@ -17,17 +17,17 @@ def recipe_example(agent: pllm.AgentContext):
         conv.ask_llm(
             f"Generate a recipe with {num_steps} steps using {best_vegetable}.",
         )
-        agent.print(conv)
+        print(conv)
         conv.save()
     else:
         # Allow user questions, which are not saved along with the conversation
         for item in conv:
-            agent.print(item)
+            print(item)
         user_input = input("Ask a question about the recipe: ")
         # ie. "What if I don't have an oven?"
         if user_input:
             resp = conv.ask_llm(user_input)
-            agent.print("Response:", resp.final_answer)
+            print("Response:", resp.final_answer)
 
 
 if __name__ == "__main__":

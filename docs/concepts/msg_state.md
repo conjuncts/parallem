@@ -56,7 +56,7 @@ MessageState supports any of the following types:
 
 ## With tool use
 
-MessageState feeds prior responses back into `ask_llm`, making multi-step function-calling loops concise:
+MessageState feeds `FunctionCallOutput` objects back into `ask_llm`, making multi-step function-calling loops concise:
 
 ```python
 def add(a: int, b: int) -> int:
@@ -78,9 +78,16 @@ def calculation_agent(agt: pllm.AgentContext):
     print(conv.final_answer)
 ```
 
+MessageState is syntactic sugar. You can always manage it manually for more control:
+
+```
+fc_outs: list[FunctionCallOutput] = conv.ask_functions(...)
+msgs.extend(fc_outs)
+```
+
 ## Persistence — `save` and `load`
 
-`MessageState` can be checkpointed to the session directory and restored on subsequent runs. This is the foundation for long-running, resumable pipelines.
+`MessageState` can be checkpointed to the session directory and restored on subsequent runs.
 
 ```python
 def chatbot(agt: pllm.AgentContext):

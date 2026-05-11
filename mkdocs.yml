@@ -61,7 +61,6 @@ nav:
   - Use cases:
     - Documents: use-cases/document_processing.md
     - Subagents: use-cases/subagents.md
-    - Aggregation: use-cases/aggregation.md
     - Chatbot: use-cases/chatbot.md
     - RAG: use-cases/rag.md
 

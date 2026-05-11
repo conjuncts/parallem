@@ -1,6 +1,6 @@
 # ParaLLeM
 
-ParaLLeM is a general-purpose, batch-first Python library for building LLM workflows in ordinary Python control flow.
+An expressive library for calling LLMs. 
 
 ## Why use it?
 

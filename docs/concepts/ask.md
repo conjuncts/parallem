@@ -1,6 +1,6 @@
 # Ask API
 
-An agent is a program that can ask not just LLMs, but also functions and humans. ParaLLeM unifies `ask_llm`, `ask_functions`, and `ask_human` into a common interface.
+We consider agents to be programs that can ask not just LLMs, but also functions and humans. ParaLLeM unifies `ask_llm`, `ask_functions`, and `ask_human` into a common interface.
 
 ## `ask_llm`
 

@@ -1,8 +1,10 @@
 # Agents
 
-We treat agents differently. Traditionally, the agent concept has been tightly coupled with a single LLM: one agent equals one LLM. 
+We treat agents differently. Traditionally, an "agent" has been identified as an "LLM". One agent equals one LLM. 
 
-In contrast, ParaLLeM associates an agent with a program.
+We believe that an agent is a *program*. This program happens to use LLMs to automate much of its decision making, but the program can also [ask functions and the user](concepts/ask.md).
+
+By decoupling the LLM from the agent, we allow multi-LLM consensus agents, message history editing, branching conversations, and more.
 
 ## An agent is just a python function
 
@@ -27,7 +29,7 @@ def haiku_agent(agt: pllm.AgentContext, subject: str):
 
 After decoupling the agent concept from one single LLM, it becomes natural to express concepts including:
 
-1. One agent calling multiple LLMs (dynamic model switching, see `simplest_multi.py`):
+1. One agent calling multiple LLMs (dynamic model switching):
 ```python
 def polyglot_agent(agt: pllm.AgentContext):
     resp = agt.ask_llm("What is your model name?", llm="gpt-5-nano")
@@ -48,8 +50,6 @@ def best_animal_agent(agt: pllm.AgentContext):
     resp = agt.ask_llm("What is the best animal?")
     resp2 = agt.ask_human(f"Would you agree that {resp.final_answer} is the best animal?")
 ```
-
-Because an agent is a program, it can ask not just LLMs, but also [functions and humans](concepts/ask.md).
 
 ## See also
 
