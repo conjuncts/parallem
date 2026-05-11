@@ -43,7 +43,7 @@ To switch to the Batch API, simply change `strategy="sync"` to `strategy="batch"
 | Function Calls | ✅ | ✅ | ✅ |
 | Web Search | ✅ | ✅ | ✅ |
 | Image Input | ✅ | ✅ | ✅ |
-| MCP | ✅ | - | - |
+| MCP | ✅ | ✅ | - |
 
 
 ## Philosophy

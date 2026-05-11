@@ -6,7 +6,7 @@ load_dotenv()
 with pllm.resume_directory(
     ".pllm/simple/mcp",
     strategy="sync",
-    provider="openai",
+    provider="anthropic",
     # ignore_cache=True,
     # rewrite_cache=True,
     dashboard=True,

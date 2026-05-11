@@ -194,7 +194,7 @@ class FunctionCallOutput:
         return self.__repr__()
 
 
-ServerToolType = Literal["web_search", "code_interpreter"]
+ServerToolType = Literal["web_search", "code_interpreter", "mcp"]
 
 
 class ServerTool(ABC):

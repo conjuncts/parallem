@@ -36,6 +36,7 @@ from parallem.provider.openai.openai_tools import (
 if TYPE_CHECKING:
     from anthropic import Anthropic, AsyncAnthropic
     from anthropic.types import Message
+    from parallem.tools.mcp import MCPTool
 
 
 _ANTHROPIC_STRUCTURED_OUTPUT_MIN_VERSION = "0.77.0"
@@ -84,6 +85,39 @@ def _enforce_anthropic_min_version_for_structured_output() -> None:
             f"{_ANTHROPIC_STRUCTURED_OUTPUT_MIN_VERSION}, found {installed_version_text}. "
             "Please upgrade the anthropic package."
         )
+
+
+def _ensure_betas(config: dict, betas_to_add: Union[str, List[str]] | None) -> None:
+    """Ensure required beta feature flags are present in the outgoing config.
+
+    This helper is defensive and accepts either a single beta string or a list
+    of betas. It normalizes the `config["betas"]` value into a list and
+    appends any missing entries while preserving any pre-existing values.
+
+    :param config: Mutable request config dict to update.
+    :param betas_to_add: A string or list of strings to add to `config['betas']`.
+    :return: None (modifies `config` in-place).
+    """
+    if not betas_to_add:
+        return
+
+    if isinstance(betas_to_add, str):
+        required = [betas_to_add]
+    else:
+        required = list(betas_to_add)
+
+    existing = config.get("betas")
+    if existing is None:
+        config["betas"] = []
+    elif isinstance(existing, list):
+        # use as-is
+        pass
+    else:
+        config["betas"] = [existing]
+
+    for b in required:
+        if b not in config["betas"]:
+            config["betas"].append(b)
 
 
 def _fix_docs_for_anthropic(
@@ -194,8 +228,9 @@ def _prepare_anthropic_config(params: CommonQueryParameters, **kwargs) -> tuple:
     structured_output = params.get("structured_output")
     tools = params.get("tools")
 
+    mcp_servers: list[dict] = []
     if tools:
-        tools = _prepare_tool_schema(tools)
+        tools, mcp_servers = _prepare_tool_schema(tools)
 
     messages = _fix_docs_for_anthropic(params["strict_documents"])
 
@@ -215,6 +250,10 @@ def _prepare_anthropic_config(params: CommonQueryParameters, **kwargs) -> tuple:
         )
 
     model_name = llm.model_name
+
+    if mcp_servers:
+        config["mcp_servers"] = mcp_servers
+        _ensure_betas(config, "mcp-client-2025-11-20")
 
     if tools is not None and len(tools) > 0:
         config["tools"] = tools
@@ -262,10 +301,13 @@ def _prepare_anthropic_output_format(structured_output: object) -> dict:
     )
 
 
-def _prepare_tool_schema(func_schemas: List[Union[dict, ServerTool]]) -> List[dict]:
+def _prepare_tool_schema(
+    func_schemas: List[Union[dict, ServerTool]],
+) -> tuple[list[dict], list[dict]]:
     """Convert tool definitions to Anthropic tool schema"""
 
-    anthropic_tools = []
+    anthropic_tools: list[dict] = []
+    mcp_servers: list[dict] = []
     for sch in func_schemas:
         if isinstance(sch, ServerTool):
             if sch.server_tool_type == "web_search":
@@ -281,9 +323,28 @@ def _prepare_tool_schema(func_schemas: List[Union[dict, ServerTool]]) -> List[di
                 # TODO: support this (it is in beta)
                 raise NotImplementedError
             elif sch.server_tool_type == "mcp":
-                # TODO: support this (it is in beta)
+                sch: "MCPTool"
                 # https://platform.claude.com/docs/en/agents-and-tools/mcp-connector
-                raise NotImplementedError
+                mcp_server = {
+                    "type": "url",
+                    "url": sch.server_url,
+                    "name": sch.server_label,
+                }
+                if sch.authorization_token is not None:
+                    mcp_server["authorization_token"] = sch.authorization_token
+                mcp_servers.append(mcp_server)
+
+                toolset = {
+                    "type": "mcp_toolset",
+                    "mcp_server_name": sch.server_label,
+                }
+                if sch.default_config is not None:
+                    toolset["default_config"] = sch.default_config
+                if sch.configs is not None:
+                    toolset["configs"] = sch.configs
+                if sch.cache_control is not None:
+                    toolset["cache_control"] = sch.cache_control
+                anthropic_tools.append(toolset)
             else:
                 raise ValueError(
                     f"Unsupported ServerTool type for Anthropic: {sch.server_tool_type}"
@@ -305,7 +366,7 @@ def _prepare_tool_schema(func_schemas: List[Union[dict, ServerTool]]) -> List[di
             sch = sch2
         anthropic_tools.append(sch)
 
-    return anthropic_tools
+    return anthropic_tools, mcp_servers
 
 
 class AnthropicProvider(BaseProvider):
@@ -413,10 +474,20 @@ class SyncAnthropicProvider(SyncProvider, AnthropicProvider):
     ):
         """Prepare a synchronous callable for Anthropic API"""
         model_name, messages, config = _prepare_anthropic_config(params, **kwargs)
+        max_tokens = config.pop("max_tokens", 4096)
+        # If betas are requested and the client exposes the beta namespace,
+        # use the beta messages.create endpoint.
+        if config.get("betas"):
+            return self.client.beta.messages.create(
+                model=model_name,
+                max_tokens=max_tokens,
+                messages=messages,
+                **config,
+            )
 
         return self.client.messages.create(
             model=model_name,
-            max_tokens=config.pop("max_tokens", 4096),
+            max_tokens=max_tokens,
             messages=messages,
             **config,
         )
@@ -433,13 +504,22 @@ class ConcurrentAnthropicProvider(ConcurrentProvider, AnthropicProvider):
     ):
         """Prepare a concurrent coroutine for Anthropic API"""
         model_name, messages, config = _prepare_anthropic_config(params, **kwargs)
+        max_tokens = config.pop("max_tokens", 1024)
 
-        coro = self.client.messages.create(
-            model=model_name,
-            max_tokens=config.pop("max_tokens", 1024),
-            messages=messages,
-            **config,
-        )
+        if config.get("betas"):
+            coro = self.client.beta.messages.create(
+                model=model_name,
+                max_tokens=max_tokens,
+                messages=messages,
+                **config,
+            )
+        else:
+            coro = self.client.messages.create(
+                model=model_name,
+                max_tokens=max_tokens,
+                messages=messages,
+                **config,
+            )
 
         return coro
 
