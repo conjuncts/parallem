@@ -2,6 +2,7 @@ import time
 from typing import Optional, TYPE_CHECKING
 from parallem.core.backend import BaseBackend
 from parallem.core.throttler import Throttler
+from parallem.core.datastore.input_storage import InputStorage
 from parallem.core.datastore.sqlite import SQLiteDatastore
 from parallem.core.response import ReadyLLMResponse
 from parallem.core.file_manager import FileManager
@@ -50,6 +51,7 @@ class SyncBackend(BaseBackend):
             self._ds = SQLiteDatastore(self._fm)
         else:
             self._ds = datastore_cls(self._fm)
+        self._input_storage = InputStorage(self._fm)
         self.dashlog = dashlog
         self._rewrite_cache = rewrite_cache
 
@@ -64,6 +66,9 @@ class SyncBackend(BaseBackend):
 
     def _get_datastore(self):
         return self._ds
+
+    def _get_input_storage(self):
+        return self._input_storage
 
     def _apply_throttling(self) -> None:
         """Apply throttling by waiting if necessary"""
@@ -140,6 +145,7 @@ class SyncBackend(BaseBackend):
 
     def persist(self):
         """Persist any remaining data and datastore"""
+        self._input_storage.persist()
         # Let datastore cleanup
         self._ds.persist()
 

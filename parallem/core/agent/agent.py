@@ -268,17 +268,6 @@ class AgentContext(Askable):
             instructions=instructions,
         )
 
-        # 3. save inputs if needed
-        if save_input:
-            msg_hashes = [compute_hash(None, [msg]) for msg in resolved_docs]
-            self._orch._backend._get_datastore().store_input(
-                hashed,
-                instructions=instructions,
-                msgs=documents,
-                salt_terms=salt_terms,
-                msg_hashes=msg_hashes,
-            )
-
         call_id: CallIdentifier = {
             "agent_name": self.agent_name,
             "doc_hash": hashed,
@@ -289,6 +278,20 @@ class AgentContext(Askable):
                 "tag": tag,
             },
         }
+
+        # 3. save inputs if needed
+        if save_input:
+            self._orch._backend.store_input(
+                call_id,
+                instructions=instructions,
+                msgs=documents,
+                llm=llm,
+                structured_output=structured_output,
+                tools=tools,
+                hash_by=hash_by,
+                salt=salt,
+                request_kwargs=kwargs,
+            )
 
         # 4. use cache if available
         cached = self._get_cached_response(call_id, hashed)

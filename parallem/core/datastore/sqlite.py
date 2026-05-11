@@ -4,12 +4,9 @@ import json
 import threading
 import polars as pl
 from pathlib import Path
-from typing import List, Literal, Optional, Union
+from typing import Literal, Optional
 
-from parallem.core.cast.doc_to_str import (
-    cast_bytes_to_document,
-    cast_document_to_bytes,
-)
+from parallem.core.cast.doc_to_str import cast_bytes_to_document, cast_document_to_bytes
 from parallem.core.cast.fix_tools import dump_function_calls, load_function_calls
 
 from parallem.core.datastore.base import BaseDatastore
@@ -25,7 +22,7 @@ from parallem.core.compress.pack_metadata import compress_metadata
 from parallem.core.compress.batch_pending_to_parquet import (
     transfer_batch_pending_to_parquet,
 )
-from parallem.core.compress.to_parquet import ParquetUniqueWriter, ParquetWriter
+from parallem.core.compress.to_parquet import ParquetWriter
 from parallem.core.file_manager import FileManager
 from parallem.core.memoize.operations import (
     AppendOp,
@@ -44,8 +41,6 @@ from parallem.types import (
     BatchIdentifier,
     BatchResult,
     CallIdentifier,
-    LLMDocument,
-    LLMResponse,
     ParsedError,
     ParsedResponse,
 )
@@ -77,28 +72,6 @@ class SQLiteDatastore(BaseDatastore):
                 "provider_type": pl.Utf8,
                 "tag": pl.Utf8,
             },
-        )
-
-        self.history_table = ParquetUniqueWriter(
-            self.file_manager.path_history_table(),
-            schema={
-                "doc_hash": pl.Utf8,
-                "instructions": pl.Utf8,
-                "msg_hashes": pl.List(pl.Utf8),
-                "salt_terms": pl.List(pl.Utf8),
-            },
-            unique_column_name="doc_hash",
-        )
-
-        self.msg_content_table = ParquetUniqueWriter(
-            self.file_manager.path_msg_content_table(),
-            schema={
-                "msg_hash": pl.Utf8,
-                "msg_value": pl.Binary,
-                "msg_type": pl.Utf8,
-                "msg_extra": pl.Utf8,
-            },
-            unique_column_name="msg_hash",
         )
 
         # Check if migration is needed (only on first initialization)
@@ -501,9 +474,6 @@ class SQLiteDatastore(BaseDatastore):
         Also, OpenAI metadata is transferred from SQLite to Parquet files
         for better storage efficiency.
         """
-        self.history_table.commit(mode="unique", on="doc_hash")
-        self.msg_content_table.commit(mode="unique", on="msg_hash")
-
         # Transfer all metadata to parquet
         if hasattr(self, "_local") and hasattr(self._local, "connections"):
             try:
@@ -926,42 +896,6 @@ class SQLiteDatastore(BaseDatastore):
         except sqlite3.Error as e:
             conn.rollback()
             raise RuntimeError(f"SQLite error while storing error: {e}")
-
-    def store_input(
-        self,
-        doc_hash: str,
-        *,
-        instructions: Optional[str],
-        msgs: List[Union[LLMDocument, LLMResponse]],
-        msg_hashes: list[str],
-        salt_terms: list[str],
-    ):
-        self.history_table.log_kv(
-            doc_hash,
-            {
-                "instructions": instructions,
-                "msg_hashes": msg_hashes,
-                "salt_terms": salt_terms,
-            },
-        )
-
-        if len(msgs) != len(msg_hashes):
-            raise ValueError(
-                f"Number of documents ({len(msgs)}) must equal number of hashes ({len(msg_hashes)})"
-            )
-
-        for msg, msg_hash in zip(msgs, msg_hashes):
-            val = cast_document_to_bytes(msg)
-            if val is not None:
-                content, msg_type, msg_extra = val
-                self.msg_content_table.log_kv(
-                    msg_hash,
-                    {
-                        "msg_value": content,
-                        "msg_type": msg_type,
-                        "msg_extra": msg_extra,
-                    },
-                )
 
     def store_pending_batch(
         self,

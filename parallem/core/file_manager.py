@@ -197,12 +197,6 @@ class FileManager:
         inputs_dir.mkdir(parents=True, exist_ok=True)
         return inputs_dir
 
-    def path_history_table(self) -> Path:
-        return self.path_inputs() / "history_table.parquet"
-
-    def path_msg_content_table(self) -> Path:
-        return self.path_inputs() / "msg_content_table.parquet"
-
     def path_batch_in(self) -> Path:
         """
         Get the base batches directory.

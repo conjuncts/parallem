@@ -1,13 +1,11 @@
 from abc import ABC
-from typing import TYPE_CHECKING, List, Literal, Optional, Union
+from typing import TYPE_CHECKING, Literal, Optional
 
 from parallem.types import (
     BatchIdentifier,
     BatchResult,
     BaseRetriever,
     CallIdentifier,
-    LLMDocument,
-    LLMResponse,
     ParsedError,
     ParsedResponse,
 )
@@ -92,19 +90,6 @@ class BaseDatastore(BaseRetriever, ABC):
         :param err: The error response object containing error details.
         """
         raise NotImplementedError
-
-    # === begin SaveInput methods ===
-
-    def store_input(
-        self,
-        doc_hash: str,
-        *,
-        instructions: Optional[str],
-        msgs: List[Union[LLMDocument, LLMResponse]],
-        msg_hashes: list[str],
-        salt_terms: list[str],
-    ):
-        pass
 
     # === begin batch methods ===
 

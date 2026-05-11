@@ -9,6 +9,7 @@ from parallem.types import (
 
 if TYPE_CHECKING:
     from parallem.core.datastore.base import BaseDatastore
+    from parallem.core.datastore.input_storage import InputStorage
 
 
 class BaseBackend(BaseRetriever):
@@ -17,6 +18,9 @@ class BaseBackend(BaseRetriever):
     """
 
     def _get_datastore(self) -> "BaseDatastore":
+        raise NotImplementedError
+
+    def _get_input_storage(self) -> "InputStorage":
         raise NotImplementedError
 
     async def _poll_changes(self, call_id: CallIdentifier):
@@ -44,6 +48,31 @@ class BaseBackend(BaseRetriever):
         self, call_id: CallIdentifier, *, metadata=False
     ) -> CallIdentifier:
         return self._get_datastore().populate_call_id(call_id, metadata=metadata)
+
+    def store_input(
+        self,
+        call_id: CallIdentifier,
+        *,
+        instructions: Optional[str],
+        msgs: list,
+        llm,
+        structured_output,
+        tools,
+        hash_by,
+        salt: Optional[str],
+        request_kwargs: dict,
+    ) -> None:
+        self._get_input_storage().store_input(
+            call_id,
+            instructions=instructions,
+            msgs=msgs,
+            llm=llm,
+            structured_output=structured_output,
+            tools=tools,
+            hash_by=hash_by,
+            salt=salt,
+            request_kwargs=request_kwargs,
+        )
 
     def submit_query(
         self,

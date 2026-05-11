@@ -12,7 +12,6 @@ The tests verify that batch files are correctly generated in JSONL format,
 not that they execute (batch mode defers execution).
 """
 
-from polars.testing import assert_frame_equal
 import pytest
 from pathlib import Path
 from pydantic import BaseModel
@@ -21,7 +20,6 @@ from unittest.mock import Mock
 import zipfile
 
 import parallem as pllm
-import polars as pl
 from tests.integration.batch.data import (
     data_batch_full_anthropic,
     data_batch_full_google,
@@ -159,29 +157,23 @@ def test_full_batch_openai(temp_integration_dir, sample_tools, sample_image):
     assert mock_submit.called, "Batch submission was not attempted"
     _assert_batch_file_matches_expected(temp_integration_dir, provider, expected_data)
 
-    # Verify save_input created the input tables. Only works for openai.
+    # Verify save_input created the input storage outputs.
     inputs_dir = temp_integration_dir / f"full_batch_{provider}" / "inputs"
     assert inputs_dir.exists(), "Inputs directory not created"
 
-    # Check history_table.parquet exists and has correct structure
-    history_table_path = inputs_dir / "history_table.parquet"
-    assert history_table_path.exists(), "history_table.parquet not created"
+    multimedia_dir = inputs_dir / "multimedia"
+    assert multimedia_dir.exists(), "Multimedia inputs directory not created"
 
-    df_history = pl.read_parquet(history_table_path)
-    df_history_exp = pl.read_parquet(
-        "tests/data/inputs/test_batch/history_table.parquet"
-    )
-    assert_frame_equal(df_history, df_history_exp)
+    text_table_path = multimedia_dir / "text.parquet"
+    assert text_table_path.exists(), "text.parquet not created"
 
-    # Check msg_content_table.parquet exists and has correct structure
-    msg_content_table_path = inputs_dir / "msg_content_table.parquet"
-    assert msg_content_table_path.exists(), "msg_content_table.parquet not created"
+    images_table_path = multimedia_dir / "images.parquet"
+    assert images_table_path.exists(), "images.parquet not created"
 
-    df_msg = pl.read_parquet(msg_content_table_path)
-    df_msg_exp = pl.read_parquet(
-        "tests/data/inputs/test_batch/msg_content_table.parquet"
-    )
-    assert_frame_equal(df_msg, df_msg_exp)
+    config_dir = inputs_dir / "config"
+    assert config_dir.exists(), "Config inputs directory not created"
+    config_zips = list(config_dir.glob("session_*.zip"))
+    assert config_zips, "Session config zip not created"
 
 
 def test_full_batch_openai_chat(temp_integration_dir, sample_tools, sample_image):

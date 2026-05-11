@@ -5,6 +5,7 @@ import atexit
 from typing import Optional, TYPE_CHECKING
 from parallem.core.backend import BaseBackend
 from parallem.core.throttler import Throttler
+from parallem.core.datastore.input_storage import InputStorage
 from parallem.core.calls import _call_matches
 from parallem.core.datastore.sqlite import SQLiteDatastore
 from parallem.core.response import PendingLLMResponse
@@ -77,6 +78,7 @@ class ConcurrentBackend(BaseBackend):
         # Start the event loop in a separate thread
         self.datastore_cls = datastore_cls
         self._concurrent_ds: Optional[SQLiteDatastore] = None
+        self._input_storage = InputStorage(self._fm)
         self._start_event_loop()
 
         # Register cleanup to run on program exit
@@ -84,6 +86,9 @@ class ConcurrentBackend(BaseBackend):
 
     def _get_datastore(self):
         return self._concurrent_ds
+
+    def _get_input_storage(self):
+        return self._input_storage
 
     def _start_event_loop(self):
         """Start the event loop in a separate thread"""
@@ -329,6 +334,7 @@ class ConcurrentBackend(BaseBackend):
             except Exception as e:
                 print(f"Warning: Failed to wait for pending tasks: {e}")
 
+        self._input_storage.persist()
         # Let datastore cleanup
         self._concurrent_ds.persist()
 
