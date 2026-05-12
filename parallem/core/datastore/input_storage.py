@@ -23,7 +23,6 @@ from parallem.types import (
     HashByOptions,
     ServerTool,
 )
-from parallem.provider.openai.openai_tools import to_strict_json_schema
 from parallem.utils.image import is_image
 
 if TYPE_CHECKING:
@@ -236,7 +235,10 @@ class InputStorage:
     def _format_structured_output(self, structured_output: "pydantic.BaseModel") -> Optional[str]:
         if structured_output is None:
             return None
-        return json.dumps(to_strict_json_schema(structured_output))
+        if getattr(structured_output, "model_json_schema", None):
+            sch = structured_output.model_json_schema()
+            return json.dumps(sch)
+        return structured_output.__class__.__name__
 
     def _format_tools_for_config(
         self,
@@ -462,17 +464,12 @@ class InputStorage:
         if not self._config_log:
             return
 
-        grouped: dict[int, list[dict]] = {}
-        for record in self._config_log:
-            session_id = record["session_id"]
-            grouped.setdefault(session_id, []).append(record)
-
-        for session_id, records in grouped.items():
-            config_path = self.path_inputs_config_zip(session_id)
-            persist_to_zip(
-                config_path,
-                records,
-                inner_fname=f"session_{session_id}",
-            )
+        session_id = self._config_log[0]["session_id"]
+        config_path = self.path_inputs_config_zip(session_id)
+        persist_to_zip(
+            config_path,
+            self._config_log,
+            inner_fname=f"session_{session_id}",
+        )
 
         self._config_log = []
