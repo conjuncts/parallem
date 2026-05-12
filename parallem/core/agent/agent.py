@@ -6,6 +6,7 @@ from typing import (
     Dict,
     Iterator,
     List,
+    Literal,
     Optional,
     Sequence,
     Union,
@@ -78,6 +79,7 @@ class AgentContext(Askable):
         *,
         ask_params: Optional[AskParameters] = None,
         ignore_cache: bool = False,
+        error_mode: Literal["ignore", "emit", "raise"] = "raise",
     ):
         self.agent_name = agent_name
         self._orch = orch
@@ -90,6 +92,7 @@ class AgentContext(Askable):
         self._msg_state: Optional[MessageState] = None
         "MessageState for this agent. Some pipelines won't use this (so it will be None)."
         self._print_context = None
+        self._error_mode = error_mode
 
     def __enter__(self):
         # Only redirect stdout when the dashboard display is enabled.
@@ -101,11 +104,17 @@ class AgentContext(Askable):
         return self
 
     def __exit__(self, exc_type, exc_value, traceback):
+        if exc_type is not None and exc_type not in (NotAvailable, PendingNotAvailable):
+            self._orch._dashlog.agent_errored(self.agent_name)
+            if self._error_mode == "emit":
+                self._orch._logger.error(exc_value)
         if self._print_context is not None:
             self._print_context.__exit__(exc_type, exc_value, traceback)
             self._print_context = None
         if exc_type in (NotAvailable, PendingNotAvailable):
             # swallow NotAvailable and its subclasses (like PendingNotAvailable)
+            return True
+        if exc_type is not None and self._error_mode != "raise":
             return True
         if self._orch.strategy == "batch" and exc_type in (
             NotAvailable,
@@ -417,6 +426,7 @@ class AgentContext(Askable):
             self._orch,
             ask_params=self.ask_params,
             ignore_cache=self.ignore_cache,
+            error_mode=self._error_mode,
         )
         for param_name in injected_param_names:
             call_args[param_name] = injected_agent

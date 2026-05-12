@@ -380,11 +380,13 @@ class BatchBackend(BaseBackend):
                 self.persist_to_zip(
                     res.raw_output, fpath=fpath, inner_fname=batch_uuid + ".jsonl"
                 )
+                res.location = fpath
             elif save_to_disk == "jsonl" and res.raw_output is not None:
                 ending = ".jsonl" if res.status == "ready" else "_err.jsonl"
                 batch_fname = os.path.basename(batch_uuid)
                 fpath = self._fm.path_batch_out() / f"{batch_fname}{ending}"
                 fpath.write_text(res.raw_output, encoding="utf-8")
+                res.location = fpath
 
             if res.status == "ready":
                 self._ds.store_ready_batch(res, upsert=self._rewrite_cache)
@@ -426,20 +428,22 @@ class BatchBackend(BaseBackend):
             for batch_result in batch_results:
                 if batch_result.status == "ready":
                     dl.update_hash(batch_uuid, HashStatus.STORED_BATCH)
-                    dl.print(f"Batch {batch_uuid} completed and stored.")
+                    print(f"Batch {batch_uuid} completed and stored.")
                     # Clean up the pending batch record
                     self._ds.clear_batch_pending(batch_uuid)
                     statuses["ready"] += 1
                 elif batch_result.status == "error":
                     dl.update_hash(batch_uuid, HashStatus.STORED_ERROR_BATCH)
-                    dl.print(f"Batch {batch_uuid} completed with errors and stored.")
+                    print(f"Batch {batch_uuid} completed with errors and stored.")
+                    if batch_result.location:
+                        print(f"- Saved to {batch_result.location}")
                     # Clean up the pending batch record even for errors
                     self._ds.clear_batch_pending(batch_uuid)
                     statuses["error"] += 1
 
             if not batch_results:
                 dl.update_hash(batch_uuid, HashStatus.SENT_BATCH)
-                dl.print(f"Batch {batch_uuid} is still pending.")
+                print(f"Batch {batch_uuid} is still pending.")
                 statuses["pending"] += 1
         return statuses
 

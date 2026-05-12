@@ -4,6 +4,7 @@ from parallem.types import (
     BaseRetriever,
     CallIdentifier,
     CommonQueryParameters,
+    LLMResponse,
     ParsedResponse,
 )
 
@@ -81,5 +82,5 @@ class BaseBackend(BaseRetriever):
         *,
         call_id: CallIdentifier,
         **kwargs,
-    ):
+    ) -> LLMResponse:
         raise NotImplementedError

@@ -9,6 +9,8 @@ from colorama import Fore, Style, init
 from dataclasses import dataclass
 from enum import Enum
 
+from parallem.types import CallIdentifier
+
 # Initialize colorama for colored output
 init()
 
@@ -62,6 +64,7 @@ class HashStatus(Enum):
     STORED = "✓"  # stored in datastore
     STORED_BATCH = "✔"  # stored in datastore in batch
     STORED_ERROR_BATCH = "✖"
+    ERROR = "E"  # error occurred
 
 
 @dataclass
@@ -71,6 +74,7 @@ class HashEntry:
     hash_id: str
     status: HashStatus
     full_hash: str
+    agent_name: str | None = None
 
 
 class DashboardLogger:
@@ -121,6 +125,7 @@ class DashboardLogger:
             HashStatus.STORED: Fore.GREEN,
             HashStatus.STORED_BATCH: Fore.GREEN,
             HashStatus.STORED_ERROR_BATCH: Fore.MAGENTA,
+            HashStatus.ERROR: Fore.RED,
         }
 
     def __enter__(self):
@@ -186,7 +191,10 @@ class DashboardLogger:
             self.clear(clear_console=True)
         return False
 
-    def update_hash(self, full_hash: str, status: HashStatus):
+    def update_call(self, call_id: CallIdentifier, status: HashStatus):
+        return self.update_hash(call_id["doc_hash"], status, agent_name=call_id.get("agent_name"))
+
+    def update_hash(self, full_hash: str, status: HashStatus, *, agent_name: str | None = None):
         """
         Update or add a hash or batch UUID with the given status.
 
@@ -208,7 +216,12 @@ class DashboardLogger:
                 self._hashes[hash_id].status = status
             else:
                 # Add new entry
-                entry = HashEntry(hash_id=hash_id, status=status, full_hash=full_hash)
+                entry = HashEntry(
+                    hash_id=hash_id,
+                    status=status,
+                    full_hash=full_hash,
+                    agent_name=agent_name,
+                )
                 self._hashes[hash_id] = entry
 
                 # Keep only the most recent k entries
@@ -218,6 +231,18 @@ class DashboardLogger:
 
             # Keep hashes stable when possible
 
+            if self.display:
+                self._update_console()
+
+    def agent_errored(self, agent_name: str):
+        """Mark all active hashes for a given agent as errored"""
+        with self._lock:
+            for entry in self._hashes.values():
+                if (
+                    entry.agent_name == agent_name
+                    and entry.status in {HashStatus.SENT, HashStatus.SENT_BATCH}
+                ):
+                    entry.status = HashStatus.ERROR
             if self.display:
                 self._update_console()
 

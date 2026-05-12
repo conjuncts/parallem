@@ -35,6 +35,7 @@ class AgentOrchestrator:
         ignore_cache: bool = False,
         strategy: Optional[Literal["sync", "concurrent", "batch"]] = None,
         seq_id_store: Optional[SeqIdStore] = None,
+        error_mode: Optional[str] = None,
     ):
         """
         Initialize the AgentOrchestrator.
@@ -65,6 +66,7 @@ class AgentOrchestrator:
             tuple[Coroutine[Any, Any, Any], Future[Any]]
         ] = []
         self._seq_id_store = seq_id_store or InMemorySeqIdStore()
+        self._error_mode = error_mode
 
     def create_agent(
         self,
@@ -270,6 +272,7 @@ class AgentOrchestrator:
             self,
             ask_params=ask_params,
             ignore_cache=self.ignore_cache,
+            error_mode=self._error_mode,
         )
 
     @property

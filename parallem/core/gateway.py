@@ -19,6 +19,7 @@ DEFAULT_MINOR_TWEAKS: MinorTweaks = {
     "batch_max_size": 1000,
     "batch_input_format": "zip",
     "batch_output_format": "zip",
+    "error_mode": "raise",
 }
 
 
@@ -166,6 +167,7 @@ def resume_directory(
         ignore_cache=ignore_cache,
         strategy=strategy,
         ask_params=ask_params,
+        error_mode=tweaks_dict["error_mode"],
     )
 
     logger.info(f"Resuming with session_id={bm.get_session_counter()}")

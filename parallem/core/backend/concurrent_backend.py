@@ -240,7 +240,7 @@ class ConcurrentBackend(BaseBackend):
             self._loop,
         )
 
-        self.dashlog.update_hash(call_id["doc_hash"], HashStatus.SENT)
+        self.dashlog.update_call(call_id, HashStatus.SENT)
         # Don't wait for the result, just submit it
         return future
 
@@ -284,7 +284,7 @@ class ConcurrentBackend(BaseBackend):
             self._concurrent_ds.store(call_id, parsed, upsert=self._rewrite_cache)
             done_tasks.append(metadata)
 
-            self.dashlog.update_hash(call_id["doc_hash"], HashStatus.RECEIVED)
+            self.dashlog.update_call(call_id, HashStatus.RECEIVED)
 
             # Stop if we reached the target
             if until_call_id is not None and _call_matches(until_call_id, call_id):

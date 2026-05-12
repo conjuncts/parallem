@@ -1,5 +1,6 @@
 from abc import ABC
 from dataclasses import dataclass
+from pathlib import Path
 from typing import (
     Any,
     List,
@@ -109,6 +110,9 @@ class BatchResult:
 
     parsed_responses: Optional[List["ParsedResponse"]]
     """List of parsed responses, if available."""
+
+    location: Path = None
+    """Where the batch output is stored."""
 
 
 class FunctionCall:
@@ -387,6 +391,10 @@ class MinorTweaks(TypedDict, total=False):
 
     batch_output_format: Literal["jsonl", "zip"] = "zip"
     "Whether to compress batch outputs."
+
+    error_mode: Literal["ignore", "emit", "raise"] = "raise"
+    "How to handle errors."
+
 
 
 class LLMResponse:

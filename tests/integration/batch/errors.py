@@ -1,0 +1,1 @@
+anthropic_beta_error = """{"custom_id":"-2-0-0","result":{"error":{"error":{"message":"mcp_servers: Extra inputs are not permitted","type":"invalid_request_error","details":{"error_visibility":"user_facing"}},"request_id":null,"type":"error"},"type":"errored"}}"""

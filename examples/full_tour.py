@@ -3,7 +3,6 @@ from dotenv import load_dotenv
 from PIL import Image
 
 import parallem as pllm
-from parallem.core.exception import ProviderCompatibilityError
 
 
 class MyModel(BaseModel):
@@ -68,22 +67,19 @@ if __name__ == "__main__":
         ".pllm/example/batch",
         strategy="sync",
         dashboard=True,
-        # llm=pllm.LLMIdentity(
-        #     "moonshotai.kimi-k2.5", 
-        #     # "mistral.ministral-3-8b-instruct",
-        #     provider_type="openai-chat",
-        # ),
-        llm="gemini-2.5-flash",
+        llm=pllm.LLMIdentity(
+            "moonshotai.kimi-k2.5", 
+            provider_type="openai-chat",
+        ),
+        # llm="gemini-2.5-flash",
         hash_by=["llm"],
         save_input=True,
+        tweaks={"error_mode": "emit"}
     ) as orch:
         with orch.agent() as agt:
             print(power_of_3_agent(agt))
         with orch.agent() as agt:
-            try:
-                print(web_search_agent(agt))
-            except ProviderCompatibilityError as e:
-                print(e)
+            print(web_search_agent(agt))
         with orch.agent() as agt:
             print(structured_output_agent(agt))
         with orch.agent() as agt:

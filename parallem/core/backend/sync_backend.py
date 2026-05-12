@@ -93,12 +93,10 @@ class SyncBackend(BaseBackend):
         """
 
         """Submit a synchronous function call and store the result immediately"""
-        doc_hash = call_id["doc_hash"]
-
         # Apply throttling before making the request
         self._apply_throttling()
 
-        self.dashlog.update_hash(doc_hash, HashStatus.SENT)
+        self.dashlog.update_call(call_id, HashStatus.SENT)
 
         provider.validate_request_compatibility(
             params,
@@ -110,7 +108,7 @@ class SyncBackend(BaseBackend):
             params,
             **kwargs,
         )
-        self.dashlog.update_hash(doc_hash, HashStatus.RECEIVED)
+        self.dashlog.update_call(call_id, HashStatus.RECEIVED)
         parsed = provider.parse_response(
             result, provider_type=params["llm"].provider_type
         )
