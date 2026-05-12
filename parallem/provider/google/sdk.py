@@ -1,3 +1,5 @@
+from collections.abc import Mapping
+import inspect
 import json
 from pathlib import Path
 from typing import TYPE_CHECKING, List, Union
@@ -176,21 +178,17 @@ def _prepare_tool_schema(
                 raise ValueError(
                     f"Unsupported ServerTool type for Google Gemini: {sch.server_tool_type}"
                 )
-            continue
-        from google.genai import types
-
-        if isinstance(sch, types.Tool):
+        elif isinstance(sch, Mapping):
+            if "type" in sch:
+                # remove type field (used by openai)
+                sch = sch.copy()
+                sch.pop("type")
+            # function_declarations = [types.FunctionDeclaration(**tool)]
+            # google_tool = types.Tool(function_declarations=[sch])
+            function_tool: "types.ToolDict" = {"function_declarations": [sch]}
+            google_tools.append(function_tool)
+        else:
             google_tools.append(sch)
-            continue
-        if "type" in sch:
-            # remove type field (used by openai)
-            sch = sch.copy()
-            sch.pop("type")
-
-        # function_declarations = [types.FunctionDeclaration(**tool)]
-        # google_tool = types.Tool(function_declarations=[sch])
-        function_tool: "types.ToolDict" = {"function_declarations": [sch]}
-        google_tools.append(function_tool)
     return google_tools
 
 

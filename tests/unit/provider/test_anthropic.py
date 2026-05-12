@@ -8,6 +8,7 @@ from parallem.provider.anthropic.sdk import (
     _prepare_anthropic_config,
 )
 from parallem.types import LLMIdentity
+from parallem.utils._quick_structured import _anthropic_transform_schema
 
 
 class MyModel(BaseModel):
@@ -24,7 +25,14 @@ def _params(*, structured_output=None):
     }
 
 
-def test_prepare_anthropic_config_with_pydantic_structured_output():
+def test_prepare_anthropic_config_with_pydantic_structured_output(monkeypatch):
+    from parallem.provider.anthropic import sdk as anthropic_sdk
+    monkeypatch.setattr(
+        anthropic_sdk,
+        "_transform_schema",
+        _anthropic_transform_schema,
+        raising=True,
+    )
     model_name, messages, config = _prepare_anthropic_config(
         _params(structured_output=MyModel)
     )
@@ -36,7 +44,14 @@ def test_prepare_anthropic_config_with_pydantic_structured_output():
     assert config["output_config"]["format"]["schema"]["additionalProperties"] is False
 
 
-def test_prepare_anthropic_config_with_json_schema_dict():
+def test_prepare_anthropic_config_with_json_schema_dict(monkeypatch):
+    from parallem.provider.anthropic import sdk as anthropic_sdk
+    monkeypatch.setattr(
+        anthropic_sdk,
+        "_transform_schema",
+        _anthropic_transform_schema,
+        raising=True,
+    )
     schema = {
         "type": "object",
         "properties": {"capital": {"type": "string"}},

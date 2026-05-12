@@ -28,10 +28,6 @@ from parallem.utils.image import (
     get_type_and_b64,
     is_image,
 )
-from parallem.provider.openai.openai_tools import (
-    _ensure_strict_json_schema,
-    to_strict_json_schema,
-)
 
 if TYPE_CHECKING:
     from anthropic import Anthropic, AsyncAnthropic
@@ -260,18 +256,19 @@ def _prepare_anthropic_config(params: CommonQueryParameters, **kwargs) -> tuple:
     return model_name, messages, config
 
 
+def _transform_schema(base_model) -> dict:
+    import anthropic
+    return anthropic.transform_schema(base_model)
+
+
 def _prepare_anthropic_output_format(structured_output: object) -> dict:
     """Prepare Anthropic output_config.format payload from structured_output input."""
-
-    def _strict_schema(schema: dict) -> dict:
-        schema_copy = copy.deepcopy(schema)
-        return _ensure_strict_json_schema(schema_copy, path=(), root=schema_copy)
 
     def _strict_format(format_dict: dict) -> dict:
         strict_format = copy.deepcopy(format_dict)
         schema = strict_format.get("schema")
         if isinstance(schema, dict):
-            strict_format["schema"] = _strict_schema(schema)
+            strict_format["schema"] = _transform_schema(schema)
         return strict_format
 
     if isinstance(structured_output, dict):
@@ -286,14 +283,14 @@ def _prepare_anthropic_output_format(structured_output: object) -> dict:
             return _strict_format(structured_output["format"])
         return {
             "type": "json_schema",
-            "schema": _strict_schema(structured_output),
+            "schema": _transform_schema(structured_output),
         }
 
     model_json_schema = getattr(structured_output, "model_json_schema", None)
     if callable(model_json_schema):
         return {
             "type": "json_schema",
-            "schema": to_strict_json_schema(structured_output),
+            "schema": _transform_schema(structured_output),
         }
 
     raise ValueError(

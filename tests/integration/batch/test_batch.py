@@ -20,6 +20,7 @@ from unittest.mock import Mock
 import zipfile
 
 import parallem as pllm
+from parallem.utils._quick_structured import _anthropic_transform_schema
 from tests.integration.batch.data import (
     data_batch_full_anthropic,
     data_batch_full_google,
@@ -227,10 +228,18 @@ def test_full_batch_google(temp_integration_dir, sample_tools, sample_image):
     _assert_batch_file_matches_expected(temp_integration_dir, provider, expected_data)
 
 
-def test_full_batch_anthropic(temp_integration_dir, sample_tools, sample_image):
+def test_full_batch_anthropic(monkeypatch, temp_integration_dir, sample_tools, sample_image):
     """Test full batch file generation with all features for Anthropic"""
     provider = "anthropic"
     expected_data = data_batch_full_anthropic
+
+    from parallem.provider.anthropic import sdk as anthropic_sdk
+    monkeypatch.setattr(
+        anthropic_sdk,
+        "_transform_schema",
+        _anthropic_transform_schema,
+        raising=True,
+    )
 
     with pllm.resume_directory(
         temp_integration_dir / f"full_batch_{provider}",
