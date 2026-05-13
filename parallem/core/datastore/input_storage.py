@@ -9,8 +9,7 @@ from typing import TYPE_CHECKING, Callable, List, Optional, Union
 import polars as pl
 
 from parallem.core.cast.doc_to_str import cast_document_to_bytes
-from parallem.core.compress.pack_zip import persist_to_zip
-from parallem.core.compress.to_parquet import ParquetWriter
+from parallem.core.compress.to_parquet import ParquetWriter, write_to_parquet
 from parallem.core.file_manager import FileManager
 from parallem.types import (
     CallIdentifier,
@@ -183,6 +182,9 @@ class InputStorage:
 
     def path_inputs_config_zip(self, session_id: int) -> Path:
         return self.path_inputs_config() / f"session_{session_id}.zip"
+
+    def path_inputs_config_parquet(self, session_id: int) -> Path:
+        return self.path_inputs_config() / f"session_{session_id}.parquet"
 
     def _sanitize_for_json(self, value):
         if value is None or isinstance(value, (str, int, float, bool)):
@@ -465,11 +467,62 @@ class InputStorage:
             return
 
         session_id = self._config_log[0]["session_id"]
-        config_path = self.path_inputs_config_zip(session_id)
-        persist_to_zip(
+        config_path = self.path_inputs_config_parquet(session_id)
+        rows = []
+        for record in self._config_log:
+            cfg = record.get("config") or {}
+            cfg = cfg.copy()
+
+            llm = cfg.pop("llm") or {}
+            structured_output = cfg.pop("structured_output")
+            tools = cfg.pop("tools")
+            hash_by = cfg.pop("hash_by")
+            salt = cfg.pop("salt")
+            kwargs_obj = cfg.pop("kwargs")
+
+            rows.append(
+                {
+                    "session_id": record.get("session_id"),
+                    "seq_id": record.get("seq_id"),
+                    "agent_name": record.get("agent_name"),
+                    "instructions": record.get("instructions"),
+                    "provider_type": record.get("provider_type"),
+                    "tag": record.get("tag"),
+                    "llm_identity": llm.get("identity"),
+                    "llm_provider_type": llm.get("provider_type"),
+                    "llm_model_name": llm.get("model_name"),
+                    "llm_nickname": llm.get("nickname"),
+                    "structured_output": structured_output,
+                    "tools_json": json.dumps(tools, separators=(",", ":")) if tools is not None else None,
+                    "hash_by": json.dumps(hash_by, separators=(",", ":")) if hash_by is not None else None,
+                    "salt": salt,
+                    "kwargs_json": json.dumps(kwargs_obj, separators=(",", ":")) if kwargs_obj is not None else None,
+                    "cfg_rest": json.dumps(cfg, separators=(",", ":")),
+                }
+            )
+
+        write_to_parquet(
             config_path,
-            self._config_log,
-            inner_fname=f"session_{session_id}",
+            rows,
+            mode="append",
+            schema={
+                "session_id": pl.Int64,
+                "seq_id": pl.Int64,
+                "agent_name": pl.Utf8,
+                "instructions": pl.Utf8,
+                "provider_type": pl.Utf8,
+                "tag": pl.Utf8,
+                "llm_identity": pl.Utf8,
+                "llm_provider_type": pl.Utf8,
+                "llm_model_name": pl.Utf8,
+                "llm_nickname": pl.Utf8,
+                "structured_output": pl.Utf8,
+                "tools_json": pl.Utf8,
+                "hash_by": pl.Utf8,
+                "salt": pl.Utf8,
+                "kwargs_json": pl.Utf8,
+                "cfg_rest": pl.Utf8,
+            },
         )
 
         self._config_log = []

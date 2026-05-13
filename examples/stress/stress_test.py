@@ -24,7 +24,7 @@ def syllable_count_agent(agt: pllm.AgentContext, word: str):
 
 # Run the agent on all words
 orch = pllm.resume_directory(
-    ".pllm/example/fresh3/stress_test",
+    ".pllm/example/stress_test",
     llm="gpt-5-nano",
     hash_by=["llm"],
     provider="openai",
@@ -57,4 +57,3 @@ df = pl.DataFrame(
     orient="row",
 )
 print(df)
-df.write_parquet("examples/stress/txts/syllable_counts.parquet")
