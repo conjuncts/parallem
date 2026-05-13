@@ -1,14 +1,10 @@
 # ParaLLeM
 
-ParaLLeM is a library for orchestrating agentic LLM workflows.
+An expressive library for calling LLMs in bulk
 
-- Batch API support
-- Concise, readable, and **expressive**
-- Developer-centered and lightweight
-- Parallelize thousands of requests, while keeping reproducible traces for each run
-- **Save 50% on all token costs**
-
-Find out more about our mission — [parallem.org](https://parallem.org)
+- Batch API support (50% discount!)
+- Workflows simply described in Python
+- Concise, lightweight
 
 ## Quickstart
 
@@ -34,6 +30,8 @@ with pllm.resume_directory(
 
 To switch to the Batch API, simply change `strategy="sync"` to `strategy="batch"`.
 
+Responses are saved and cached. On the subsequent runs, answers are instant.
+
 ## Compatibility
 
 | Sync/Batch | OpenAI | Anthropic | Google |
@@ -48,11 +46,12 @@ To switch to the Batch API, simply change `strategy="sync"` to `strategy="batch"
 
 ## Philosophy
 
-1. We are built from the ground up around the Batch API.
-2. Switch between sync (sequential) and batch in just 1 line of code.
-3. Control flow is best represented with Python, not data structures.
-4. An agent is more than just one LLM.
+1. Switch between Synchronous and Batch API in 1 line of code.
+2. Control flow is best represented with Python, not data structures.
+3. An agent is more than just one LLM.
 
 ## Documentation
 
 Please refer to the [documentation](https://parallem-ai.github.io/parallem).
+
+[parallem.org](https://parallem.org)
