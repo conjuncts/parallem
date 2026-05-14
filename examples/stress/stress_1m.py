@@ -21,7 +21,7 @@ def genre_agent(agt: pllm.AgentContext, title: str):
 
 collector = []
 with pllm.resume_directory(
-    ".pllm/example/stress/stress_1m_v1",
+    ".pllm/stress/stress_1m_v1",
     llm="gpt-5-nano",
     load_dotenv=True,
     strategy="batch",
@@ -34,3 +34,4 @@ with pllm.resume_directory(
             out = genre_agent(agt, example["title"])
             collector.append((example["title"], out))
 print(pl.DataFrame(collector, schema={"title": pl.Utf8, "genre": pl.Utf8}, orient="row"))
+# 

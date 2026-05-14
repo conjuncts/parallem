@@ -18,7 +18,7 @@ from parallem.core.datastore.sql_migrate import (
     table_exists,
 )
 from parallem.core.io.sqlite_to_parquet import export_sqlite_to_folder, sqlite_to_df
-from parallem.core.compress.pack_metadata import compress_metadata
+from parallem.core.compress.pack_metadata import compress_metadata_to_zip
 from parallem.core.compress.batch_pending_to_parquet import (
     transfer_batch_pending_to_parquet,
 )
@@ -436,7 +436,7 @@ class SQLiteDatastore(BaseDatastore):
 
         try:
             cursor = conn.execute("""
-                SELECT m.response_id, m.agent_name, m.seq_id, m.session_id, m.metadata, m.provider_type, m.tag
+                SELECT m.id, m.response_id, m.agent_name, m.seq_id, m.session_id, m.metadata, m.provider_type, m.tag
                 FROM metadata m 
                 WHERE m.provider_type IN ('openai', 'google') OR m.provider_type IS NULL
             """)
@@ -446,7 +446,11 @@ class SQLiteDatastore(BaseDatastore):
                 return
 
             mdir = self.file_manager.path_metadata_store()
-            compressed = compress_metadata(metadata_rows, mdir, self._metadata_index)
+            compressed = compress_metadata_to_zip(
+                metadata_rows,
+                mdir,
+                self._metadata_index,
+            )
             if compressed:
                 # Batch deletes to avoid SQLite's "too many SQL variables" limit (default 999)
                 # Process in batches of 500 to stay well under the limit
@@ -455,7 +459,7 @@ class SQLiteDatastore(BaseDatastore):
                     batch = compressed[i : i + batch_size]
                     placeholders = ",".join(["?" for _ in batch])
                     conn.execute(
-                        f"DELETE FROM metadata WHERE response_id IN ({placeholders}) AND (provider_type IN ('openai', 'google') OR provider_type IS NULL)",
+                        f"DELETE FROM metadata WHERE id IN ({placeholders})",
                         batch,
                     )
                 conn.commit()

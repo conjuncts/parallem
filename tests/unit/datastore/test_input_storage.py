@@ -7,7 +7,6 @@ from polars.testing import assert_frame_equal
 
 from parallem.core.datastore.input_storage import InputStorage
 from parallem.core.file_manager import FileManager
-from parallem.core.compress.pack_zip import read_jsonl_items_from_zip
 from parallem.types import (
     FunctionCall,
     FunctionCallOutput,

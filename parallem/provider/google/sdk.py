@@ -1,5 +1,4 @@
 from collections.abc import Mapping
-import inspect
 import json
 from pathlib import Path
 from typing import TYPE_CHECKING, List, Union

@@ -1,6 +1,5 @@
 import inspect
-import time
-from typing import TYPE_CHECKING, Any, Literal, Optional, TypeGuard, cast
+from typing import TYPE_CHECKING, Any, Literal, Optional, TypeGuard, assert_never, cast
 
 
 if TYPE_CHECKING:
