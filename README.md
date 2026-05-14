@@ -50,6 +50,7 @@ Responses are saved and cached. On the subsequent runs, answers are instant.
 - [Image input](examples/simplest_image.py)
 - [MCP](examples/advanced/simplest_mcp.py)
 - [1 million requests](examples/stress/stress_1m.py)
+- [Ollama](examples/advanced/simplest_ollama.py)
 
 ## Philosophy
 

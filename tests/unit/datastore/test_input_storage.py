@@ -3,6 +3,7 @@ from pathlib import Path
 
 import polars as pl
 from PIL import Image
+from polars.testing import assert_frame_equal
 
 from parallem.core.datastore.input_storage import InputStorage
 from parallem.core.file_manager import FileManager
@@ -53,12 +54,15 @@ def test_store_input_text_and_config():
         assert df_text.height == 2
         assert df_text["text"].to_list() == ["Hello", "World"]
 
-        config_zip = storage.path_inputs_config_zip(1)
-        assert config_zip.exists()
-        items = read_jsonl_items_from_zip(config_zip)
-        assert len(items) == 1
-        assert items[0]["instructions"] == "Test"
-        assert items[0]["config"]["llm"]["identity"] == "gpt-4o-mini"
+        config_parquet = storage.path_inputs_config_parquet(1)
+        assert config_parquet.exists()
+        items = pl.read_parquet(config_parquet)
+        assert items.height == 1
+        expected = pl.DataFrame({
+            "instructions": ["Test"],
+            "llm_identity": "gpt-4o-mini",
+        })
+        assert_frame_equal(items.select("instructions", "llm_identity"), expected)
 
 
 def test_store_input_role_tuple():

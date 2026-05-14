@@ -175,7 +175,10 @@ class AgentContext(Askable):
         if llm is None:
             llm = self._orch._provider.get_default_llm_identity()
         elif isinstance(llm, str):
-            llm = LLMIdentity(llm)
+            best_provider_type = self._orch._provider.provider_type
+            if best_provider_type in {"multi"}:
+                best_provider_type = None
+            llm = LLMIdentity(llm, provider_type=best_provider_type)
 
         provider_type = self._orch._provider.provider_type
         if provider_type is None:

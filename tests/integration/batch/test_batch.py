@@ -173,7 +173,7 @@ def test_full_batch_openai(temp_integration_dir, sample_tools, sample_image):
 
     config_dir = inputs_dir / "config"
     assert config_dir.exists(), "Config inputs directory not created"
-    config_zips = list(config_dir.glob("session_*.zip"))
+    config_zips = list(config_dir.glob("session_*.parquet"))
     assert config_zips, "Session config zip not created"
 
 

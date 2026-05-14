@@ -7,7 +7,7 @@ import polars as pl
 from datasets import load_dataset
 
 ds = load_dataset("Skelebor/book_titles_and_descriptions_en_clean", split="train")
-
+print(ds.num_rows) # 1,032,335
 # NOTE Cost: estimated $5
 
 def genre_agent(agt: pllm.AgentContext, title: str):
