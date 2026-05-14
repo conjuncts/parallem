@@ -437,8 +437,7 @@ class SQLiteDatastore(BaseDatastore):
         try:
             cursor = conn.execute("""
                 SELECT m.id, m.response_id, m.agent_name, m.seq_id, m.session_id, m.metadata, m.provider_type, m.tag
-                FROM metadata m 
-                WHERE m.provider_type IN ('openai', 'google') OR m.provider_type IS NULL
+                FROM metadata m
             """)
             metadata_rows = cursor.fetchall()
 
@@ -666,41 +665,6 @@ class SQLiteDatastore(BaseDatastore):
             return None
 
         return self._row_to_parsed_response(row, agent_name, include_metadata=metadata)
-
-    def retrieve_metadata_legacy(self, response_id: str) -> Optional[dict]:
-        """
-        Retrieve metadata from SQLite and parquet cache using response_id.
-
-        Checks SQLite first, then falls back to cached parquet metadata.
-
-        :param response_id: The response ID to look up metadata for.
-        :returns: The retrieved metadata as a dictionary, or None if not found.
-        """
-        conn = self._get_connection(None)
-
-        cursor = conn.execute(
-            "SELECT metadata FROM metadata WHERE response_id = ?",
-            (response_id,),
-        )
-        metadata_row = cursor.fetchone()
-        if metadata_row and metadata_row["metadata"]:
-            return json.loads(metadata_row["metadata"])
-
-        # If not found in SQLite, check the parquet manager's metadata cache
-        # return self._metadata_parquet.get({"response_id": response_id})
-
-        # Guess provider_type (major hack) - but this is legacy anyway
-        if response_id.startswith("resp_"):
-            provider_type = "openai"
-        elif response_id.startswith("msg_"):
-            provider_type = "anthropic"
-        else:
-            provider_type = "google"
-        relevant = ParquetWriter(
-            self.file_manager.path_metadata_store()
-            / f"{provider_type}-responses.parquet"
-        )
-        return relevant.get({"response_id": response_id}).row(0, named=True)
 
     def retrieve_metadata(
         self, agent_name: str, seq_id: int, session_id: int

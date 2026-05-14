@@ -48,15 +48,6 @@ class BaseDatastore(BaseRetriever, ABC):
     def populate_call_id(self, call_id: CallIdentifier) -> CallIdentifier:
         raise NotImplementedError
 
-    def retrieve_metadata_legacy(self, response_id: str) -> Optional[dict]:
-        """
-        Retrieve metadata from the backend using response_id.
-
-        :param response_id: The response ID to look up metadata for.
-        :returns: The retrieved metadata as a dictionary, or None if not found.
-        """
-        raise NotImplementedError
-
     def store(
         self,
         call_id: CallIdentifier,

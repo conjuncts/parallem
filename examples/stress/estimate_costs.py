@@ -1,8 +1,23 @@
-import polars as pl
+import gzip
 
-df = pl.read_parquet(
-    ".pllm/example/stress/stress_1m_v1/datastore/apimeta/openai-responses.parquet"
-)
+import polars as pl
+import json
+
+collector = []
+loc = ".pllm/stress/fresh3/stress_test/datastore/apimeta/openai-metadata.tsv.gz"
+
+with gzip.open(loc, "rt", encoding="utf-8") as fh:
+    for line in fh:
+        line = line.strip()
+        resp_id, metadata_txt = line.split("\t", 1)
+        if not line:
+            continue
+        collector.append({
+            "response_id": resp_id,
+            **json.loads(metadata_txt),
+        })
+
+df = pl.json_normalize(collector)
 print(df)
 
 number_expended = df.height

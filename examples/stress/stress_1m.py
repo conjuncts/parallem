@@ -12,7 +12,7 @@ print(ds.num_rows) # 1,032,335
 
 def genre_agent(agt: pllm.AgentContext, title: str):
     ct = agt.ask_llm(
-        f"Based on title alone, guess this book's genre. Return just the genre, no explanation needed.",
+        "Based on title alone, guess this book's genre. Return just the genre, no explanation needed.",
         title,
         reasoning={"effort": "minimal"},
         max_output_tokens=20,

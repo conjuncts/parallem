@@ -12,9 +12,12 @@ def compress_metadata_to_zip(
     # metadata_rows is actually a sqlite3.Row object
 
     # Extract metadata strings for processing
+    # Whitelist for now
     provider_to_meta = {
         "openai": [],
         "google": [],
+        "anthropic": [],
+        "openai-chat": [],
     }
 
     for row in metadata_rows:
@@ -22,6 +25,8 @@ def compress_metadata_to_zip(
         response_id = row["response_id"]
         metadata_txt = row["metadata"]
         provider_type = row["provider_type"]
+        if provider_type not in provider_to_meta:
+            continue
 
         agent_name = row["agent_name"]
         seq_id = row["seq_id"]
@@ -38,7 +43,7 @@ def compress_metadata_to_zip(
             }
         )
 
-        if metadata_txt and provider_type in provider_to_meta:
+        if metadata_txt:
             provider_to_meta[provider_type].append((row_id, response_id, metadata_txt))
 
     if not provider_to_meta:

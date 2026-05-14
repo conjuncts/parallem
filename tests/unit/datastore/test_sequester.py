@@ -2,6 +2,8 @@ import pytest
 import polars as pl
 from pathlib import Path
 import shutil
+import gzip
+import json
 from parallem.core.datastore.sqlite import SQLiteDatastore
 from parallem.core.file_manager import FileManager
 
@@ -41,34 +43,45 @@ def test_sequester_metadata(test_wkdir):
     cursor.execute("SELECT response_id, metadata, provider_type FROM metadata")
     new_rows = cursor.fetchall()
     new_count = len(new_rows)
-    # Currently, only openai/google are sequestered
-    assert new_count == 3
+    # openai/google/anthropic are sequestered
+    assert new_count == 0
 
     # Check that parquet files were created
     metadata_dir = fm.path_metadata_store()
     assert metadata_dir.exists()
 
-    # Check for OpenAI metadata files
-    n_openai = list(metadata_dir.glob("openai-*.parquet"))
-    assert len(n_openai) == 2
+    # Check for OpenAI metadata files (now written as tsv.gz)
+    n_openai = list(metadata_dir.glob("openai-metadata.tsv.gz"))
+    assert len(n_openai) == 1
 
-    n_google = list(metadata_dir.glob("google-*.parquet"))
+    n_google = list(metadata_dir.glob("google-metadata.tsv.gz"))
     assert len(n_google) == 1
 
-    # Verify parquet files are readable
-    for parquet_file in n_openai:
-        df = pl.read_parquet(parquet_file)
-        assert not df.is_empty()
+    openai_tsv = {}
+    with gzip.open(metadata_dir / "openai-metadata.tsv.gz", "rt", encoding="utf-8") as fh:
+        for line in fh:
+            line = line.strip()
+            if not line:
+                continue
+            resp_id, metadata_txt = line.split("\t", 1)
+            openai_tsv[resp_id] = json.loads(metadata_txt)
 
-    # Verify that metadata can be retrieved
-    recovered_meta = ds.retrieve_metadata_legacy("msg_011czEnUFgzYsUye9ygZDinQ")
-    assert recovered_meta["model"] == "claude-3-haiku-20240307"
-
-    recovered_meta = ds.retrieve_metadata_legacy(
-        "resp_0413f7f758e604110069212d3d1ef0819283556872ee053df7"
+    assert len(openai_tsv) == 3
+    assert (
+        openai_tsv["resp_0413f7f758e604110069212d3d1ef0819283556872ee053df7"]["model"]
+        == "gpt-4.1-nano-2025-04-14"
     )
-    assert recovered_meta["model"] == "gpt-4.1-nano-2025-04-14"
 
+    anthropic_tsv = {}
+    with gzip.open(metadata_dir / "anthropic-metadata.tsv.gz", "rt", encoding="utf-8") as fh:
+        for line in fh:
+            line = line.strip()
+            if not line:
+                continue
+            resp_id, metadata_txt = line.split("\t", 1)
+            anthropic_tsv[resp_id] = json.loads(metadata_txt)
+    assert len(anthropic_tsv) == 3
+    assert anthropic_tsv["msg_011czEnUFgzYsUye9ygZDinQ"]["model"] == "claude-3-haiku-20240307"
     conn.close()
 
 
