@@ -1,6 +1,6 @@
 # ParaLLeM
 
-An expressive library for calling LLMs in bulk
+An expressive library for calling LLMs in bulk.
 
 - Batch API support (50% discount!)
 - Workflows simply described in Python
@@ -41,8 +41,15 @@ Responses are saved and cached. On the subsequent runs, answers are instant.
 | Function Calls | ✅ | ✅ | ✅ |
 | Web Search | ✅ | ✅ | ✅ |
 | Image Input | ✅ | ✅ | ✅ |
-| MCP | ✅ | ✅ | - |
+| MCP | ✅ | ~ | - |
 
+## Examples
+- [Structured output](examples/simplest_structured_output.py)
+- [Tool calls](examples/simplest_tool.py)
+- [Web search](examples/simplest_search.py)
+- [Image input](examples/simplest_image.py)
+- [MCP](examples/advanced/simplest_mcp.py)
+- [1 million requests](examples/stress/stress_1m.py)
 
 ## Philosophy
 
