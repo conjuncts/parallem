@@ -2,6 +2,7 @@ from itertools import groupby
 import sqlite3
 import json
 import threading
+import gzip
 import polars as pl
 from pathlib import Path
 from typing import Literal, Optional
@@ -451,6 +452,7 @@ class SQLiteDatastore(BaseDatastore):
                 self._metadata_index,
             )
             if compressed:
+                self._metadata_index.commit(mode="append")
                 # Batch deletes to avoid SQLite's "too many SQL variables" limit (default 999)
                 # Process in batches of 500 to stay well under the limit
                 batch_size = 500
@@ -666,6 +668,42 @@ class SQLiteDatastore(BaseDatastore):
 
         return self._row_to_parsed_response(row, agent_name, include_metadata=metadata)
 
+    def _read_metadata_tsv(
+        self, provider_type: str, response_id: Optional[str]
+    ) -> Optional[dict]:
+        """
+        Read metadata for a response_id from the provider TSV.
+
+        :param provider_type: Provider type used to select the TSV file.
+        :param response_id: Response identifier to locate.
+        :return: Metadata dictionary or None when not found.
+        """
+        if not response_id:
+            return None
+
+        tsv_path = (
+            self.file_manager.path_metadata_store()
+            / f"{provider_type}-metadata.tsv.gz"
+        )
+        if not tsv_path.exists():
+            return None
+
+        with gzip.open(tsv_path, "rt", encoding="utf-8", newline="") as tsv_file:
+            for line in tsv_file:
+                if not line:
+                    continue
+                parts = line.rstrip("\n").split("\t", 1)
+                if len(parts) != 2:
+                    continue
+                resp_id, metadata_txt = parts
+                if resp_id == response_id:
+                    try:
+                        return json.loads(metadata_txt)
+                    except json.JSONDecodeError:
+                        return None
+
+        return None
+
     def retrieve_metadata(
         self, agent_name: str, seq_id: int, session_id: int
     ) -> Optional[dict]:
@@ -690,18 +728,26 @@ class SQLiteDatastore(BaseDatastore):
             return json.loads(metadata_row["metadata"])
 
         # If not found in SQLite, check parquet
+        if not self._metadata_index.parquet_fpath.exists():
+            return None
         matches = self._metadata_index.get(
             {"agent_name": agent_name, "seq_id": seq_id, "session_id": session_id}
         )
         if matches.height:
             provider_type = matches.item(0, "provider_type")
             resp_id = matches.item(0, "response_id")
+            metadata_value = self._read_metadata_tsv(provider_type, resp_id)
+            if metadata_value is not None:
+                return metadata_value
 
-            relevant = ParquetWriter(
+            parquet_path = (
                 self.file_manager.path_metadata_store()
                 / f"{provider_type}-responses.parquet"
             )
-            return relevant.get({"response_id": resp_id}).row(0, named=True)
+            if parquet_path.exists():
+                relevant = ParquetWriter(parquet_path)
+                return relevant.get({"response_id": resp_id}).row(0, named=True)
+        return None
 
     def _insert_response(
         self,

@@ -1,5 +1,4 @@
 import pytest
-import polars as pl
 from pathlib import Path
 import shutil
 import gzip

@@ -44,6 +44,7 @@ Responses are saved and cached. On the subsequent runs, answers are instant.
 | MCP | ✅ | ~ | - |
 
 ## Examples
+- [Agents are python functions](examples/simplest_agent.py)
 - [Structured output](examples/simplest_structured_output.py)
 - [Tool calls](examples/simplest_tool.py)
 - [Web search](examples/simplest_search.py)

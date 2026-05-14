@@ -623,6 +623,64 @@ class TestSQLiteBatch:
         with pytest.raises(ValueError, match="Could not find pending batch record"):
             temp_datastore.store_ready_batch(batch_result)
 
+class TestSQLiteMetadata:
+    
+    def test_metadata_operations(self, temp_datastore, generic_call_id):
+        """Test metadata storage and retrieval"""
+
+        metadata = {
+            "usage": {
+                "total_tokens": 100,
+                "prompt_tokens": 50,
+                "completion_tokens": 50,
+            },
+            "model": "gpt-4",
+            "finish_reason": "stop",
+        }
+
+        parsed_response = ParsedResponse(
+            text="Response with metadata", response_id="meta_123", metadata=metadata
+        )
+
+        # Store response with metadata
+        temp_datastore.store(generic_call_id, parsed_response)
+
+        # Retrieve metadata separately
+        retrieved_metadata = temp_datastore.retrieve_metadata(
+            generic_call_id["agent_name"],
+            generic_call_id["seq_id"],
+            generic_call_id["session_id"],
+        )
+        assert retrieved_metadata == metadata
+
+    def test_retrieve_metadata_after_persist(
+        self, temp_datastore, generic_call_id
+    ):
+        """Retrieve metadata after it is sequestered to TSV."""
+
+        metadata = {
+            "usage": {
+                "total_tokens": 200,
+                "prompt_tokens": 120,
+                "completion_tokens": 80,
+            },
+            "model": "gpt-4.1",
+            "finish_reason": "stop",
+        }
+
+        parsed_response = ParsedResponse(
+            text="Response with metadata",
+            response_id="meta_tsv_123",
+            metadata=metadata,
+        )
+
+        temp_datastore.store(generic_call_id, parsed_response)
+        temp_datastore.persist()
+
+        retrieved = temp_datastore.retrieve(generic_call_id, metadata=True)
+        assert retrieved is not None
+        assert retrieved.metadata == metadata
+
 
 @pytest.mark.skip("Takes extra time")
 class TestSQLiteExtras:
@@ -658,29 +716,6 @@ class TestSQLiteExtras:
         assert retrieved is not None
         assert retrieved.text == "Null agent response"
 
-    def test_metadata_operations(self, temp_datastore, generic_call_id):
-        """Test metadata storage and retrieval"""
-
-        metadata = {
-            "usage": {
-                "total_tokens": 100,
-                "prompt_tokens": 50,
-                "completion_tokens": 50,
-            },
-            "model": "gpt-4",
-            "finish_reason": "stop",
-        }
-
-        parsed_response = ParsedResponse(
-            text="Response with metadata", response_id="meta_123", metadata=metadata
-        )
-
-        # Store response with metadata
-        temp_datastore.store(generic_call_id, parsed_response)
-
-        # Retrieve metadata separately
-        retrieved_metadata = temp_datastore.retrieve_metadata("meta_123")
-        assert retrieved_metadata == metadata
 
     def test_persist_and_close(self, temp_datastore, generic_call_id):
         """Test persist and close operations"""
