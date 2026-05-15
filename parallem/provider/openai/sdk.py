@@ -7,7 +7,6 @@ from parallem.provider.base import (
     BatchProvider,
     SyncProvider,
 )
-from parallem.provider.openai.openai_tools import to_strict_json_schema
 from parallem.provider.openai.parser import OpenAIParser
 from parallem.types import (
     CommonQueryParameters,
@@ -133,36 +132,9 @@ class BatchOpenAIProvider(OpenAIBatchMixin, BatchProvider, OpenAIProvider):
         params: CommonQueryParameters,
         custom_id: str,
         **kwargs,
-    ):
+    ) -> dict:
         """Prepare batch call data for OpenAI"""
-        instructions = params["instructions"]
-        fixed_documents = self.parser.fix_docs(params["strict_documents"])
-        llm = params["llm"]
-        structured_output = params.get("structured_output")
-        tools = self.parser.fix_tools(params.get("tools"))
-
-        if structured_output is not None:
-            if "text" not in kwargs:
-                kwargs["text"] = {}
-
-            assert not kwargs["text"].get("format"), (
-                "Cannot supply both structured_output and text.format"
-            )
-            schema = to_strict_json_schema(structured_output)
-            kwargs["text"]["format"] = {
-                "type": "json_schema",
-                "strict": True,
-                "name": schema.get("title", "UnknownSchema"),
-                "schema": schema,
-            }
-
-        body = {
-            "model": llm.model_name,
-            "instructions": instructions,
-            "input": fixed_documents,
-            "tools": tools,
-            **kwargs,
-        }
+        body = self.parser.prepare_request(params, **kwargs)
         return {
             "custom_id": custom_id,
             "method": "POST",

@@ -129,16 +129,9 @@ class BatchAnthropicProvider(BatchProvider, AnthropicProvider):
         params: CommonQueryParameters,
         custom_id: str,
         **kwargs,
-    ):
+    ) -> dict:
         """Convert CommonQueryParameters to Anthropic Message Batch format."""
-        model_name, messages, config = self.parser.fix_config(params, **kwargs)
-
-        request_params = {
-            "model": model_name,
-            "max_tokens": config.pop("max_tokens", 4096),
-            "messages": messages,
-            **config,
-        }
+        request_params = self.parser.prepare_request(params, **kwargs)
 
         return {
             "custom_id": custom_id,

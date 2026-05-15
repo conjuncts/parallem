@@ -21,7 +21,6 @@ if TYPE_CHECKING:
     from pydantic import BaseModel
 
 from parallem.utils._batch_helper import _split_batch_response
-from parallem.utils.manip import maybe_snake_to_camel
 
 
 class GoogleProvider(BaseProvider):
@@ -94,36 +93,6 @@ class ConcurrentGoogleProvider(ConcurrentProvider, GoogleProvider):
         return coro
 
 
-def _camel_case_items(items: dict) -> dict:
-    """Convert keys in a dictionary to camelCase."""
-    if isinstance(items, list):
-        return [_camel_case_items(item) for item in items]
-    if not isinstance(items, dict):
-        return items
-
-    result = {}
-    for k, v in items.items():
-        if k == "properties":
-            # each key in properties is custom, and should be untouched
-            result[k] = {
-                prop_k: _camel_case_items(prop_v) for prop_k, prop_v in v.items()
-            }
-
-        else:
-            result[maybe_snake_to_camel(k)] = _camel_case_items(v)
-
-    return result
-
-
-def _capitalize_function_decl(items: dict) -> None:
-    """Convert function declaration types to CAPITAL, because enums must be capitalized.
-    MUTATES the object."""
-    if "type" in items:
-        items["type"] = items["type"].upper()
-    if "properties" in items:
-        for k, v in items["properties"].items():
-            _capitalize_function_decl(v)
-
 
 class BatchGoogleProvider(BatchProvider, GoogleProvider):
     def __init__(self, client: "genai.Client"):
@@ -135,42 +104,12 @@ class BatchGoogleProvider(BatchProvider, GoogleProvider):
         params: CommonQueryParameters,
         custom_id: str,
         **kwargs,
-    ):
+    ) -> dict:
         """Convert CommonQueryParameters to Gemini batch request format"""
-        model_name, fixed_documents, config = self.parser.fix_config(params, **kwargs)
-
-        # some differences: generationConfig
-        # convert pydantic schema -> json
-        gen_config = {}
-        if "response_schema" in config:
-            sch = config.pop("response_schema")
-            if not isinstance(sch, dict):
-                if getattr(sch, "model_json_schema", None):
-                    sch = sch.model_json_schema()
-            gen_config["responseJsonSchema"] = sch
-        if "response_mime_type" in config:
-            gen_config["responseMimeType"] = config.pop("response_mime_type")
-        if gen_config:
-            config["generationConfig"] = gen_config
-
-        # For some reason, batch API uses slightly different
-        # enums must be capitalized
-        for tool in config.get("tools") or []:
-            for decl in tool.get("function_declarations") or []:
-                if "parameters" in decl:
-                    _capitalize_function_decl(decl["parameters"])
-
-        # Gemini batch request format
+        body = self.parser.prepare_request(params, **kwargs)
         request = {
             "key": custom_id,
-            "request": {
-                # https://ai.google.dev/api/batch-api#GenerateContentRequest
-                # "contents": fixed_documents,
-                # **config,
-                "contents": _camel_case_items(fixed_documents),
-                **_camel_case_items(config),
-                # "generationConfig": gen_config,
-            },
+            "request": body,
         }
 
         return request

@@ -40,6 +40,14 @@ class BaseParser:
         """Make tools ready for API calls."""
         raise NotImplementedError
 
+    def prepare_request(
+        self,
+        params: CommonQueryParameters,
+        **kwargs,
+    ) -> dict:
+        """Prepare full request payload."""
+        raise NotImplementedError
+
     def convert_response(
         self, raw_response: Union["BaseModel", dict], provider_type: str = None
     ) -> ParsedResponse:
@@ -118,7 +126,7 @@ class BatchProvider(BaseProvider):
         params: CommonQueryParameters,
         custom_id: str,
         **kwargs,
-    ):
+    ) -> dict:
         """
         Prepare batch call data for the backend to bookkeep.
 

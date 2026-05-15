@@ -324,6 +324,22 @@ class AnthropicParser(BaseParser):
             config["tools"] = tools
         return model_name, messages, config
 
+    def prepare_request(
+        self,
+        params: CommonQueryParameters,
+        **kwargs,
+    ) -> dict:
+        """Prepare full request payload for Anthropic API calls"""
+        model_name, messages, config = self.fix_config(params, **kwargs)
+
+        request_params = {
+            "model": model_name,
+            "max_tokens": config.pop("max_tokens", 4096),
+            "messages": messages,
+            **config,
+        }
+        return request_params
+
     def convert_response(
         self, raw_response: Union[BaseModel, dict], provider_type: str = None
     ) -> ParsedResponse:

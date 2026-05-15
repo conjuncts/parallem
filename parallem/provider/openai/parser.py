@@ -2,7 +2,8 @@ from typing import TYPE_CHECKING, List, Union
 
 from parallem.provider.base import BaseParser
 from parallem.provider.openai.common import map_server_tools
-from parallem.types import FunctionCall, FunctionCallOutput, FunctionCallRequest, LLMDocument, ParsedResponse, ServerTool
+from parallem.provider.openai.openai_tools import to_strict_json_schema
+from parallem.types import CommonQueryParameters, FunctionCall, FunctionCallOutput, FunctionCallRequest, LLMDocument, ParsedResponse, ServerTool
 from parallem.utils._quick_pydantic import is_pydantic_model
 from parallem.utils.image import get_type_and_b64, is_image
 
@@ -94,6 +95,41 @@ class OpenAIParser(BaseParser):
     ):
         """Make tools ready for API calls."""
         return map_server_tools(tools)
+
+    def prepare_request(
+        self,
+        params: CommonQueryParameters,
+        **kwargs,
+    ) -> tuple:
+        """Prepare OpenAI API request parameters from common query parameters."""
+        instructions = params["instructions"]
+        fixed_documents = self.fix_docs(params["strict_documents"])
+        llm = params["llm"]
+        structured_output = params.get("structured_output")
+        tools = self.fix_tools(params.get("tools"))
+
+        if structured_output is not None:
+            if "text" not in kwargs:
+                kwargs["text"] = {}
+
+            assert not kwargs["text"].get("format"), (
+                "Cannot supply both structured_output and text.format"
+            )
+            schema = to_strict_json_schema(structured_output)
+            kwargs["text"]["format"] = {
+                "type": "json_schema",
+                "strict": True,
+                "name": schema.get("title", "UnknownSchema"),
+                "schema": schema,
+            }
+
+        return {
+            "model": llm.model_name,
+            "instructions": instructions,
+            "input": fixed_documents,
+            "tools": tools,
+            **kwargs,
+        }
 
     def convert_response(
         self, raw_response: Union["BaseModel", dict], provider_type: str = None
