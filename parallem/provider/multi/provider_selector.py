@@ -1,3 +1,4 @@
+import os
 from typing import Literal
 
 from parallem.types import ProviderType
@@ -114,14 +115,16 @@ def dynamic_select_provider(
         )
 
         if client is None:
-            try:
-                import boto3
-            except ImportError as exc:
-                raise ImportError(
-                    "Bedrock provider requires boto3. Install it with 'pip install boto3'."
-                ) from exc
+            # boto3 needed for Amazon Bedrock - pip install boto3
+            import boto3
 
-            client = boto3.client("bedrock-runtime", region_name="us-east-2")
+            region_name = os.getenv("AWS_REGION")
+            if region_name is None:
+                raise ValueError(
+                    "Please set the AWS_REGION to use Amazon Bedrock. "
+                    "Example: export AWS_REGION=us-east-1"
+                )
+            client = boto3.client("bedrock-runtime", region_name=region_name)
 
         if strategy == "concurrent":
             provider = ConcurrentBedrockProvider(client=client)
