@@ -310,7 +310,7 @@ class AgentContext(Askable):
         # 5. use API
         if not self._orch._provider.is_compatible(provider_type):
             raise ValueError(
-                f"LLM {llm.identity} is not compatible with provider {provider_type}"
+                f"LLM {llm} is not compatible with provider {provider_type}"
             )
 
         params: CommonQueryParameters = {

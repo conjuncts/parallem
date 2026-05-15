@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import TYPE_CHECKING, List, Optional, Union
+from typing import TYPE_CHECKING, Any, List, Optional, Union
 
 if TYPE_CHECKING:
     from pydantic import BaseModel
@@ -7,11 +7,44 @@ if TYPE_CHECKING:
 from parallem.types import (
     BatchResult,
     CommonQueryParameters,
+    LLMDocument,
     LLMIdentity,
     ProviderType,
     ParsedResponse,
+    ServerTool,
 )
 
+
+class BaseParser:
+    """Helps validate API inputs."""
+
+    def fix_config(
+        self,
+        params: CommonQueryParameters,
+        **kwargs,
+    ) -> Any:
+        """Make config ready for API calls."""
+        raise NotImplementedError
+
+    def fix_docs(
+        self,
+        documents: List[LLMDocument],
+    ):
+        """Make documents ready for API calls."""
+        raise NotImplementedError
+
+    def fix_tools(
+        self,
+        tools: List[Union[dict, ServerTool]],
+    ):
+        """Make tools ready for API calls."""
+        raise NotImplementedError
+
+    def convert_response(
+        self, raw_response: Union["BaseModel", dict], provider_type: str = None
+    ) -> ParsedResponse:
+        """Parse raw API response into common format."""
+        raise NotImplementedError
 
 class BaseProvider:
     provider_type: Optional[ProviderType] = None
