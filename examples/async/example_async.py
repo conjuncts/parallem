@@ -23,8 +23,8 @@ if __name__ == "__main__":
         hash_by=["llm"],
     ) as orch:
         # Instantiate the agent.
-        a1 = orch.create_agent(haiku_writer_agent, agent_name="Yosa Buson")
-        a2 = orch.create_agent(haiku_writer_agent, agent_name="Matsuo Basho")
+        a1 = orch.create_agent(haiku_writer_agent, agent_name="Writer-1")
+        a2 = orch.create_agent(haiku_writer_agent, agent_name="Writer-2")
 
         # Run agents. Similar to async.gather or async.TaskGroup
         out = orch.run_agents(a1, a2)
