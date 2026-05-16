@@ -48,6 +48,9 @@ Repository = "https://github.com/conjuncts/parallem"
 Issues = "https://github.com/conjuncts/parallem/issues"
 
 [dependency-groups]
+bedrock = [
+    "boto3>=1.43.8",
+]
 dev = [
     "anthropic>=0.77.0",
     "flit>=3.12.0",
@@ -61,6 +64,7 @@ dev = [
     "tabulate>=0.9.0",
     "click==8.2.1", # https://github.com/mkdocs/mkdocs/issues/4032
     "datasets>=2.13.0",
+    "boto3-stubs[bedrock,s3]>=1.43.9",
 ]
 docs = [
     "mkdocs-material>=9.6.18",

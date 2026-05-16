@@ -143,7 +143,7 @@ class BatchAnthropicProvider(BatchProvider, AnthropicProvider):
         for item in stuff:
             custom_id = item.get("custom_id")
             if not custom_id:
-                raise ValueError("Missing custom_id in batch item")
+                raise ValueError("Each batch item must have a 'custom_id' field.")
             custom_ids.append(custom_id)
         return custom_ids
 

@@ -113,6 +113,7 @@ def dynamic_select_provider(
             ConcurrentBedrockProvider,
             SyncBedrockProvider,
         )
+        from parallem.provider.bedrock.sdk_s3 import BatchBedrockProvider
 
         if client is None:
             # boto3 needed for Amazon Bedrock - pip install boto3
@@ -129,7 +130,7 @@ def dynamic_select_provider(
         if strategy == "concurrent":
             provider = ConcurrentBedrockProvider(client=client)
         elif strategy == "batch":
-            raise NotImplementedError("Bedrock provider does not support batch mode.")
+            provider = BatchBedrockProvider(client=client)
         else:
             provider = SyncBedrockProvider(client=client)
     elif multi_allowed and provider_type == "multi":

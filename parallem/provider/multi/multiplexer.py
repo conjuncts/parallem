@@ -97,7 +97,7 @@ class BatchMultiProvider(BatchProvider, MultiProvider):
         super().__init__(base_strategy="batch")
 
     def get_batch_custom_ids(self, stuff: list[dict], provider_type: str) -> list[str]:
-        """Get batch IDs from a bunch of raw data."""
+        """Get batch IDs from dicts."""
         provider = self._load_provider(provider_type, "batch")
         return provider.get_batch_custom_ids(stuff, provider_type=provider_type)
 

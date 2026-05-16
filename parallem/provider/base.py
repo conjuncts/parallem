@@ -136,7 +136,7 @@ class BatchProvider(BaseProvider):
         raise NotImplementedError
 
     def get_batch_custom_ids(self, stuff: list[dict], provider_type: str) -> list[str]:
-        """Get batch IDs from a bunch of raw data."""
+        """Get batch IDs from dicts."""
         raise NotImplementedError
 
     def submit_batch_to_provider(self, fpath: Path, llm: LLMIdentity) -> str:

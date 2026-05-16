@@ -16,14 +16,17 @@ from parallem.types import (
 )
 
 if TYPE_CHECKING:
-    from botocore.client import BaseClient
     from pydantic import BaseModel
+    try:
+        from mypy_boto3_bedrock import BedrockClient
+    except ImportError:
+        from botocore.client import BaseClient as BedrockClient
 
 
 class BedrockProvider(BaseProvider):
     provider_type: str = "bedrock"
 
-    def __init__(self, client: "BaseClient"):
+    def __init__(self, client: "BedrockClient"):
         super().__init__()
         self.parser = BedrockParser()
         self.client = client
