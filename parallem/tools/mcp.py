@@ -3,7 +3,7 @@ from typing import Optional
 from parallem.types import ServerTool
 
 
-class MCPTool(ServerTool):
+class MCPServerTool(ServerTool):
     """Let LLMs use Remote MCP (Model Context Protocol) as a server tool.
 
     :warning: Experimental."""

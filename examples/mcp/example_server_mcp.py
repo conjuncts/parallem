@@ -18,7 +18,7 @@ with pllm.resume_directory(
         resp = agt.ask_llm(
             "Roll 2d4+1.",
             tools=[
-                pllm.tools.MCPTool(
+                pllm.tools.MCPServerTool(
                     server_label="dmcp",
                     server_description="A Dungeons and Dragons MCP server to assist with dice rolling.",
                     server_url="https://dmcp-server.deno.dev/sse",

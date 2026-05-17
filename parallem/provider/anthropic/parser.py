@@ -20,7 +20,7 @@ from parallem.utils.image import (
 
 if TYPE_CHECKING:
     from anthropic.types import Message
-    from parallem.tools.mcp import MCPTool
+    from parallem.tools.mcp import MCPServerTool
 
 
 def _ensure_betas(config: dict, betas_to_add: Union[str, List[str]] | None) -> None:
@@ -98,7 +98,7 @@ def _fix_docs_for_anthropic(
                     {
                         "type": "tool_result",
                         "tool_use_id": doc.call_id,
-                        "content": str(doc.content),
+                        "content": doc.content,
                     }
                 ],
             }
@@ -223,7 +223,7 @@ def _prepare_tool_schema(
                 # TODO: support this (it is in beta)
                 raise NotImplementedError
             elif sch.server_tool_type == "mcp":
-                sch: "MCPTool"
+                sch: "MCPServerTool"
                 # https://platform.claude.com/docs/en/agents-and-tools/mcp-connector
                 mcp_server = {
                     "type": "url",

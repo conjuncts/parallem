@@ -66,7 +66,7 @@ def _fix_docs_for_openai_chat(
             msg = {
                 "role": "tool",
                 "tool_call_id": doc.call_id,
-                "content": str(doc.content),
+                "content": doc.content,
             }
             formatted_docs.append(msg)
         elif isinstance(doc, tuple) and len(doc) == 2:

@@ -10,6 +10,7 @@ from parallem.utils.image import get_type_and_b64, is_image
 if TYPE_CHECKING:
     from openai.types.responses.response_input_param import Message
     from openai.types.responses.response import Response
+    from openai.types.responses.response_function_tool_call_output_item import ResponseFunctionToolCallOutputItem
     from pydantic import BaseModel
 
 def _fix_docs_for_openai(
@@ -43,10 +44,10 @@ def _fix_docs_for_openai(
                     }
                 )
         elif isinstance(doc, FunctionCallOutput):
-            msg = {
+            msg: "ResponseFunctionToolCallOutputItem" = {
                 "type": "function_call_output",
                 "call_id": doc.call_id,
-                "output": str(doc.content),
+                "output": doc.content,
             }
             formatted_docs.append(msg)
         elif isinstance(doc, tuple) and len(doc) == 2:

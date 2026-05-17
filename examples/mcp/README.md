@@ -1,0 +1,5 @@
+- example_server_mcp.py
+    - Access a (publicly available) MCP server as a server-side tool
+- example_local_mcp.py
+    - Access a (local) MCP server
+    - Uses `math_server.py` as an example
