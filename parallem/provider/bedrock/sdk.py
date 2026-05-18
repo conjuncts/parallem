@@ -8,7 +8,7 @@ from parallem.provider.base import (
     ConcurrentProvider,
     SyncProvider,
 )
-from parallem.provider.bedrock.parser import BedrockParser
+from parallem.provider.bedrock.adapter import BedrockAdapter
 from parallem.types import (
     CommonQueryParameters,
     LLMIdentity,
@@ -28,7 +28,7 @@ class BedrockProvider(BaseProvider):
 
     def __init__(self, client: "BedrockClient"):
         super().__init__()
-        self.parser = BedrockParser()
+        self.adapter = BedrockAdapter()
         self.client = client
 
     def get_default_llm_identity(self) -> LLMIdentity:
@@ -62,7 +62,7 @@ class BedrockProvider(BaseProvider):
         :param provider_type: Optional provider override.
         :return: ParsedResponse instance.
         """
-        return self.parser.convert_response(raw_response)
+        return self.adapter.convert_response(raw_response)
 
 
 class SyncBedrockProvider(SyncProvider, BedrockProvider):
@@ -79,7 +79,7 @@ class SyncBedrockProvider(SyncProvider, BedrockProvider):
         """
         llm = params["llm"]
         model_kwargs = kwargs.copy()
-        model_name, body, invoke_options = self.parser.fix_config(params, model_kwargs)
+        model_name, body, invoke_options = self.adapter.fix_config(params, model_kwargs)
 
         if not isinstance(body, (str, bytes)):
             body = json.dumps(body)

@@ -7,7 +7,7 @@ from parallem.provider.base import (
     BatchProvider,
     SyncProvider,
 )
-from parallem.provider.google.parser import GoogleParser
+from parallem.provider.google.adapter import GoogleAdapter
 from parallem.types import (
     BatchResult,
     CommonQueryParameters,
@@ -27,7 +27,7 @@ class GoogleProvider(BaseProvider):
     provider_type: str = "google"
 
     def __init__(self):
-        self.parser = GoogleParser()
+        self.adapter = GoogleAdapter()
 
     def validate_request_compatibility(
         self,
@@ -48,7 +48,7 @@ class GoogleProvider(BaseProvider):
         self, raw_response: Union["BaseModel", dict], provider_type: str = None
     ) -> ParsedResponse:
         """Parse Gemini API response into common format"""
-        return self.parser.convert_response(raw_response, provider_type=provider_type)
+        return self.adapter.convert_response(raw_response, provider_type=provider_type)
         
 
 
@@ -63,7 +63,7 @@ class SyncGoogleProvider(SyncProvider, GoogleProvider):
         **kwargs,
     ):
         """Prepare a synchronous callable for Gemini API"""
-        model_name, contents, config = self.parser.fix_config(params, **kwargs)
+        model_name, contents, config = self.adapter.fix_config(params, **kwargs)
         return self.client.models.generate_content(
             model=model_name,
             contents=contents,
@@ -82,7 +82,7 @@ class ConcurrentGoogleProvider(ConcurrentProvider, GoogleProvider):
         **kwargs,
     ):
         """Prepare a concurrent coroutine for Gemini API"""
-        model_name, contents, config = self.parser.fix_config(params, **kwargs)
+        model_name, contents, config = self.adapter.fix_config(params, **kwargs)
 
         coro = self.client.aio.models.generate_content(
             model=model_name,
@@ -106,7 +106,7 @@ class BatchGoogleProvider(BatchProvider, GoogleProvider):
         **kwargs,
     ) -> dict:
         """Convert CommonQueryParameters to Gemini batch request format"""
-        body = self.parser.prepare_request(params, **kwargs)
+        body = self.adapter.prepare_request(params, **kwargs)
         request = {
             "key": custom_id,
             "request": body,

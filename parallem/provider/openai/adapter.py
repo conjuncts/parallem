@@ -2,7 +2,7 @@ from typing import TYPE_CHECKING, List, Union
 
 from openai.types.responses.response_function_tool_call_output_item import ResponseFunctionToolCallOutputItem
 
-from parallem.provider.base import BaseParser
+from parallem.provider.base import BaseAdapter
 from parallem.provider.openai.common import map_server_tools
 from parallem.provider.openai.openai_tools import to_strict_json_schema
 from parallem.types import CommonQueryParameters, FunctionCall, FunctionCallOutput, FunctionCallRequest, LLMDocument, MCPOutput, ParsedResponse, ServerTool
@@ -125,8 +125,15 @@ def _fix_mcp_block(
     return content_block.model_dump_json(exclude_none=True)
 
 
-class OpenAIParser(BaseParser):
+class OpenAIAdapter(BaseAdapter):
     """Parses OpenAI API responses into a common format for downstream processing."""
+
+    def fix_config(
+        self,
+        params: CommonQueryParameters,
+        **kwargs,
+    ):
+        raise NotImplementedError
 
     def fix_docs(
         self,

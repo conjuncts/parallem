@@ -2,7 +2,7 @@ import json
 from pathlib import Path
 from typing import TYPE_CHECKING, List, Union
 from pydantic import BaseModel
-from parallem.provider.anthropic.parser import AnthropicParser
+from parallem.provider.anthropic.adapter import AnthropicAdapter
 from parallem.provider.anthropic._version_checks import enforce_anthropic_min_version_for_structured_output
 from parallem.provider.base import (
     BatchProvider,
@@ -27,7 +27,7 @@ class AnthropicProvider(BaseProvider):
     provider_type = "anthropic"
 
     def __init__(self):
-        self.parser = AnthropicParser()
+        self.adapter = AnthropicAdapter()
 
     def validate_request_compatibility(
         self,
@@ -53,7 +53,7 @@ class AnthropicProvider(BaseProvider):
     ) -> ParsedResponse:
         """Parse Anthropic API response into common format"""
 
-        return self.parser.convert_response(raw_response)
+        return self.adapter.convert_response(raw_response)
 
 
 class SyncAnthropicProvider(SyncProvider, AnthropicProvider):
@@ -67,7 +67,7 @@ class SyncAnthropicProvider(SyncProvider, AnthropicProvider):
         **kwargs,
     ):
         """Prepare a synchronous callable for Anthropic API"""
-        model_name, messages, config = self.parser.fix_config(params, **kwargs)
+        model_name, messages, config = self.adapter.fix_config(params, **kwargs)
         max_tokens = config.pop("max_tokens", 4096)
         # If betas are requested and the client exposes the beta namespace,
         # use the beta messages.create endpoint.
@@ -98,7 +98,7 @@ class ConcurrentAnthropicProvider(ConcurrentProvider, AnthropicProvider):
         **kwargs,
     ):
         """Prepare a concurrent coroutine for Anthropic API"""
-        model_name, messages, config = self.parser.fix_config(params, **kwargs)
+        model_name, messages, config = self.adapter.fix_config(params, **kwargs)
         max_tokens = config.pop("max_tokens", 1024)
 
         if config.get("betas"):
@@ -131,7 +131,7 @@ class BatchAnthropicProvider(BatchProvider, AnthropicProvider):
         **kwargs,
     ) -> dict:
         """Convert CommonQueryParameters to Anthropic Message Batch format."""
-        request_params = self.parser.prepare_request(params, **kwargs)
+        request_params = self.adapter.prepare_request(params, **kwargs)
 
         return {
             "custom_id": custom_id,

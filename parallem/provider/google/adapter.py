@@ -1,6 +1,6 @@
 from pydantic import BaseModel
 
-from parallem.provider.base import BaseParser
+from parallem.provider.base import BaseAdapter
 from parallem.types import CommonQueryParameters, FunctionCall, FunctionCallOutput, FunctionCallRequest, LLMDocument, ParsedResponse, ServerTool
 
 from collections.abc import Mapping
@@ -255,7 +255,7 @@ def _capitalize_function_decl(items: dict) -> None:
             _capitalize_function_decl(v)
 
 
-class GoogleParser(BaseParser):
+class GoogleAdapter(BaseAdapter):
     def fix_config(
         self,
         params: CommonQueryParameters,

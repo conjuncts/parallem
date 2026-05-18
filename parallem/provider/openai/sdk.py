@@ -7,7 +7,7 @@ from parallem.provider.base import (
     BatchProvider,
     SyncProvider,
 )
-from parallem.provider.openai.parser import OpenAIParser
+from parallem.provider.openai.adapter import OpenAIAdapter
 from parallem.types import (
     CommonQueryParameters,
     LLMIdentity,
@@ -23,7 +23,7 @@ class OpenAIProvider(BaseProvider):
     provider_type: str = "openai"
 
     def __init__(self):
-        self.parser = OpenAIParser()
+        self.adapter = OpenAIAdapter()
 
     def validate_request_compatibility(
         self,
@@ -43,7 +43,7 @@ class OpenAIProvider(BaseProvider):
     def parse_response(
         self, raw_response: Union["BaseModel", dict], provider_type: str = None
     ) -> ParsedResponse:
-        return self.parser.convert_response(raw_response, provider_type=provider_type)
+        return self.adapter.convert_response(raw_response, provider_type=provider_type)
 
 
 class SyncOpenAIProvider(SyncProvider, OpenAIProvider):
@@ -58,10 +58,10 @@ class SyncOpenAIProvider(SyncProvider, OpenAIProvider):
     ):
         """Prepare a synchronous callable for OpenAI API"""
         instructions = params["instructions"]
-        fixed_documents = self.parser.fix_docs(params["strict_documents"])
+        fixed_documents = self.adapter.fix_docs(params["strict_documents"])
         llm = params["llm"]
         structured_output = params.get("structured_output")
-        tools = self.parser.fix_tools(params.get("tools"))
+        tools = self.adapter.fix_tools(params.get("tools"))
 
         if structured_output is not None:
             return self.client.responses.parse(
@@ -94,10 +94,10 @@ class ConcurrentOpenAIProvider(ConcurrentProvider, OpenAIProvider):
     ):
         """Prepare a concurrent coroutine for OpenAI API"""
         instructions = params["instructions"]
-        fixed_documents = self.parser.fix_docs(params["strict_documents"])
+        fixed_documents = self.adapter.fix_docs(params["strict_documents"])
         llm = params["llm"]
         structured_output = params.get("structured_output")
-        tools = self.parser.fix_tools(params.get("tools"))
+        tools = self.adapter.fix_tools(params.get("tools"))
 
         if structured_output is not None:
             coro = self.client.responses.parse(
@@ -134,7 +134,7 @@ class BatchOpenAIProvider(OpenAIBatchMixin, BatchProvider, OpenAIProvider):
         **kwargs,
     ) -> dict:
         """Prepare batch call data for OpenAI"""
-        body = self.parser.prepare_request(params, **kwargs)
+        body = self.adapter.prepare_request(params, **kwargs)
         return {
             "custom_id": custom_id,
             "method": "POST",

@@ -15,8 +15,8 @@ from parallem.types import (
 )
 
 
-class BaseParser:
-    """Helps validate API inputs."""
+class BaseAdapter:
+    """Helps adapt API inputs."""
 
     def fix_config(
         self,

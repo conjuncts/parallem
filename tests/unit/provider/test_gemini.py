@@ -9,7 +9,7 @@ Tests the Gemini provider functionality including:
 
 from dotenv import load_dotenv
 import pytest
-from parallem.provider.google.parser import _fix_docs_for_google
+from parallem.provider.google.adapter import _fix_docs_for_google
 from parallem.types import LLMIdentity
 from parallem.provider.google.sdk import (
     SyncGoogleProvider,

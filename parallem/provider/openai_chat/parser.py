@@ -1,5 +1,6 @@
 from typing import TYPE_CHECKING, List, Optional, Union
 
+from parallem.provider.base import BaseAdapter
 from parallem.provider.openai.common import map_server_tools
 
 from parallem.provider.openai.openai_tools import to_strict_json_schema
@@ -174,7 +175,15 @@ def _prepare_response_format(structured_output: object) -> dict:
     raise ValueError(
         "structured_output must be a dict or a pydantic model for chat completions"
     )
-class OpenAIChatParser:
+class OpenAIChatAdapter(BaseAdapter):
+
+    def fix_config(
+        self,
+        params: CommonQueryParameters,
+        **kwargs,
+    ):
+        raise NotImplementedError
+
 
     def fix_docs(
         self,

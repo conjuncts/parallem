@@ -9,7 +9,7 @@ from parallem.provider.base import (
     ConcurrentProvider,
     SyncProvider,
 )
-from parallem.provider.openai_chat.parser import OpenAIChatParser
+from parallem.provider.openai_chat.parser import OpenAIChatAdapter
 from parallem.types import (
     CommonQueryParameters,
     LLMIdentity,
@@ -27,7 +27,7 @@ class OpenAIChatProvider(BaseProvider):
 
     def __init__(self):
         super().__init__()
-        self.parser = OpenAIChatParser()
+        self.adapter = OpenAIChatAdapter()
 
     def validate_request_compatibility(
         self,
@@ -55,7 +55,7 @@ class OpenAIChatProvider(BaseProvider):
         self, raw_response: Union["BaseModel", dict], provider_type: str = None
     ) -> ParsedResponse:
         """Parse OpenAI chat completions response into common format."""
-        return self.parser.convert_response(raw_response, provider_type=provider_type)
+        return self.adapter.convert_response(raw_response, provider_type=provider_type)
 
 class SyncOpenAIChatProvider(SyncProvider, OpenAIChatProvider):
     def __init__(self, client: "OpenAI"):
@@ -69,19 +69,19 @@ class SyncOpenAIChatProvider(SyncProvider, OpenAIChatProvider):
     ):
         """Prepare a synchronous callable for OpenAI chat completions API."""
         instructions = params["instructions"]
-        fixed_documents = self.parser.fix_docs(
+        fixed_documents = self.adapter.fix_docs(
             params["strict_documents"], instructions
         )
         llm = params["llm"]
         structured_output = params.get("structured_output")
-        tools = self.parser.fix_tools(params.get("tools"))
+        tools = self.adapter.fix_tools(params.get("tools"))
 
         if structured_output is not None:
             if "response_format" in kwargs:
                 raise AssertionError(
                     "Cannot supply both structured_output and response_format"
                 )
-            kwargs["response_format"] = self.parser.fix_structured_output(structured_output)
+            kwargs["response_format"] = self.adapter.fix_structured_output(structured_output)
 
         return self.client.chat.completions.create(
             model=llm.model_name,
@@ -103,19 +103,19 @@ class ConcurrentOpenAIChatProvider(ConcurrentProvider, OpenAIChatProvider):
     ):
         """Prepare a concurrent coroutine for OpenAI chat completions API."""
         instructions = params["instructions"]
-        fixed_documents = self.parser.fix_docs(
+        fixed_documents = self.adapter.fix_docs(
             params["strict_documents"], instructions
         )
         llm = params["llm"]
         structured_output = params.get("structured_output")
-        tools = self.parser.fix_tools(params.get("tools"))
+        tools = self.adapter.fix_tools(params.get("tools"))
 
         if structured_output is not None:
             if "response_format" in kwargs:
                 raise AssertionError(
                     "Cannot supply both structured_output and response_format"
                 )
-            kwargs["response_format"] = self.parser.fix_structured_output(structured_output)
+            kwargs["response_format"] = self.adapter.fix_structured_output(structured_output)
 
         return self.client.chat.completions.create(
             model=llm.model_name,
@@ -139,7 +139,7 @@ class BatchOpenAIChatProvider(OpenAIBatchMixin, BatchProvider, OpenAIChatProvide
         **kwargs,
     ) -> dict:
         """Prepare batch call data for OpenAI chat completions."""
-        body = self.parser.prepare_request(params, **kwargs)
+        body = self.adapter.prepare_request(params, **kwargs)
         return {
             "custom_id": custom_id,
             "method": "POST",

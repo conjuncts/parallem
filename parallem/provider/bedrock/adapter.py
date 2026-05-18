@@ -3,7 +3,7 @@ from typing import TYPE_CHECKING, List, Union
 
 from parallem.core.exception import ProviderCompatibilityError
 from parallem.provider.base import (
-    BaseParser,
+    BaseAdapter,
 )
 from parallem.types import (
     CommonQueryParameters,
@@ -209,7 +209,7 @@ def _convert_to_bedrock_response(raw_response: dict) -> ParsedResponse:
         function_calls=function_calls or None,
     )
 
-class BedrockParser(BaseParser):
+class BedrockAdapter(BaseAdapter):
     def fix_docs(
         self,
         documents: List[LLMDocument],

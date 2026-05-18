@@ -2,11 +2,11 @@ import pytest
 from pydantic import BaseModel
 
 from parallem.core.exception import ProviderCompatibilityError
-from parallem.provider.anthropic import sdk
+from parallem.provider.anthropic import _version_checks
 from parallem.provider.anthropic.sdk import (
     AnthropicProvider,
-    _prepare_anthropic_config,
 )
+from parallem.provider.anthropic.adapter import AnthropicAdapter
 from parallem.types import LLMIdentity
 from parallem.utils._quick_structured import _anthropic_transform_schema
 
@@ -25,10 +25,13 @@ def _params(*, structured_output=None):
     }
 
 
+def _prepare_anthropic_config(params, **kwargs):
+    return AnthropicAdapter().fix_config(params, **kwargs)
+
 def test_prepare_anthropic_config_with_pydantic_structured_output(monkeypatch):
-    from parallem.provider.anthropic import sdk as anthropic_sdk
+    from parallem.provider.anthropic import adapter as anthropic_adapter
     monkeypatch.setattr(
-        anthropic_sdk,
+        anthropic_adapter,
         "_transform_schema",
         _anthropic_transform_schema,
         raising=True,
@@ -45,9 +48,9 @@ def test_prepare_anthropic_config_with_pydantic_structured_output(monkeypatch):
 
 
 def test_prepare_anthropic_config_with_json_schema_dict(monkeypatch):
-    from parallem.provider.anthropic import sdk as anthropic_sdk
+    from parallem.provider.anthropic import adapter as anthropic_adapter
     monkeypatch.setattr(
-        anthropic_sdk,
+        anthropic_adapter,
         "_transform_schema",
         _anthropic_transform_schema,
         raising=True,
@@ -87,7 +90,7 @@ def test_prepare_anthropic_config_rejects_invalid_structured_output():
 
 def test_validate_request_compatibility_enforces_min_version(monkeypatch):
     monkeypatch.setattr(
-        sdk.importlib_metadata,
+        _version_checks.importlib_metadata,
         "version",
         lambda package_name: "0.76.9",
     )
@@ -99,7 +102,7 @@ def test_validate_request_compatibility_enforces_min_version(monkeypatch):
 
 def test_validate_request_compatibility_allows_minimum_supported_version(monkeypatch):
     monkeypatch.setattr(
-        sdk.importlib_metadata,
+        _version_checks.importlib_metadata,
         "version",
         lambda package_name: "0.77.0",
     )
@@ -115,7 +118,7 @@ def test_validate_request_compatibility_skips_version_check_without_structured_o
         raise AssertionError("version() should not be called")
 
     monkeypatch.setattr(
-        sdk.importlib_metadata,
+        _version_checks.importlib_metadata,
         "version",
         _fail_if_called,
     )

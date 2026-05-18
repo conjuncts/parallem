@@ -6,7 +6,7 @@ from anthropic.types.text_block_param import TextBlockParam
 from anthropic.types.tool_result_block_param import ToolResultBlockParam
 from pydantic import BaseModel
 from parallem.provider.base import (
-    BaseParser,
+    BaseAdapter,
 )
 from parallem.types import (
     MCPOutput,
@@ -315,7 +315,7 @@ def _prepare_tool_schema(
     return anthropic_tools, mcp_servers
 
 
-class AnthropicParser(BaseParser):
+class AnthropicAdapter(BaseAdapter):
     def fix_docs(
         self,
         documents: List[LLMDocument],

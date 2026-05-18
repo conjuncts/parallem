@@ -25,7 +25,7 @@ class BatchBedrockProvider(BatchProvider, BedrockProvider):
         :param params: Common query parameters containing instructions, documents, llm, etc.
         :return: A dict/object representing the batch request format for this provider
         """
-        request_params = self.parser.prepare_request(params, **kwargs)
+        request_params = self.adapter.prepare_request(params, **kwargs)
         return {
             "recordId": custom_id,
             "modelInput": request_params,
@@ -234,7 +234,7 @@ class BatchBedrockProvider(BatchProvider, BedrockProvider):
                 )
                 not_ok_i.append(line_i)
             else:
-                parsed = self.parser.parse_response(model_output)
+                parsed = self.adapter.parse_response(model_output)
                 parsed.custom_id = record_id
                 parsed_responses.append(parsed)
  

@@ -233,7 +233,7 @@ def test_full_batch_anthropic(monkeypatch, temp_integration_dir, sample_tools, s
     provider = "anthropic"
     expected_data = data_batch_full_anthropic
 
-    from parallem.provider.anthropic import parser as anthropic_parser
+    from parallem.provider.anthropic import adapter as anthropic_parser
     monkeypatch.setattr(
         anthropic_parser,
         "_transform_schema",
