@@ -408,7 +408,7 @@ def _convert_to_nova_response(raw_response: dict) -> ParsedResponse:
 	)
 
 
-class NovaAdapter(BaseAdapter):
+class BedrockNovaAdapter(BaseAdapter):
 	def fix_docs(
 		self,
 		documents: List[LLMDocument],

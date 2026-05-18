@@ -68,7 +68,7 @@ if __name__ == "__main__":
         provider="bedrock",
         strategy="sync",
         dashboard=True,
-        llm="amazon.nova-2-lite-v1:0",
+        llm="us.amazon.nova-2-lite-v1:0",
         # llm="gemini-2.5-flash",
         hash_by=["llm"],
         save_input=True,

@@ -2,13 +2,12 @@ import asyncio
 import json
 from typing import TYPE_CHECKING, Optional, Union
 
-from parallem.core.exception import ProviderCompatibilityError
 from parallem.provider.base import (
     BaseProvider,
     ConcurrentProvider,
     SyncProvider,
 )
-from parallem.provider.bedrock.adapter import BedrockAdapter
+from parallem.provider.bedrock.adapter_multi import BedrockAdapter
 from parallem.types import (
     CommonQueryParameters,
     LLMIdentity,
@@ -44,14 +43,6 @@ class BedrockProvider(BaseProvider):
         :param params: Common query parameters for the request.
         :return: None.
         """
-        if params.get("tools"):
-            raise ProviderCompatibilityError(
-                "Bedrock InvokeModel does not support tools in this provider."
-            )
-        if params.get("structured_output") is not None:
-            raise ProviderCompatibilityError(
-                "Structured output is not supported for Bedrock InvokeModel."
-            )
 
     def parse_response(
         self, raw_response: Union["BaseModel", dict], llm: Optional[LLMIdentity] = None
@@ -62,7 +53,7 @@ class BedrockProvider(BaseProvider):
         :param provider_type: Optional provider override.
         :return: ParsedResponse instance.
         """
-        return self.adapter.convert_response(raw_response)
+        return self.adapter.convert_response(raw_response, llm=llm)
 
 
 class SyncBedrockProvider(SyncProvider, BedrockProvider):
@@ -79,7 +70,7 @@ class SyncBedrockProvider(SyncProvider, BedrockProvider):
         """
         llm = params["llm"]
         model_kwargs = kwargs.copy()
-        model_name, body, invoke_options = self.adapter.fix_config(params, model_kwargs)
+        model_name, body, invoke_options = self.adapter.fix_config(params, **model_kwargs)
 
         if not isinstance(body, (str, bytes)):
             body = json.dumps(body)

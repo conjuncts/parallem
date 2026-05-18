@@ -209,7 +209,7 @@ def _convert_to_bedrock_response(raw_response: dict) -> ParsedResponse:
         function_calls=function_calls or None,
     )
 
-class BedrockAdapter(BaseAdapter):
+class BedrockLegacyAdapter(BaseAdapter):
     def fix_docs(
         self,
         documents: List[LLMDocument],
@@ -217,7 +217,7 @@ class BedrockAdapter(BaseAdapter):
         return _fix_docs_for_bedrock(documents)
 
     def fix_config(self, params, **kwargs):
-        return _prepare_bedrock_body(params, kwargs)
+        return _prepare_bedrock_body(params, **kwargs)
 
     def convert_response(self, raw_response):
         return _convert_to_bedrock_response(raw_response)
