@@ -350,6 +350,7 @@ class AgentContext(Askable):
         *,
         subagent_names: Optional[Sequence[str]] = None,
         if_func_not_exist: Union[str, Exception, None] = None,
+        convert_to_str=True,
         **kwargs,
     ) -> List[FunctionCallOutput]:
         if functions is None:
@@ -359,9 +360,7 @@ class AgentContext(Askable):
             raise ValueError(
                 "No functions provided to ask_functions. Provide functions as a dict or as kwargs."
             )
-        subagent_name_iter = (
-            iter(subagent_names) if subagent_names is not None else None
-        )
+        subagent_name_iter = iter(subagent_names) if subagent_names is not None else None
 
         # Check if response has function calls. If so, delegate to user-defined functions.
         fcs = response.function_calls
@@ -391,6 +390,8 @@ class AgentContext(Askable):
 
             # Execute the function
             result = callme(**call_args)
+            if convert_to_str and not isinstance(result, str):
+                result = str(result)
             fc_outs.append(
                 FunctionCallOutput(content=result, name=fc.name, call_id=fc.call_id)
             )
@@ -402,6 +403,7 @@ class AgentContext(Askable):
         call_args: dict,
         subagent_name_iter: Optional[Iterator[str]],
     ) -> dict:
+        """Allows subagents to be passed into ask_functions as if they were functions."""
         injected_param_names = []
         signature = inspect.signature(callme)
         for param_name, param in signature.parameters.items():

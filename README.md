@@ -1,10 +1,12 @@
 # ParaLLeM
 
-An expressive library for calling LLMs in bulk.
+Agents + Batch API.
 
 - Batch API support (50% discount!)
-- Workflows simply described in Python
-- Concise, lightweight
+- Expressive. Agents are [simple Python functions](examples/simplest_agent.py).
+- Concise, lightweight.
+- Durable by default.
+- Built for [>1 million parallel requests](examples/stress/stress_1m.py).
 
 ## Quickstart
 
@@ -41,7 +43,7 @@ Responses are saved and cached. On the subsequent runs, answers are instant.
 | Function Calls | ✅ | ✅ | ✅ |
 | Web Search | ✅ | ✅ | ✅ |
 | Image Input | ✅ | ✅ | ✅ |
-| MCP | ✅ | ~ | - |
+| MCP | ✅ | ✅ | - |
 
 ## Examples
 - [Agents are python functions](examples/simplest_agent.py)
@@ -49,15 +51,10 @@ Responses are saved and cached. On the subsequent runs, answers are instant.
 - [Tool calls](examples/simplest_tool.py)
 - [Web search](examples/simplest_search.py)
 - [Image input](examples/simplest_image.py)
-- [MCP](examples/advanced/simplest_mcp.py)
+- [Local MCP](examples/mcp/example_local_mcp.py)
+- [Server MCP](examples/mcp/simplest_server_mcp.py)
 - [1 million requests](examples/stress/stress_1m.py)
 - [Ollama](examples/advanced/simplest_ollama.py)
-
-## Philosophy
-
-1. Switch between Synchronous and Batch API in 1 line of code.
-2. Control flow is best represented with Python, not data structures.
-3. An agent is more than just one LLM.
 
 ## Documentation
 

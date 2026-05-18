@@ -73,6 +73,7 @@ class Askable(ABC):
         *,
         subagent_names: Optional[Sequence[str]] = None,
         if_func_not_exist: Union[str, Exception, None] = None,
+        convert_to_str=True,
         **kwargs,
     ) -> List[FunctionCallOutput]:
         """
@@ -88,6 +89,8 @@ class Askable(ABC):
             but allowed to continue.
             If None, it will be silently ignored.
             Default: None.
+        :param convert_to_str: Most APIs (OpenAI, Google, Anthropic) expect function arguments to be strings.
+            If True, this method will convert non-string arguments to strings.
         """
 
     @abstractmethod

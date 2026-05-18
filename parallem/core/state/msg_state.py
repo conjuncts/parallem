@@ -338,6 +338,7 @@ class MessageState(UserList[Union[LLMDocument, LLMResponse]], Askable):
         *,
         subagent_names: Optional[Sequence[str]] = None,
         if_func_not_exist: Union[str, Exception] = None,
+        convert_to_str=True,
         **kwargs,
     ) -> List[FunctionCallOutput]:
         if response is None:
@@ -356,6 +357,7 @@ class MessageState(UserList[Union[LLMDocument, LLMResponse]], Askable):
             functions=functions,
             subagent_names=subagent_names,
             if_func_not_exist=if_func_not_exist,
+            convert_to_str=convert_to_str,
             **kwargs,
         )
         self.extend(fc_outs)

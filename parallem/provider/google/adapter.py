@@ -50,8 +50,8 @@ def _fix_docs_for_google(
             # types.Content()
             formatted_docs.append(
                 {
-                    "parts": [function_response_part],
                     "role": "user",
+                    "parts": [function_response_part],
                 }
             )
 

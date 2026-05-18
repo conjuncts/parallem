@@ -20,6 +20,7 @@ from unittest.mock import Mock
 import zipfile
 
 import parallem as pllm
+from parallem.types import FunctionCallOutput, FunctionCallRequest
 from parallem.utils._quick_structured import _anthropic_transform_schema
 from tests.integration.batch.data import (
     data_batch_full_anthropic,
@@ -85,10 +86,11 @@ def _assert_batch_file_matches_expected(
 
     expected_lines = expected_data.strip().split("\n")
 
-    assert len(generated_lines) == 5, f"Expected 5 calls, got {len(generated_lines)}"
-    assert len(expected_lines) == 5, f"Expected data has {len(expected_lines)} lines"
-
+        
     mismatch_in = []
+    if len(generated_lines) != len(expected_lines):
+        mismatch_in.append(None) # get diff files to generate
+
     for i, (gen, exp) in enumerate(zip(generated_lines, expected_lines)):
         if gen != exp:
             mismatch_in.append(i)
@@ -100,6 +102,12 @@ def _assert_batch_file_matches_expected(
             f.write("\n".join(generated_lines))
         with open(test_debug_dir / f"expected_{provider}.jsonl", "w") as f:
             f.write("\n".join(expected_lines))
+    
+    assert len(generated_lines) == len(expected_lines), (
+        f"Line count mismatch: expected {len(expected_lines)}, got {len(generated_lines)}. "
+        + f"See tests/data/diffs/generated_{provider}.jsonl and "
+        + f"tests/data/diffs/expected_{provider}.jsonl for details."
+    )
     assert not mismatch_in, (
         f"Lines with mismatches: {mismatch_in}. "
         + f"See tests/data/diffs/generated_{provider}.jsonl and "
@@ -131,6 +139,33 @@ def _common_asks(agt: pllm.AgentContext, sample_tools, sample_image, _do_web_sea
 
     # Test 5: Image input
     agt.ask_llm("What animal is this?", sample_image)
+
+    # Test 6: Tool + function_call_output
+    agt.ask_llm(
+        "How many files are in ~/examples? Give the final answer in words.",
+        FunctionCallRequest(
+            text_content="",
+            calls=[
+                pllm.FunctionCall(
+                    name="count_files",
+                    arguments={"directory": "~/examples"},
+                    call_id="call_123",
+                )
+            ],
+            call_id={
+                "agent_name": "test_agent",
+                "doc_hash": "test_hash",
+                "seq_id": 1,
+                "session_id": 1,
+                "meta": None,
+            },
+        ),
+        FunctionCallOutput(
+            content=4,
+            call_id="call_123",
+            name="count_files",
+        ),
+    )
 
 
 def test_full_batch_openai(temp_integration_dir, sample_tools, sample_image):
