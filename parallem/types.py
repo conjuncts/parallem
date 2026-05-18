@@ -486,7 +486,7 @@ class LLMResponse(AskItem):
 
     def __await__(self):
         async def _sync_await_response():
-            return self.final_answer
+            return self
 
         return _sync_await_response().__await__()
 
@@ -578,7 +578,7 @@ class BaseRetriever(ABC):
     async def await_response(
         self, call_id: CallIdentifier, metadata: bool = False
     ) -> Optional[ParsedResponse]:
-        # return await asyncio.to_thread(self.retrieve, call_id, metadata)
+        # NOTE: this is synchronous. ConcurrentBackend should handle async retrieval appropriately.
         return self.retrieve(call_id, metadata=metadata)
 
     @abstractmethod

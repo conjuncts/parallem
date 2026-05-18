@@ -85,6 +85,6 @@ async def test_llm_response_await_uses_backend_retrieve(generic_call_id):
     )
     response = PendingLLMResponse(call_id=generic_call_id, backend=backend)
 
-    value = await response
-    assert value == "awaited-response"
+    ready_response = await response
+    assert ready_response.final_answer == "awaited-response"
     assert response.final_answer == "awaited-response"

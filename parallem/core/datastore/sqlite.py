@@ -668,6 +668,30 @@ class SQLiteDatastore(BaseDatastore):
 
         return self._row_to_parsed_response(row, agent_name, include_metadata=metadata)
 
+    async def aretrieve(
+        self,
+        call_id: CallIdentifier,
+        metadata=False,
+        *,
+        origin_type: Optional[int] = None,
+    ) -> Optional[ParsedResponse]:
+        """
+        Asynchronously retrieve a response from SQLite.
+        NOTE: not currently async.
+
+        :param call_id: The task identifier containing agent_name, doc_hash, seq_id,
+            and optionally session_id.
+        :param metadata: When True, attach usage metadata to the response.
+        :param origin_type: Optional origin marker filter. ``None`` retrieves only
+            LLM-originated rows, ``1`` retrieves only human-originated rows.
+        :returns: The retrieved response, or None.
+        """
+        return self.retrieve(
+            call_id,
+            metadata=metadata,
+            origin_type=origin_type,
+        )
+
     def _read_metadata_tsv(
         self, provider_type: str, response_id: Optional[str]
     ) -> Optional[dict]:

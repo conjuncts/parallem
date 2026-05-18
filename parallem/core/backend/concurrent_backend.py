@@ -304,7 +304,7 @@ class ConcurrentBackend(BaseBackend):
         # only poll for changes if we have a matching task
         if any(_call_matches(m, call_id) for m in self.task_metas):
             await self._poll_changes(call_id)
-        return self._concurrent_ds.retrieve(call_id, metadata=metadata)
+        return await self._concurrent_ds.aretrieve(call_id, metadata=metadata)
 
     async def await_response(
         self, call_id: CallIdentifier, metadata: bool = False

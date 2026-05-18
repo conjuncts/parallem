@@ -46,6 +46,24 @@ class BaseDatastore(BaseRetriever, ABC):
         """
 
     @abstractmethod
+    async def aretrieve(
+        self,
+        call_id: CallIdentifier,
+        metadata=False,
+        *,
+        origin_type: Optional[int] = None,
+    ) -> Optional[ParsedResponse]:
+        """
+        Asynchronously retrieve a response from the backend.
+
+        :param call_id: The task identifier containing agent_name, doc_hash, and seq_id.
+        :param metadata: Whether to include metadata in the response.
+        :param origin_type: Optional origin marker filter. ``None`` retrieves only
+            LLM-originated rows, ``1`` retrieves only human-originated rows.
+        :returns: The retrieved response content.
+        """
+
+    @abstractmethod
     def populate_call_id(self, call_id: CallIdentifier) -> CallIdentifier:
         raise NotImplementedError
 

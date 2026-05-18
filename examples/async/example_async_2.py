@@ -1,5 +1,6 @@
+import asyncio
+
 import parallem as pllm
-from dotenv import load_dotenv
 
 
 async def haiku_writer_agent(agt: pllm.AgentContext):
@@ -12,19 +13,22 @@ async def haiku_writer_agent(agt: pllm.AgentContext):
     return out
 
 
-if __name__ == "__main__":
-    load_dotenv()
-
+async def main():
     with pllm.resume_directory(
-        ".pllm/simplest",
+        ".pllm/fresh/1/simplest",
         provider="openai",
         strategy="concurrent",
         dashboard=True,
         hash_by=["llm"],
+        load_dotenv=True,
     ) as orch:
-        # Instantiate the agent.
-        a1 = orch.create_agent(haiku_writer_agent, agent_name="Writer-1")
-        a2 = orch.create_agent(haiku_writer_agent, agent_name="Writer-2")
+        # Less good, because Writer-1 must finish before Writer-2 can begin, but still works
+        with orch.agent("Writer-1") as a1:
+            await haiku_writer_agent(a1)
+        with orch.agent("Writer-2") as a2:
+            await haiku_writer_agent(a2)
 
-        # Run agents. Similar to async.gather or async.TaskGroup
-        out = orch.run_agents(a1, a2)
+if __name__ == "__main__":
+    asyncio.run(main())
+
+    

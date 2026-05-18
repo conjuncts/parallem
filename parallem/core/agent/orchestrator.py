@@ -169,6 +169,7 @@ class AgentOrchestrator:
     ):
         """
         Resolve multiple created agent handles.
+        Similar to asyncio.gather, but this correctly handles batch-related signals.
 
         Similar to gather semantics:
         - Executes all queued concurrent coroutines first.

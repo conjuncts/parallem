@@ -107,7 +107,9 @@ class _AwaitableLazyOpenAIResponse:
 
     async def _resolve_and_return(self) -> _LazyOpenAIResponse:
         """Await the LLMResponse and return the lazy payload."""
-        await self._llm_response
+        resolved = await self._llm_response
+        if isinstance(resolved, LLMResponse):
+            self._llm_response = resolved
         self._payload = _LazyOpenAIResponse(
             self._llm_response,
             self._model,

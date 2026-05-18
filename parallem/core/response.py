@@ -50,26 +50,30 @@ class PendingLLMResponse(LLMResponse):
         self._pr = None
         self._backend = None  # Will be set later
 
-    def __await__(self) -> str:
+    def __await__(self) -> "ReadyLLMResponse":
         "Async obtain response value"
 
         async def _await_response():
             if self._value is not None:
-                return self._value
+                return ReadyLLMResponse(
+                    call_id=self.call_id,
+                    pr=self._pr,
+                    value=self._value,
+                )
 
             backend = self._backend
             if backend is None or self.call_id is None:
-                return self.final_answer
+                return ReadyLLMResponse(call_id=self.call_id, value=self.final_answer)
 
             pr = await backend.await_response(self.call_id)
             if pr is None:
                 self._value = None
                 self._pr = None
-                return None
+                return ReadyLLMResponse(call_id=self.call_id, value=None)
 
             self._pr = pr
             self._value = pr.text
-            return self._value
+            return ReadyLLMResponse(call_id=self.call_id, pr=pr, value=self._value)
 
         return _await_response().__await__()
 

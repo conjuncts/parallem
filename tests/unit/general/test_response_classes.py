@@ -51,7 +51,9 @@ class TestReadyLLMResponse:
             return await response
 
         result = asyncio.run(_run())
-        assert result == response.final_answer
+        assert isinstance(result, ReadyLLMResponse)
+        assert result.final_answer == "Immediate content"
+        assert "Immediate content" == response.final_answer
 
 
 class TestPendingLLMResponse:
