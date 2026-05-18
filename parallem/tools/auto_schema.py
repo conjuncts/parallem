@@ -41,7 +41,7 @@ def python_type_to_json_schema(tp):
 
 
 def to_tool_schema(funcs: Union[Callable, List[Callable]]) -> List[dict]:
-    """Turns a list of functions into a list of OpenAPI-style JSON tool schemas, for use in tool calls."""
+    """Turns functions into OpenAI-compatible JSON schemas, for function calling."""
     tool_schemas = []
 
     if not isinstance(funcs, (list, tuple)):

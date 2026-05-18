@@ -1,10 +1,15 @@
 import copy
 from typing import TYPE_CHECKING, List, Union
+from anthropic.types.document_block_param import DocumentBlockParam
+from anthropic.types.image_block_param import ImageBlockParam
+from anthropic.types.text_block_param import TextBlockParam
+from anthropic.types.tool_result_block_param import ToolResultBlockParam
 from pydantic import BaseModel
 from parallem.provider.base import (
     BaseParser,
 )
 from parallem.types import (
+    MCPOutput,
     ParsedResponse,
     CommonQueryParameters,
     FunctionCallRequest,
@@ -20,7 +25,10 @@ from parallem.utils.image import (
 
 if TYPE_CHECKING:
     from anthropic.types import Message
+    from anthropic.types.message_param import MessageParam
     from parallem.tools.mcp import MCPServerTool
+    from anthropic.types.tool_result_block_param import ToolResultBlockParam
+    from mcp.types import ContentBlock
 
 
 def _ensure_betas(config: dict, betas_to_add: Union[str, List[str]] | None) -> None:
@@ -92,31 +100,33 @@ def _fix_docs_for_anthropic(
             formatted_docs.append(msg)
             continue
         elif isinstance(doc, FunctionCallOutput):
+            if isinstance(doc, MCPOutput):
+                fc_content = [_fix_mcp_block(x) for x in doc.content]
+            else:
+                fc_content = doc.content
+            tool_result_content: "ToolResultBlockParam" = {
+                "type": "tool_result",
+                "tool_use_id": doc.call_id,
+                "content": fc_content,
+            }
             msg = {
                 "role": "user",
-                "content": [
-                    {
-                        "type": "tool_result",
-                        "tool_use_id": doc.call_id,
-                        "content": doc.content,
-                    }
-                ],
+                "content": [tool_result_content],
             }
             formatted_docs.append(msg)
             continue
         elif isinstance(doc, tuple) and len(doc) == 2:
-            # from anthropic.types.message_param import MessageParam
             # For anthropic, only valid roles are ["user", "assistant"]
 
             role, content = doc
             if role in {"system", "developer"}:
                 # Anthropic does not have system/developer roles, map to user
-                msg = {
+                msg: "MessageParam" = {
                     "role": "user",
                     "content": content,
                 }
             elif role in {"user", "assistant"}:
-                msg = {
+                msg: "MessageParam" = {
                     "role": role,
                     "content": content,
                 }
@@ -157,6 +167,42 @@ def _fix_docs_for_anthropic(
     return formatted_docs
 
 
+def _fix_mcp_block(
+    content_block: "ContentBlock"
+) -> "ToolResultBlockParam":
+    # Overall type:
+    if content_block.type == "text":
+        output: "TextBlockParam" = {
+            "type": "text",
+            "text": content_block.text,
+        }
+        return output
+    if content_block.type == "image":
+        img_type = content_block.mimeType
+        img_b64 = content_block.data
+        # "ResponseInputImage"
+        output: "ImageBlockParam" = {
+            "type": "image",
+            "source": {
+                "type": "base64",
+                "media_type": img_type,
+                "data": img_b64,
+            },
+        }
+        return output
+    if content_block.type == "resource":
+        # "ResponseInputFile"
+        # TODO untested
+        resource = content_block.resource
+        if getattr(resource, "blob"):
+            content = resource.blob
+        else:
+            content = resource.text
+        output: "DocumentBlockParam" = {
+            "type": "document",
+            "source": content
+        }
+    return content_block.model_dump_json(exclude_none=True)
 
 
 def _transform_schema(base_model) -> dict:

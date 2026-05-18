@@ -1,16 +1,16 @@
 import parallem as pllm
 from fastmcp import Client
-from parallem.core.cast.convert_mcp import mcp_content_block_to_openai_fc_out, mcp_tool_to_openai_responses_tool
+from parallem.core.cast.convert_mcp import mcp_tool_to_tool_schema
 
 mcp_client = Client("examples/mcp/math_server.py")
 
-async def my_agent(agt: pllm.AgentContext, mcp_client: Client):
+async def my_agent(agt: pllm.AgentContext, mcp_client: Client, question: str):
     conv = agt.get_msg_state()
     
     available_tools = await mcp_client.list_tools()
-    schema = [mcp_tool_to_openai_responses_tool(tool) for tool in available_tools]
+    schema = [mcp_tool_to_tool_schema(tool) for tool in available_tools]
     last_msg = conv.ask_llm(
-        "Add 3 and 5.",
+        question,
         tools=schema,
     )
 
@@ -19,12 +19,11 @@ async def my_agent(agt: pllm.AgentContext, mcp_client: Client):
 
         for fc in last_msg.function_calls:
             out = await mcp_client.call_tool(fc.name, fc.args)
-            # need to convert ContentBlock
             conv.append(
-                pllm.FunctionCallOutput(
+                pllm.MCPOutput(
                     name=fc.name,
                     call_id=fc.call_id,
-                    content=[mcp_content_block_to_openai_fc_out(x) for x in out.content],
+                    content=out.content,
                 )
             )
 
@@ -35,15 +34,15 @@ async def main():
 
     with pllm.resume_directory(
         ".pllm/simplest",
-        provider="openai",
-        strategy="batch",
+        provider="anthropic",
+        strategy="sync",
         dashboard=True,
         hash_by=["llm"],
         load_dotenv=True,
     ) as orch:
         with orch.agent() as agt:
             async with mcp_client:
-                await my_agent(agt, mcp_client)
+                await my_agent(agt, mcp_client, "Add 3 and 6.")
 
 if __name__ == "__main__":
     import asyncio

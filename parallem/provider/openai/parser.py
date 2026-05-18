@@ -1,9 +1,11 @@
 from typing import TYPE_CHECKING, List, Union
 
+from openai.types.responses.response_function_tool_call_output_item import ResponseFunctionToolCallOutputItem
+
 from parallem.provider.base import BaseParser
 from parallem.provider.openai.common import map_server_tools
 from parallem.provider.openai.openai_tools import to_strict_json_schema
-from parallem.types import CommonQueryParameters, FunctionCall, FunctionCallOutput, FunctionCallRequest, LLMDocument, ParsedResponse, ServerTool
+from parallem.types import CommonQueryParameters, FunctionCall, FunctionCallOutput, FunctionCallRequest, LLMDocument, MCPOutput, ParsedResponse, ServerTool
 from parallem.utils._quick_pydantic import is_pydantic_model
 from parallem.utils.image import get_type_and_b64, is_image
 
@@ -12,6 +14,9 @@ if TYPE_CHECKING:
     from openai.types.responses.response import Response
     from openai.types.responses.response_function_tool_call_output_item import ResponseFunctionToolCallOutputItem
     from pydantic import BaseModel
+
+    from mcp.types import ContentBlock
+
 
 def _fix_docs_for_openai(
     documents: List[LLMDocument],
@@ -44,10 +49,14 @@ def _fix_docs_for_openai(
                     }
                 )
         elif isinstance(doc, FunctionCallOutput):
+            if isinstance(doc, MCPOutput):
+                fc_content = [_fix_mcp_block(x) for x in doc.content]
+            else:
+                fc_content = doc.content
             msg: "ResponseFunctionToolCallOutputItem" = {
                 "type": "function_call_output",
                 "call_id": doc.call_id,
-                "output": doc.content,
+                "output": fc_content,
             }
             formatted_docs.append(msg)
         elif isinstance(doc, tuple) and len(doc) == 2:
@@ -80,6 +89,41 @@ def _fix_docs_for_openai(
         else:
             raise ValueError(f"Unsupported document type: {type(doc)}")
     return formatted_docs
+
+
+def _fix_mcp_block(
+    content_block: "ContentBlock"
+) -> "ResponseFunctionToolCallOutputItem":
+    # Overall type:
+    # see openai.types.responses.response_function_tool_call_output_item
+    # ResponseFunctionToolCallOutputItem
+    # ResponseInputText
+    # ResponseInputImage
+    # ResponseInputFile
+    if content_block.type == "text":
+        return {
+            "type": "input_text",
+            "text": content_block.text,
+        }
+    if content_block.type == "image":
+        return {
+            "type": "input_image",
+            "image_url": f"data:{content_block.mimeType};base64,{content_block.data}"
+        }
+    if content_block.type == "resource":
+        # TODO untested
+        resource = content_block.resource
+        if getattr(resource, "blob", None):
+            return {
+                "type": "input_file",
+                "file_data": resource.blob,
+            }
+        return {
+            "type": "input_text",
+            "text": resource.text,
+        }
+    return content_block.model_dump_json(exclude_none=True)
+
 
 class OpenAIParser(BaseParser):
     """Parses OpenAI API responses into a common format for downstream processing."""

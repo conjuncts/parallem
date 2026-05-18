@@ -2,6 +2,7 @@ from abc import ABC
 from dataclasses import dataclass
 from pathlib import Path
 from typing import (
+    TYPE_CHECKING,
     Any,
     List,
     Literal,
@@ -17,6 +18,12 @@ import json
 from PIL import Image
 
 from parallem.utils.hardcoded import guess_provider_and_name
+
+if TYPE_CHECKING:
+    try:
+        from mcp.types import ContentBlock
+    except ImportError:
+        pass
 
 
 class WorkingMetadata(TypedDict):
@@ -114,7 +121,6 @@ class BatchResult:
     location: Path = None
     """Where the batch output is stored."""
 
-
 class FunctionCall:
     """Represents a single tool call to a user-defined function."""
 
@@ -196,6 +202,17 @@ class FunctionCallOutput:
 
     def __str__(self):
         return self.__repr__()
+
+
+@dataclass(slots=True)
+class MCPOutput(FunctionCallOutput):
+    """Represents the output/result of a function/tool call from an MCP server."""
+
+    content: List["ContentBlock"]
+    """Content blocks from the MCP function call."""
+
+    def __repr__(self):
+        return f"MCPOutput(name={self.name}, call_id={(self.call_id or '')[:8]}, content={len(self.content)} blocks)"
 
 
 ServerToolType = Literal["web_search", "code_interpreter", "mcp"]
