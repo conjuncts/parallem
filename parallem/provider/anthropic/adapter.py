@@ -387,7 +387,7 @@ class AnthropicAdapter(BaseAdapter):
         return request_params
 
     def convert_response(
-        self, raw_response: Union[BaseModel, dict], provider_type: str = None
+        self, raw_response: Union[BaseModel, dict]
     ) -> ParsedResponse:
         # https://docs.claude.com/en/docs/agents-and-tools/tool-use/implement-tool-use
         if isinstance(raw_response, BaseModel):

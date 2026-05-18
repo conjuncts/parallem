@@ -17,6 +17,7 @@ from parallem.logging.dash_logger import (
 )
 from parallem.types import (
     CallIdentifier,
+    LLMIdentity,
     ParsedResponse,
     CommonQueryParameters,
 )
@@ -182,7 +183,7 @@ class ConcurrentBackend(BaseBackend):
             call_id=call_id,
             coro=coro,
             provider=provider,
-            provider_type=params["llm"].provider_type,
+            llm=params["llm"],
         )
 
         return PendingLLMResponse(
@@ -219,7 +220,7 @@ class ConcurrentBackend(BaseBackend):
         call_id: CallIdentifier,
         coro: types.CoroutineType,
         provider=None,
-        provider_type: Optional[str] = None,
+        llm: Optional[LLMIdentity] = None,
     ):
         """Submit a coroutine to be executed in the backend's event loop"""
         if self._loop is None or self._loop.is_closed():
@@ -236,7 +237,7 @@ class ConcurrentBackend(BaseBackend):
 
         # Create the task in the backend's event loop
         future = asyncio.run_coroutine_threadsafe(
-            self._create_and_store_task(call_id, coro, provider, provider_type),
+            self._create_and_store_task(call_id, coro, provider, llm),
             self._loop,
         )
 
@@ -249,7 +250,7 @@ class ConcurrentBackend(BaseBackend):
         call_id: CallIdentifier,
         coro: types.CoroutineType,
         provider=None,
-        provider_type: Optional[str] = None,
+        llm: Optional[LLMIdentity] = None,
     ):
         """Helper to create and store a task in the event loop"""
 
@@ -261,7 +262,7 @@ class ConcurrentBackend(BaseBackend):
             await self._apply_throttling()
 
             result = await coro
-            parsed = provider.parse_response(result, provider_type=provider_type)
+            parsed = provider.parse_response(result, llm=llm)
             return parsed, metadata
 
         task = asyncio.create_task(wrapped_coro())

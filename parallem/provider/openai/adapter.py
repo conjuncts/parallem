@@ -184,7 +184,7 @@ class OpenAIAdapter(BaseAdapter):
         }
 
     def convert_response(
-        self, raw_response: Union["BaseModel", dict], provider_type: str = None
+        self, raw_response: Union["BaseModel", dict]
     ) -> ParsedResponse:
         """Parse OpenAI API response into common format"""
         if isinstance(raw_response, dict):

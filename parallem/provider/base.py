@@ -49,7 +49,7 @@ class BaseAdapter:
         raise NotImplementedError
 
     def convert_response(
-        self, raw_response: Union["BaseModel", dict], provider_type: str = None
+        self, raw_response: Union["BaseModel", dict]
     ) -> ParsedResponse:
         """Parse raw API response into common format."""
         raise NotImplementedError
@@ -79,7 +79,7 @@ class BaseProvider:
         raise NotImplementedError
 
     def parse_response(
-        self, raw_response: Union["BaseModel", dict], provider_type: str = None
+        self, raw_response: Union["BaseModel", dict], llm: Optional[LLMIdentity] = None
     ) -> ParsedResponse:
         """
         Parse a raw API response into a common format.

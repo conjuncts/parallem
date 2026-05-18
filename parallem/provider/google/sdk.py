@@ -1,6 +1,6 @@
 import json
 from pathlib import Path
-from typing import TYPE_CHECKING, List, Union
+from typing import TYPE_CHECKING, List, Optional, Union
 from parallem.provider.base import (
     ConcurrentProvider,
     BaseProvider,
@@ -45,10 +45,10 @@ class GoogleProvider(BaseProvider):
         return LLMIdentity("gemini-2.5-flash", provider_type=self.provider_type)
 
     def parse_response(
-        self, raw_response: Union["BaseModel", dict], provider_type: str = None
+        self, raw_response: Union["BaseModel", dict], llm: Optional[LLMIdentity] = None
     ) -> ParsedResponse:
         """Parse Gemini API response into common format"""
-        return self.adapter.convert_response(raw_response, provider_type=provider_type)
+        return self.adapter.convert_response(raw_response)
         
 
 

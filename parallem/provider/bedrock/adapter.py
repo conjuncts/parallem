@@ -219,5 +219,5 @@ class BedrockAdapter(BaseAdapter):
     def fix_config(self, params, **kwargs):
         return _prepare_bedrock_body(params, kwargs)
 
-    def convert_response(self, raw_response, provider_type = None):
+    def convert_response(self, raw_response):
         return _convert_to_bedrock_response(raw_response)

@@ -237,7 +237,6 @@ class OpenAIChatAdapter(BaseAdapter):
     def convert_response(
         self,
         raw_response: Union["BaseModel", dict],
-        provider_type: str = None,
     ) -> ParsedResponse:
         """Parse OpenAI API response into common format."""
         

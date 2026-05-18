@@ -1,6 +1,6 @@
 import asyncio
 import json
-from typing import TYPE_CHECKING, Union
+from typing import TYPE_CHECKING, Optional, Union
 
 from parallem.core.exception import ProviderCompatibilityError
 from parallem.provider.base import (
@@ -54,7 +54,7 @@ class BedrockProvider(BaseProvider):
             )
 
     def parse_response(
-        self, raw_response: Union["BaseModel", dict], provider_type: str = None
+        self, raw_response: Union["BaseModel", dict], llm: Optional[LLMIdentity] = None
     ) -> ParsedResponse:
         """Parse Bedrock InvokeModel response into common format.
 

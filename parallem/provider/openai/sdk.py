@@ -1,4 +1,4 @@
-from typing import TYPE_CHECKING, Union
+from typing import TYPE_CHECKING, Optional, Union
 
 from parallem.provider.openai.common import OpenAIBatchMixin
 from parallem.provider.base import (
@@ -41,9 +41,9 @@ class OpenAIProvider(BaseProvider):
         return LLMIdentity("gpt-5-nano", provider_type=self.provider_type)
 
     def parse_response(
-        self, raw_response: Union["BaseModel", dict], provider_type: str = None
+        self, raw_response: Union["BaseModel", dict], llm: Optional[LLMIdentity] = None
     ) -> ParsedResponse:
-        return self.adapter.convert_response(raw_response, provider_type=provider_type)
+        return self.adapter.convert_response(raw_response)
 
 
 class SyncOpenAIProvider(SyncProvider, OpenAIProvider):

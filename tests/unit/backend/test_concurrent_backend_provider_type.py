@@ -1,5 +1,6 @@
 import tempfile
 from pathlib import Path
+from typing import Optional
 
 from parallem.core.backend.concurrent_backend import ConcurrentBackend
 from parallem.core.file_manager import FileManager
@@ -25,7 +26,8 @@ class StubConcurrentProvider(ConcurrentProvider):
 
         return _coro()
 
-    def parse_response(self, raw_response, provider_type: str = None):
+    def parse_response(self, raw_response, llm: Optional[LLMIdentity] = None):
+        provider_type = llm.provider_type if llm else "unknown"
         self.seen_provider_types.append(provider_type)
         return ParsedResponse(
             text=f"{provider_type}:{raw_response['content']}",

@@ -1,6 +1,6 @@
 import json
 from pathlib import Path
-from typing import TYPE_CHECKING, List, Union
+from typing import TYPE_CHECKING, List, Optional, Union
 from pydantic import BaseModel
 from parallem.provider.anthropic.adapter import AnthropicAdapter
 from parallem.provider.anthropic._version_checks import enforce_anthropic_min_version_for_structured_output
@@ -49,7 +49,7 @@ class AnthropicProvider(BaseProvider):
         )
 
     def parse_response(
-        self, raw_response: Union[BaseModel, dict], provider_type: str = None
+        self, raw_response: Union[BaseModel, dict], llm: Optional[LLMIdentity] = None
     ) -> ParsedResponse:
         """Parse Anthropic API response into common format"""
 

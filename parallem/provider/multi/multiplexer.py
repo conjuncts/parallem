@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import Literal, overload
+from typing import Literal, Optional, overload
 
 from parallem.provider.base import (
     BaseProvider,
@@ -63,9 +63,9 @@ class MultiProvider(BaseProvider):
             self.providers[provider_name] = provider
             return provider
 
-    def parse_response(self, raw_response, provider_type: str = None):
-        provider = self._load_provider(provider_type, self.base_strategy)
-        return provider.parse_response(raw_response)
+    def parse_response(self, raw_response, llm: Optional[LLMIdentity] = None):
+        provider: "BaseProvider" = self._load_provider(llm.provider_type, self.base_strategy)
+        return provider.parse_response(raw_response, llm=llm)
 
 
 class SyncMultiProvider(SyncProvider, MultiProvider):
@@ -87,9 +87,9 @@ class ConcurrentMultiProvider(ConcurrentProvider, MultiProvider):
         provider = self._load_provider(llm_identity.provider_type, "concurrent")
         return provider.prepare_concurrent_call(params, **kwargs)
 
-    def parse_response(self, raw_response, provider_type: str = None):
-        provider = self._load_provider(provider_type, "concurrent")
-        return provider.parse_response(raw_response)
+    def parse_response(self, raw_response, llm: Optional[LLMIdentity] = None):
+        provider: "BaseProvider" = self._load_provider(llm.provider_type, "concurrent")
+        return provider.parse_response(raw_response, llm=llm)
 
 
 class BatchMultiProvider(BatchProvider, MultiProvider):
@@ -98,28 +98,28 @@ class BatchMultiProvider(BatchProvider, MultiProvider):
 
     def get_batch_custom_ids(self, stuff: list[dict], provider_type: str) -> list[str]:
         """Get batch IDs from dicts."""
-        provider = self._load_provider(provider_type, "batch")
+        provider: "BaseProvider" = self._load_provider(provider_type, "batch")
         return provider.get_batch_custom_ids(stuff, provider_type=provider_type)
 
     def prepare_batch_call(self, params: CommonQueryParameters, **kwargs):
         llm_identity = params["llm"]
-        provider = self._load_provider(llm_identity.provider_type, "batch")
+        provider: "BaseProvider" = self._load_provider(llm_identity.provider_type, "batch")
         return provider.prepare_batch_call(params, **kwargs)
 
     def download_batch(
         self, batch_uuid: str, provider_type: str
     ) -> list["BatchResult"]:
-        provider = self._load_provider(provider_type, "batch")
+        provider: "BaseProvider" = self._load_provider(provider_type, "batch")
         return provider.download_batch(batch_uuid, provider_type=provider_type)
 
     def submit_batch_to_provider(self, fpath: Path, llm: LLMIdentity) -> str:
-        provider = self._load_provider(llm.provider_type, "batch")
+        provider: "BaseProvider" = self._load_provider(llm.provider_type, "batch")
         return provider.submit_batch_to_provider(fpath, llm)
 
     def cancel_batch(self, batch_uuid: str, provider_type: str) -> None:
-        provider = self._load_provider(provider_type, "batch")
+        provider: "BaseProvider" = self._load_provider(provider_type, "batch")
         provider.cancel_batch(batch_uuid, provider_type=provider_type)
 
-    def parse_response(self, raw_response, provider_type: str = None):
-        provider = self._load_provider(provider_type, "batch")
-        return provider.parse_response(raw_response, provider_type=provider_type)
+    def parse_response(self, raw_response, llm: Optional[LLMIdentity] = None):
+        provider: "BaseProvider" = self._load_provider(llm.provider_type, "batch")
+        return provider.parse_response(raw_response, llm=llm)

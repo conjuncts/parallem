@@ -65,13 +65,11 @@ if __name__ == "__main__":
 
     with pllm.resume_directory(
         ".pllm/example/batch",
+        provider="bedrock",
         strategy="sync",
         dashboard=True,
-        # llm=pllm.LLMIdentity(
-        #     "moonshotai.kimi-k2.5", 
-        #     provider_type="openai-chat",
-        # ),
-        llm="gemini-2.5-flash",
+        llm="amazon.nova-2-lite-v1:0",
+        # llm="gemini-2.5-flash",
         hash_by=["llm"],
         save_input=True,
         tweaks={"error_mode": "emit"}

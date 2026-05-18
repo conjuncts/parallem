@@ -336,7 +336,7 @@ class GoogleAdapter(BaseAdapter):
         return body
 
     def convert_response(
-        self, raw_response: Union["BaseModel", dict], provider_type: str = None
+        self, raw_response: Union["BaseModel", dict]
     ) -> ParsedResponse:
         """Parse Gemini API response into common format"""
         if isinstance(raw_response, dict):
