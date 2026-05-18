@@ -273,13 +273,13 @@ class BatchBackend(BaseBackend):
                 for record in batch_groups:
                     fpath = self._fm.save_batch_in(record.data)
                     pending_fpaths.append(fpath)
-                dl.print(f"Batch preview files written to {pending_fpaths[0]}")
+                dl.info(f"Batch preview files written to {pending_fpaths[0]}")
                 confirmed = dl.confirm_batch_submission(
                     num_batches, total_calls, allow_preview=False
                 )
 
             if confirmed == "n":
-                dl.print("Batch submission cancelled by user.")
+                dl.info("Batch submission cancelled by user.")
                 # Don't clear the buffer - allow the user to try again later
                 return CohortIdentifier(batch_ids=[], session_id=self.session_id)
             # else, proceed
@@ -302,7 +302,7 @@ class BatchBackend(BaseBackend):
 
             # Log batch submission to dashboard
             dl.update_hash(batch_uuid, HashStatus.SENT_BATCH)
-            dl.print("Sent batch:", ident.batch_uuid)
+            dl.info(f"Sent batch: {ident.batch_uuid}")
             dl._update_console()
 
             # Compress batch input files
@@ -330,7 +330,7 @@ class BatchBackend(BaseBackend):
         """Persist any remaining data and datastore"""
         # Print summary of pending requests if any were encountered
         if self._pending_count > 0:
-            self.dashlog.print(
+            self.dashlog._logger.info(
                 f"Skipped {self._pending_count} request(s) already in pending batches."
             )
         self._input_storage.persist()

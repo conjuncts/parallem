@@ -95,6 +95,7 @@ def resume_directory(
     logger = logging.getLogger("parallem")
     logger.setLevel(log_level)
     logger.addHandler(pllm_log_handler)
+    dashlog._logger = logger
     logger.debug("Resuming directory")
 
     # Prevent propagation to root logger to avoid duplicate messages

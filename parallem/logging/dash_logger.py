@@ -1,10 +1,11 @@
 import contextlib
+from logging import Logger
 import sys
 from typing_extensions import deprecated
 import shutil
 import threading
 from collections import OrderedDict
-from typing import Literal
+from typing import Literal, Optional
 from colorama import Fore, Style, init
 from dataclasses import dataclass
 from enum import Enum
@@ -114,6 +115,7 @@ class DashboardLogger:
         self._context_keep_when_done = True
         self._stdout_cm = None
         self._stdout_holder = None
+        self._logger: Optional[Logger] = None
 
         # Colors for different statuses
         self._status_colors = {
@@ -392,6 +394,13 @@ class DashboardLogger:
         else:
             return "n"
 
+
+    def info(self, message: str):
+        """Log an info message to the dashboard logger's internal logger."""
+        if self._logger is not None:
+            self._logger.info(message)
+        else:
+            print(message)
 
 class PrimitiveDashboardLogger(DashboardLogger):
     """
