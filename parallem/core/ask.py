@@ -1,4 +1,4 @@
-from abc import ABC
+from abc import ABC, abstractmethod
 from typing import TYPE_CHECKING, Callable, Dict, List, Optional, Sequence, Union
 
 from parallem.types import (
@@ -21,6 +21,7 @@ class Askable(ABC):
     A component that can be asked a question.
     """
 
+    @abstractmethod
     def ask_llm(
         self,
         documents: Union[
@@ -63,8 +64,8 @@ class Askable(ABC):
         :returns: A LLMResponse. The value is **lazy loaded**: for best efficiency,
             it should not be resolved until you actually need it.
         """
-        raise NotImplementedError()
 
+    @abstractmethod
     def ask_functions(
         self,
         response: Optional[LLMResponse] = None,
@@ -88,8 +89,8 @@ class Askable(ABC):
             If None, it will be silently ignored.
             Default: None.
         """
-        raise NotImplementedError()
 
+    @abstractmethod
     def ask_human(
         self,
         prompt: str,
@@ -115,4 +116,3 @@ class Askable(ABC):
             Defaults to built-in ``input``.
         :returns: A human-provided response.
         """
-        raise NotImplementedError()

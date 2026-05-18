@@ -1,4 +1,4 @@
-from abc import ABC
+from abc import ABC, abstractmethod
 from typing import TYPE_CHECKING, Literal, Optional
 
 from parallem.types import (
@@ -21,12 +21,13 @@ class BaseDatastore(BaseRetriever, ABC):
     Stores responses
     """
 
+    @abstractmethod
     def persist(self) -> None:
         """
         Persist changes to file(s). Cleans up resources.
         """
-        raise NotImplementedError
 
+    @abstractmethod
     def retrieve(
         self,
         call_id: CallIdentifier,
@@ -43,11 +44,12 @@ class BaseDatastore(BaseRetriever, ABC):
             LLM-originated rows, ``1`` retrieves only human-originated rows.
         :returns: The retrieved response content.
         """
-        raise NotImplementedError
 
+    @abstractmethod
     def populate_call_id(self, call_id: CallIdentifier) -> CallIdentifier:
         raise NotImplementedError
 
+    @abstractmethod
     def store(
         self,
         call_id: CallIdentifier,
@@ -69,6 +71,7 @@ class BaseDatastore(BaseRetriever, ABC):
 
     # === begin error methods ===
 
+    @abstractmethod
     def store_error(
         self,
         call_id: CallIdentifier,
@@ -80,10 +83,10 @@ class BaseDatastore(BaseRetriever, ABC):
         :param call_id: The task identifier containing doc_hash, seq_id, and session_id.
         :param err: The error response object containing error details.
         """
-        raise NotImplementedError
 
     # === begin batch methods ===
 
+    @abstractmethod
     def store_pending_batch(
         self,
         batch_id: BatchIdentifier,
@@ -96,8 +99,8 @@ class BaseDatastore(BaseRetriever, ABC):
 
         :param batch_id: The batch identifier containing call_ids, custom_ids, and batch_uuid
         """
-        raise NotImplementedError
 
+    @abstractmethod
     def store_ready_batch(
         self,
         batch_result: BatchResult,
@@ -113,8 +116,8 @@ class BaseDatastore(BaseRetriever, ABC):
         :param batch_result: The completed batch results to store
         :param upsert: If True, update existing records instead of inserting duplicates (default: False)
         """
-        raise NotImplementedError
 
+    @abstractmethod
     def retrieve_batch_call_ids(self, batch_uuid: str) -> list[CallIdentifier]:
         """
         Retrieve all call_ids associated with an active batch_uuid.
@@ -122,24 +125,24 @@ class BaseDatastore(BaseRetriever, ABC):
         :param batch_uuid: The batch UUID to look up
         :returns: List of CallIdentifiers for this batch
         """
-        raise NotImplementedError
 
+    @abstractmethod
     def get_all_pending_batch_uuids(self) -> list[tuple[str, str]]:
         """
         Retrieve all active pending batches from the datastore.
 
         :returns: List of tuples (batch_uuid, provider_type), one for each unique active pending batch
         """
-        raise NotImplementedError
 
+    @abstractmethod
     def clear_batch_pending(self, batch_uuid: str) -> None:
         """
         Deactivate all pending batch records for a completed batch.
 
         :param batch_uuid: The batch UUID to deactivate
         """
-        raise NotImplementedError
 
+    @abstractmethod
     def is_call_in_pending_batch(self, call_id: CallIdentifier) -> bool:
         """
         Check if a call_id is already in an active pending batch.
@@ -147,8 +150,8 @@ class BaseDatastore(BaseRetriever, ABC):
         :param call_id: The call identifier to check
         :returns: True if the call_id is in an active pending batch, False otherwise
         """
-        raise NotImplementedError
 
+    @abstractmethod
     def export_tables(
         self,
         directory: Optional[str],
@@ -161,8 +164,8 @@ class BaseDatastore(BaseRetriever, ABC):
         :param directory: Directory to export tables to. If None, uses a default location.
         :param format: Export format - "parquet" for parquet files, "csv" for CSV, "tsv" for TSV.
         """
-        raise NotImplementedError
 
+    @abstractmethod
     def export_polars(
         self,
     ) -> dict[str, "pl.DataFrame"]:
@@ -173,6 +176,7 @@ class BaseDatastore(BaseRetriever, ABC):
         """
         raise NotImplementedError
 
+    @abstractmethod
     def import_polars(
         self,
         tables: dict[str, "pl.DataFrame"],
@@ -195,10 +199,10 @@ class BaseDatastore(BaseRetriever, ABC):
         :param tables: A dict mapping table names to Polars DataFrames.
         :param update: If True (default), upsert rows instead of overwriting the table.
         """
-        raise NotImplementedError
 
     # === begin memoize methods ===
 
+    @abstractmethod
     def store_memoize(
         self,
         agent_name: str,
@@ -213,8 +217,8 @@ class BaseDatastore(BaseRetriever, ABC):
         :param operation_log: The :class:`~parallem.core.memoize.operations.OperationLog`
             to persist.
         """
-        pass
 
+    @abstractmethod
     def retrieve_memoize(
         self,
         agent_name: str,
@@ -228,4 +232,3 @@ class BaseDatastore(BaseRetriever, ABC):
         :return: The :class:`~parallem.core.memoize.operations.OperationLog`, or
             ``None`` if not found.
         """
-        return None

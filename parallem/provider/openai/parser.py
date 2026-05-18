@@ -48,11 +48,11 @@ def _fix_docs_for_openai(
                         "type": "function_call",
                     }
                 )
-        elif isinstance(doc, FunctionCallOutput):
+        elif isinstance(doc, (FunctionCallOutput, MCPOutput)):
+            fc_content = doc.content
             if isinstance(doc, MCPOutput):
-                fc_content = [_fix_mcp_block(x) for x in doc.content]
-            else:
-                fc_content = doc.content
+                fc_content = [_fix_mcp_block(x) for x in fc_content]
+
             msg: "ResponseFunctionToolCallOutputItem" = {
                 "type": "function_call_output",
                 "call_id": doc.call_id,

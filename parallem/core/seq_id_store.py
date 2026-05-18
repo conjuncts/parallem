@@ -15,7 +15,6 @@ class SeqIdStore(ABC):
         :param agent_name: Agent name.
         :return: Next sequence ID for this (session, agent) pair.
         """
-        raise NotImplementedError()
 
 
 class InMemorySeqIdStore(SeqIdStore):

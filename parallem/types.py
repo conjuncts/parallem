@@ -1,5 +1,5 @@
-from abc import ABC
-from dataclasses import dataclass
+from abc import ABC, abstractmethod
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import (
     TYPE_CHECKING,
@@ -162,9 +162,18 @@ class FunctionCall:
         return self.__repr__()
 
 
+class AskItem:
+    """An item (a document, LLMResponse, etc.) which can be passed to ask_llm()."""
+
+    type: str
+    """Discriminator for the item kind."""
+
+
 @dataclass(slots=True)
-class FunctionCallRequest:
+class FunctionCallRequest(AskItem):
     """Represents the LLM requesting function/tool call(s)"""
+
+    type: Literal["function_call"] = field(init=False, default="function_call")
 
     text_content: str
     """Text content, like thoughts about invoking a function."""
@@ -185,8 +194,12 @@ class FunctionCallRequest:
 
 
 @dataclass(slots=True)
-class FunctionCallOutput:
+class FunctionCallOutput(AskItem):
     """Represents the output/result of a function/tool call."""
+
+    type: Literal["function_call_output"] = field(
+        init=False, default="function_call_output"
+    )
 
     content: Any
     """The output content from the function call."""
@@ -205,8 +218,10 @@ class FunctionCallOutput:
 
 
 @dataclass(slots=True)
-class MCPOutput(FunctionCallOutput):
+class MCPOutput(AskItem):
     """Represents the output/result of a function/tool call from an MCP server."""
+
+    type: Literal["mcp_output"] = field(init=False, default="mcp_output")
 
     content: List["ContentBlock"]
     """Content blocks from the MCP function call."""
@@ -414,10 +429,12 @@ class MinorTweaks(TypedDict, total=False):
 
 
 
-class LLMResponse:
+class LLMResponse(AskItem):
     """
     Any response outputted by an LLM. **You must access the value through `final_answer`.**
     """
+
+    type: Literal["llm_response"] = "llm_response"
 
     def __init__(self, value: str, *, call_id: CallIdentifier = None):
         self._value = value
@@ -507,6 +524,8 @@ class HumanResponse(LLMResponse):
     using ``origin_type=1``.
     """
 
+    type: Literal["human_response"] = "human_response"
+
     def __init__(
         self,
         value: Optional[str],
@@ -539,6 +558,7 @@ class BaseRetriever(ABC):
     Class where retrieve(call_id) and populate_call_id(call_id) is defined
     """
 
+    @abstractmethod
     def retrieve(
         self,
         call_id: CallIdentifier,
@@ -554,7 +574,6 @@ class BaseRetriever(ABC):
             LLM-originated rows, ``1`` retrieves only human-originated rows.
         :returns: The retrieved ParsedResponse.
         """
-        raise NotImplementedError
 
     async def await_response(
         self, call_id: CallIdentifier, metadata: bool = False
@@ -562,6 +581,7 @@ class BaseRetriever(ABC):
         # return await asyncio.to_thread(self.retrieve, call_id, metadata)
         return self.retrieve(call_id, metadata=metadata)
 
+    @abstractmethod
     def populate_call_id(
         self, call_id: CallIdentifier, *, metadata=False
     ) -> CallIdentifier:
@@ -572,4 +592,3 @@ class BaseRetriever(ABC):
         :param metadata: Whether to include metadata in the populated call_id.
         :returns: A fully populated CallIdentifier with all necessary fields filled in.
         """
-        raise NotImplementedError

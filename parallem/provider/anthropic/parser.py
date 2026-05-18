@@ -99,11 +99,11 @@ def _fix_docs_for_anthropic(
             msg = {"role": "assistant", "content": msg_contents}
             formatted_docs.append(msg)
             continue
-        elif isinstance(doc, FunctionCallOutput):
+        elif isinstance(doc, (FunctionCallOutput, MCPOutput)):
+            fc_content = doc.content
             if isinstance(doc, MCPOutput):
-                fc_content = [_fix_mcp_block(x) for x in doc.content]
-            else:
-                fc_content = doc.content
+                fc_content = [_fix_mcp_block(x) for x in fc_content]
+
             tool_result_content: "ToolResultBlockParam" = {
                 "type": "tool_result",
                 "tool_use_id": doc.call_id,
