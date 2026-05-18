@@ -67,6 +67,7 @@ dev = [
 docs = [
     "mkdocs-material>=9.6.18",
     "click==8.2.1", # https://github.com/mkdocs/mkdocs/issues/4032
+    "mkdocs>=1.6.1",
 ]
 dev-full = [
     "datasets>=2.13.0",

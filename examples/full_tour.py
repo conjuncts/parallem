@@ -20,7 +20,7 @@ def power_of_3_agent(agt: pllm.AgentContext):
         "Please name a power of 3.",
         instructions="No explanation needed.",
     )
-    return resp.final_answer
+    return resp.final_answer.replace("\n", " ")
 
 def web_search_agent(agt: pllm.AgentContext):
     # 2. Web search tool
@@ -28,19 +28,19 @@ def web_search_agent(agt: pllm.AgentContext):
         "In 1 sentence, what is AAPL's current price?",
         tools=[pllm.tools.WebSearchTool()],
     )
-    return resp.final_answer
+    return resp.final_answer.replace("\n", " ")
 
 def structured_output_agent(agt: pllm.AgentContext):
     # 3. Structured output
     resp = agt.ask_llm("What is the capital of France?", structured_output=MyModel)
-    return resp.final_answer
+    return resp.final_answer.replace("\n", " ")
 
 def image_input_agent(agt: pllm.AgentContext):
     # 4. Image input. NOTE: Adjust image as needed.
     img = Image.open("tests/data/images/Nokota_Horses_cropped.jpg")
     img.thumbnail((100, 100))  # Downsample
     resp = agt.ask_llm("What animal is this?", img)
-    return resp.final_answer
+    return resp.final_answer.replace("\n", " ")
 
 def function_calling_agent(agt: pllm.AgentContext):
     # 5,6. Function calling.
@@ -54,8 +54,9 @@ def function_calling_agent(agt: pllm.AgentContext):
     resp6 = agt.ask_llm([ls_prompt, resp5, *fc_outs])
     
     if resp5.function_calls:
-        final_answer = f"Function calls: {resp5.function_calls}\n"
-    final_answer += resp5.final_answer + "\n" + resp6.final_answer
+        final_answer = f"Function calls: {resp5.function_calls}\n6. "
+    final_answer += resp5.final_answer.replace("\n", " ")
+    final_answer += resp6.final_answer.replace("\n", " ")
     return final_answer
 
 
@@ -75,12 +76,12 @@ if __name__ == "__main__":
         tweaks={"error_mode": "emit"}
     ) as orch:
         with orch.agent() as agt:
-            print(power_of_3_agent(agt))
+            print("1. " + power_of_3_agent(agt))
         with orch.agent() as agt:
-            print(web_search_agent(agt))
+            print("2. " + web_search_agent(agt))
         with orch.agent() as agt:
-            print(structured_output_agent(agt))
+            print("3. " + structured_output_agent(agt))
         with orch.agent() as agt:
-            print(image_input_agent(agt))
+            print("4. " + image_input_agent(agt))
         with orch.agent() as agt:
-            print(function_calling_agent(agt))
+            print("5. " + function_calling_agent(agt))

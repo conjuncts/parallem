@@ -52,6 +52,7 @@ MessageState supports any of the following types:
     - `Tuple[Literal["user", "assistant", "system", "developer"], str]`
     - `FunctionCallRequest`
     - `FunctionCallOutput`
+    - `MCPOutput`
 - LLMResponse
 
 ## With tool use

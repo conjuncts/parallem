@@ -4,14 +4,37 @@ We consider agents to be programs that can ask not just LLMs, but also functions
 
 ## `ask_llm`
 
-Send a prompt (or full conversation) to an LLM and receive a lazy `LLMResponse`.
+Send a prompt (or full conversation) to an LLM.
 
 ```python
 resp = agt.ask_llm("What is the capital of France?")
 print(resp.final_answer)
 ```
 
-The response is lazy-loaded — it is not resolved until you call `.final_answer` or iterate over function calls. This lets the runtime batch and cache calls efficiently.
+`ask_llm` takes a list of documents. It supports the following types:
+
+- LLMDocument
+    - `str`
+    - `Tuple[Literal["user", "assistant", "system", "developer"], str]`
+    - `PIL.Image.Image`
+    - `pllm.FunctionCallRequest`
+    - `pllm.FunctionCallOutput`
+    - `pllm.MCPOutput`
+- LLMResponse
+
+`ask_llm` also has these keyword arguments:
+
+| Parameter | Type | Purpose |
+|---|---|---|
+| `instructions` | `str` | System prompt |
+| `llm` | `pllm.LLMIdentity` | LLM to use |
+| `salt` | `Any` | Hash differentiation value |
+| `hash_by` | `list[str]` | Additional fields to include in hashing (e.g., `"llm"`) |
+| `structured_output` | `pydantic.BaseModel` | Pydantic model or schema for validated output |
+| `tools` | `list[dict]` | Functions or server-defined tools available to the LLM |
+| `tag` | `str` | Optional metadata tag for the request |
+| `save_input` | `bool` | Whether to persist input documents (default: `None`) |
+
 
 ### Structured output
 
@@ -27,25 +50,10 @@ resp = agt.ask_llm("What is the capital of France?", structured_output=Answer)
 print(resp.final_json)  # {"capital":"Paris"}
 ```
 
-### Tool use
-
-```python title="examples/simplest_tool.py"
---8<-- "examples/simplest_tool.py"
-```
-
-Output:
-```python
-[
-    'Add 3 and 4.',
-    '',
-    FunctionCallOutput(name=add, call_id=, content=7...),
-    '3 + 4 = 7'
-]
-```
 
 ## `ask_functions`
 
-After `ask_llm` returns a response that contains function calls, `ask_functions` executes them by running the actual Python functions.
+If `ask_llm` returns a response that contains function calls, `ask_functions` executes them by running the actual Python functions.
 
 ```python title="Quickstart"
 def count_files(directory: str) -> int:
@@ -66,11 +74,7 @@ final = agt.ask_llm([prompt, resp, *fc_outs])
 conv = agt.get_msg_state()
 resp = agt.ask_human(
     "Please confirm next step",
-
-    # Must pass the conversation for hashing purposes.
-    # ParaLLeM must associate the human response with
-    # the right point in the conversation.
-    conv,
+    conv,  # Must pass the conversation for hashing purposes.
 )
 print(resp.final_answer)
 ```

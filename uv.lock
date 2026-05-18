@@ -2098,6 +2098,7 @@ dev-full = [
 ]
 docs = [
     { name = "click" },
+    { name = "mkdocs" },
     { name = "mkdocs-material" },
 ]
 
@@ -2130,6 +2131,7 @@ dev-full = [
 ]
 docs = [
     { name = "click", specifier = "==8.2.1" },
+    { name = "mkdocs", specifier = ">=1.6.1" },
     { name = "mkdocs-material", specifier = ">=9.6.18" },
 ]
 

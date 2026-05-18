@@ -52,7 +52,3 @@ Top 3 destinations for a mix of urban and countryside exploration:
 ## Dynamically creating subagents
 
 To create a subagent via a function call, pass the subagent declaration like any other function. Subagents will be created with the names passed into `subagent_names`.
-
-```python
---8<-- "examples/advanced/recursive_subagents.py"
-```

@@ -60,6 +60,7 @@ nav:
     - Idioms: concepts/idioms.md
   - Use cases:
     - Documents: use-cases/document_processing.md
+    - 1M requests: use-cases/stress_1m.md
     - Subagents: use-cases/subagents.md
     - Chatbot: use-cases/chatbot.md
     - RAG: use-cases/rag.md

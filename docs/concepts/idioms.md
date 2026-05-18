@@ -69,7 +69,7 @@ If you have async functions, you can use the async idiom.
 It is effective with `sync`, `concurrent`, and `batch` strategies.
 
 ```python
---8<-- "examples/async/simplest_async.py"
+--8<-- "examples/async/example_async.py"
 ```
 
 However, the async idiom is trickier to write and port to.
