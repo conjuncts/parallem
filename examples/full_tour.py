@@ -66,12 +66,10 @@ if __name__ == "__main__":
 
     with pllm.resume_directory(
         ".pllm/example/batch",
-        provider="bedrock",
+        provider="gemini",
         strategy="sync",
         dashboard=True,
-        llm="us.amazon.nova-2-lite-v1:0",
-        # llm="gemini-2.5-flash",
-        hash_by=["llm"],
+        llm="gemini-2.5-flash",
         save_input=True,
         tweaks={"error_mode": "emit"}
     ) as orch:

@@ -245,7 +245,7 @@ class AgentContext(Askable):
         instructions: Optional[str] = None,
         llm: Union[LLMIdentity, str, None] = None,
         salt: Optional[str] = None,
-        hash_by: List[HashByOption] = None,
+        hash_by: List[HashByOption] = ["llm"],
         structured_output: Optional["BaseModel"] = None,
         tools: Optional[list[Union[dict, ServerTool, Callable]]] = None,
         tag: Optional[str] = None,

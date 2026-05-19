@@ -37,7 +37,6 @@ async def main():
         provider="anthropic",
         strategy="sync",
         dashboard=True,
-        hash_by=["llm"],
         load_dotenv=True,
     ) as orch:
         with orch.agent() as agt:

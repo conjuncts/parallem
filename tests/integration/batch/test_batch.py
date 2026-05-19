@@ -177,7 +177,6 @@ def test_full_batch_openai(temp_integration_dir, sample_tools, sample_image):
         temp_integration_dir / f"full_batch_{provider}",
         provider=provider,
         strategy="batch",
-        hash_by=["llm"],
         tweaks={"batch_user_confirmation": False},
         client=False,  # Don't use real client
         save_input=True,
@@ -221,7 +220,6 @@ def test_full_batch_openai_chat(temp_integration_dir, sample_tools, sample_image
         temp_integration_dir / f"full_batch_{provider}",
         provider=provider,
         strategy="batch",
-        hash_by=["llm"],
         tweaks={"batch_user_confirmation": False},
         client=False,  # Don't use real client
         save_input=False,
@@ -246,7 +244,6 @@ def test_full_batch_google(temp_integration_dir, sample_tools, sample_image):
         temp_integration_dir / f"full_batch_{provider}",
         provider=provider,
         strategy="batch",
-        hash_by=["llm"],
         tweaks={"batch_user_confirmation": False},
         client=False,  # Don't use real client
         save_input=False,
@@ -280,7 +277,6 @@ def test_full_batch_anthropic(monkeypatch, temp_integration_dir, sample_tools, s
         temp_integration_dir / f"full_batch_{provider}",
         provider=provider,
         strategy="batch",
-        hash_by=["llm"],
         tweaks={"batch_user_confirmation": False},
         client=False,  # Don't use real client
         save_input=False,

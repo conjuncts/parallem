@@ -27,7 +27,6 @@ with pllm.resume_directory(
     strategy="sync",  # "batch" gives 50% discount
     dashboard=True,
     load_dotenv=True,
-    hash_by=["llm"],
 ) as orch:
     collector = []
     for i, row in enumerate(df.iter_rows(named=True)):

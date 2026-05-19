@@ -24,7 +24,6 @@ def main() -> None:
         provider="openai",
         strategy="sync",
         client=mock_client,
-        hash_by=["llm"],
         log_level=logging.WARNING,
         dashboard=False,
     ) as orch:
@@ -41,7 +40,6 @@ def main() -> None:
         provider="openai",
         strategy="sync",
         client=mock_client,
-        hash_by=["llm"],
         log_level=logging.WARNING,
         dashboard=False,
     ) as orch:

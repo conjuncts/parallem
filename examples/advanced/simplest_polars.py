@@ -22,7 +22,6 @@ with pllm.resume_directory(
     log_level=logging.DEBUG,
     dashboard=True,
     load_dotenv=True,
-    hash_by=["llm"],
 ) as orch:
     collector = []
     for i, row in enumerate(df.iter_rows(named=True)):

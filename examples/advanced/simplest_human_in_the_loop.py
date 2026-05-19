@@ -53,7 +53,6 @@ with pllm.resume_directory(
     strategy="sync",
     log_level=logging.DEBUG,
     dashboard=True,
-    hash_by=["llm"],
 ) as orch:
     with orch.agent() as agt:
         agent_with_permission(agt)

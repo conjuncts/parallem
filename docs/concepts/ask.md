@@ -38,7 +38,7 @@ print(resp.final_answer)
 
 !!! warning
 
-    ParaLLeM caches requests by hash. By default, hashes only consider **input documents**, the **LLM**, and **available tool names**. If only a non-hashed parameter changes (ie. reasoning level), there will be a hash collision. To avoid this, customize `hash_by` or compute a custom `salt`. See [persistence](persistence.md).
+    ParaLLeM caches requests by hash. By default, hashes only consider **input documents** and **LLM name**. If only a non-hashed parameter changes (ie. reasoning level), there will be a hash collision. To avoid this, customize `hash_by` or compute a custom `salt`. See [persistence](persistence.md).
 
 ### Structured output
 

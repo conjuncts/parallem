@@ -189,7 +189,6 @@ def shared_sync_orch(session_orch_root):
         provider="openai",
         strategy="sync",
         client=mock_client,
-        hash_by=["llm"],
     )
     orch._mock_client = mock_client
     yield orch

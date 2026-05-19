@@ -342,6 +342,8 @@ class AgentOrchestrator:
         """
         Build an OpenAI-compatible client facade backed by ``ask_llm`` calls.
 
+        !!!WARNING: Experimental, subject to change!
+
         The returned object exposes:
         - ``client.responses.create(...)``
         - ``client.responses.parse(...)``

@@ -26,7 +26,6 @@ def syllable_count_agent(agt: pllm.AgentContext, word: str):
 orch = pllm.resume_directory(
     ".pllm/stress/fresh3/stress_test",
     llm="gpt-5-nano",
-    hash_by=["llm"],
     provider="openai",
     strategy="batch",
     tweaks={

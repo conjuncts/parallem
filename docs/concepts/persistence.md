@@ -1,13 +1,12 @@
 # Persistence
 
-ParaLLeM saves LLM responses locally by **hashing request content**. On subsequent runs, a matching hash returns the cached response instantly — no API call is made.
-
-## How caching works
+ParaLLeM saves LLM responses locally by **hashing request content**. On subsequent runs, a matching hash returns the cached response — no API call is made.
 
 Every call to `ask_llm` computes a SHA-256 hash of:
 
 - The system prompt (`instructions`)
 - All input documents (strings, images, function call outputs, …)
+- LLM name (ie. "gpt-5-nano")
 - Any additional salt terms (see below)
 
 If ParaLLeM has already seen your hash, then the previous value is returned immediately. Otherwise, a request is sent to the provider and stored.
@@ -24,22 +23,19 @@ with pllm.resume_directory(
 ```
 
 
-## Hashing
+## What is and isn't hashed
 
-### What is and isn't hashed
+By default, only **message content** and **LLM name** are hashed. Config settings that are _not_ hashed:
 
-By default, only the **message content** is hashed — including `instructions` (system prompt) and all input documents. Config that is _not_ included in the hash:
-
-- Model name / LLM identity
 - Tool definitions
-- Provider type
+- Structured output
+- Provider-specific keyword arguments (ie. `reasoning_level`)
 
-This means that if you change the model but keep the same prompt, the cached response from the old model is returned. Use `hash_by` or `salt` to avoid this.
-
+If there is a config change but the same prompt is used, there could be a hash collision. To avoid this, customize `hash_by` or compute a custom `salt`.
 
 ### `hash_by`
 
-`hash_by` is a list of named terms to fold into the hash. Available options are:
+`hash_by` is a list of named terms to fold into the hash. By default, `hash_by=["llm"]`. Available options are:
 
 - `"llm"`: Include the LLM identity (model name/provider)
 - `"tool_names"`: Include tool names only
@@ -47,11 +43,7 @@ This means that if you change the model but keep the same prompt, the cached res
 - `"kwargs"`: Include extra kwargs passed to the request
 - `"all"`: Include everything (equivalent to all of the above)
 
-```python
-agt.ask_llm("Name a prime.", hash_by=["llm"])
-```
-
-Now switching from `gpt-4o` to `gpt-4o-mini` produces a different hash and a separate cache entry.
+Message content, like instructions and documents, are always hashed. 
 
 ```python
 agt.ask_llm(

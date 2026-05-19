@@ -44,7 +44,7 @@ def rag_agent(agt: pllm.AgentContext, query: str):
 if __name__ == "__main__":
     load_dotenv()
     with pllm.resume_directory(
-        ".pllm/example/rag", hash_by=["llm"], provider="google"
+        ".pllm/example/rag", provider="google"
     ) as orch:
         with orch.agent() as agt:
             out = rag_agent(agt, "What is the refund policy for digital products?")

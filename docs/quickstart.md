@@ -57,7 +57,7 @@ FunctionCall(name=count_files, call_id=call_Xau, args={'directory': '~/examples'
 
 !!! warning
 
-    ParaLLeM caches requests by hash. By default, hashes only consider **input documents**, the **LLM**, and **available tool names**. If only a non-hashed parameter changes (ie. reasoning level), there will be a hash collision. To avoid this, customize `hash_by` or compute a custom `salt`. See the [Persistence guide](concepts/persistence.md).
+    ParaLLeM caches requests by hash. By default, hashes only consider **input documents** and **LLM name**. If only a non-hashed parameter changes (ie. reasoning level), there will be a hash collision. To avoid this, customize `hash_by` or compute a custom `salt`. See [persistence](concepts/persistence.md).
 
 
 ## Advanced Usage

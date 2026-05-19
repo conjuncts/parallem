@@ -25,7 +25,7 @@ with pllm.resume_directory(
     for i in range(5):
         with orch.agent() as agt:
             req_start = time.time()
-            resp = agt.ask_llm(f"Please name a power of {i + 2}.", hash_by=["llm"])
+            resp = agt.ask_llm(f"Please name a power of {i + 2}.")
             # print(resp.final_answer)
             req_end = time.time()
             print(

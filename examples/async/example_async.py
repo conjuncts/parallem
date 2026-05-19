@@ -20,7 +20,6 @@ if __name__ == "__main__":
         provider="openai",
         strategy="concurrent",
         dashboard=True,
-        hash_by=["llm"],
     ) as orch:
         # Instantiate the agent.
         a1 = orch.create_agent(haiku_writer_agent, agent_name="Writer-1")

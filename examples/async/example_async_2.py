@@ -19,7 +19,6 @@ async def main():
         provider="openai",
         strategy="concurrent",
         dashboard=True,
-        hash_by=["llm"],
         load_dotenv=True,
     ) as orch:
         # Less good, because Writer-1 must finish before Writer-2 can begin, but still works

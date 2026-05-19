@@ -16,7 +16,6 @@ with pllm.resume_directory(
         resp = agt.ask_llm(
             "In 1 sentence, what is AAPL's current price?",
             tools=[pllm.tools.WebSearchTool()],
-            hash_by=["llm"],
         )
 
         print(resp.final_answer)

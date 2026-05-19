@@ -15,6 +15,6 @@ with pllm.resume_directory(
 ) as orch:
     with orch.agent() as agt:
         img = Image.open("tests/data/images/Nokota_Horses_cropped.jpg")
-        resp = agt.ask_llm("What animal is this?", img, hash_by=["llm"])
+        resp = agt.ask_llm("What animal is this?", img)
 
         print(resp.final_answer)

@@ -277,7 +277,7 @@ class TestAskLLMMethod:
             agent.ask_llm("Test prompt", instructions="Test instructions")
 
             mock_compute_hash.assert_called_once_with(
-                "Test instructions", ["Test prompt"], salt=None
+                "Test instructions", ["Test prompt"], salt='gpt-5-nano'
             )
 
     @pytest.mark.skip(reason="hash_by tools not ready yet")
