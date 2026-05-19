@@ -1,20 +1,13 @@
-from dotenv import load_dotenv
 import parallem as pllm
-
-load_dotenv()
 
 with pllm.resume_directory(
     ".pllm/simple/mcp",
     strategy="sync",
-    provider="anthropic",
-    # ignore_cache=True,
-    # rewrite_cache=True,
+    provider="openai",
     dashboard=True,
+    load_dotenv=True,
 ) as orch:
     with orch.agent() as agt:
-        # https://platform.openai.com/docs/guides/tools-connectors-mcp
-        # openai - SSE is ok
-        # google - HTTP only (not SSE)
         resp = agt.ask_llm(
             "Roll 2d4+1.",
             tools=[

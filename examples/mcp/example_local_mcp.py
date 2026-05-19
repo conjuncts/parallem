@@ -31,7 +31,6 @@ async def my_agent(agt: pllm.AgentContext, mcp_client: Client, question: str):
         print(conv[-1].final_answer)
 
 async def main():
-
     with pllm.resume_directory(
         ".pllm/simplest",
         provider="anthropic",
