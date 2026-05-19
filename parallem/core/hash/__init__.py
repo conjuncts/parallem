@@ -14,6 +14,7 @@ from parallem.types import (
     LLMIdentity,
     ServerTool,
 )
+from parallem.utils.image import get_type_and_b64
 
 
 __all__ = ["build_hash_salt_terms", "compute_hash", "serialize_tools_for_hash"]
@@ -162,9 +163,9 @@ def compute_hash(
         if isinstance(doc, str):
             hasher.update(doc.encode("utf-8"))
         elif isinstance(doc, Image.Image):
-            with BytesIO() as img_buffer:
-                doc.save(img_buffer, format="PNG")
-                hasher.update(img_buffer.getvalue())
+            img_type, img_b64 = get_type_and_b64(doc)
+            hasher.update(img_type.encode("utf-8"))
+            hasher.update(img_b64.encode("utf-8"))
         elif isinstance(doc, FunctionCallRequest):
             hasher.update(b"function_call")
             _updateh(hasher, doc.text_content)

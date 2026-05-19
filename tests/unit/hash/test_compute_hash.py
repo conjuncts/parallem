@@ -50,7 +50,7 @@ class TestHashRegressions:
         """Regression: Image hashing must remain stable"""
         img = Image.new("RGB", (5, 5), color="blue")
         result = compute_hash("Process images", ["text", img])
-        expected = "641221c8a2a2deb07212389f8613595ad0b4090e0984defa0fbe78e4393d2264"
+        expected = "4f32d8597753e7add4272135b7a5b94bffd634384bce587f1252df9d498e2437"
         assert result == expected
 
     def test_hash_golden_no_instructions(self):
