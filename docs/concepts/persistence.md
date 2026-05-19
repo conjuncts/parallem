@@ -65,16 +65,23 @@ agt.ask_llm("Name a prime.")
 agt.ask_llm("Name a prime.", salt=1)  # Will not collide
 ```
 
+## MessageState `save` and `load`
 
-## `ignore_cache` and `rewrite_cache`
-
-| Parameter | Effect |
-|---|---|
-| `ignore_cache=True` | Always call the provider, ignoring any stored response. |
-| `rewrite_cache=True` | Always call the provider and **overwrite** the stored response with the new one. |
-
-Both are set on `resume_directory`:
+Another tool for persistent conversations: `MessageState` can be saved to disk and restored on subsequent runs.
 
 ```python
-pllm.resume_directory(".pllm/myproject", provider="openai", ignore_cache=True)
+def chatbot(agt: pllm.AgentContext):
+    msgs = agt.get_msg_state().load()
+
+    agt.print("Current messages:", msgs)
+    out = input("Send a message: ")
+    while out:
+        msgs.append(out)
+        msgs.ask_llm()
+        agt.print("Response:", msgs[-1].resolve())
+        out = input("Send a message: ")
+
+    msgs.save()
 ```
+
+See also: [memoize](memoize.md) for non-deterministic blocks.

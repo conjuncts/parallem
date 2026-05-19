@@ -62,6 +62,7 @@ nav:
     - Documents: use-cases/document_processing.md
     - 1M requests: use-cases/stress_1m.md
     - Subagents: use-cases/subagents.md
+    - MCP: use-cases/mcp.md
     - Chatbot: use-cases/chatbot.md
     - RAG: use-cases/rag.md
 

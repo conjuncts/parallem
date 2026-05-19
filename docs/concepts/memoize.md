@@ -1,4 +1,4 @@
-# Memoize API
+# .memoize()
 
 `memoize` caches an entire block of code, including LLM calls and arbitrary Python side effects. Later runs will skip execution and replay the recorded results.
 
