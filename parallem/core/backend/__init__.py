@@ -1,10 +1,10 @@
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING, List, Optional
 from parallem.provider.base import BaseProvider
 from parallem.types import (
     BaseRetriever,
     CallIdentifier,
     CommonQueryParameters,
-    HashByOptions,
+    HashByOption,
     LLMResponse,
     ParsedResponse,
 )
@@ -56,7 +56,7 @@ class BaseBackend(BaseRetriever):
         call_id: CallIdentifier,
         *,
         params: CommonQueryParameters,
-        hash_by: Optional[HashByOptions] = None,
+        hash_by: Optional[List[HashByOption]] = None,
         salt: Optional[str] = None,
         request_kwargs: Optional[dict] = None,
     ) -> None:

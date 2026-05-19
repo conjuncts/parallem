@@ -280,6 +280,7 @@ class TestAskLLMMethod:
                 "Test instructions", ["Test prompt"], salt=None
             )
 
+    @pytest.mark.skip(reason="hash_by tools not ready yet")
     @patch("parallem.core.agent.agent.compute_hash")
     def test_ask_llm_hash_by_tools(self, mock_compute_hash, mock_orchestrator):
         """hash_by=['tools'] should include the tools in the salt."""

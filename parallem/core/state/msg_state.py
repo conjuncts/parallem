@@ -29,7 +29,7 @@ from parallem.core.memoize.operations import (
 from parallem.types import (
     AskParameters,
     FunctionCallOutput,
-    HashByOptions,
+    HashByOption,
     HumanResponse,
     LLMDocument,
     LLMIdentity,
@@ -233,7 +233,7 @@ class MessageState(UserList[Union[LLMDocument, LLMResponse]], Askable):
         instructions: Optional[str] = None,
         llm: Union[LLMIdentity, str, None] = None,
         salt: Optional[str] = None,
-        hash_by: HashByOptions = None,
+        hash_by: List[HashByOption] = None,
         structured_output: Optional["BaseModel"] = None,
         tools: Optional[list[Union[dict, ServerTool]]] = None,
         tag: Optional[str] = None,

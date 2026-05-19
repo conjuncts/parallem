@@ -1,12 +1,12 @@
 import logging
-from typing import TYPE_CHECKING, Any, Literal, Optional, Union
+from typing import TYPE_CHECKING, Any, List, Literal, Optional, Union
 
 from parallem.core.agent.orchestrator import AgentOrchestrator
 from parallem.core.file_manager import FileManager
 from parallem.logging.dash_logger import DashboardLogger
 from parallem.logging.fancy import get_pllm_log_handler
 from parallem.provider.multi.provider_selector import dynamic_select_provider
-from parallem.types import AskParameters, HashByOptions, LLMIdentity, MinorTweaks
+from parallem.types import AskParameters, HashByOption, LLMIdentity, MinorTweaks
 
 if TYPE_CHECKING:
     from parallem.core.throttler import Throttler
@@ -44,7 +44,7 @@ def resume_directory(
     tweaks: Optional[MinorTweaks] = None,
     dashboard: bool = False,
     client: Optional[Any] = None,
-    hash_by: HashByOptions = None,
+    hash_by: List[HashByOption] = None,
     save_input: Optional[bool] = None,
     llm: Union[LLMIdentity, str, None] = None,
 ) -> AgentOrchestrator:

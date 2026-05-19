@@ -42,7 +42,6 @@ This means that if you change the model but keep the same prompt, the cached res
 `hash_by` is a list of named terms to fold into the hash. Available options are:
 
 - `"llm"`: Include the LLM identity (model name/provider)
-- `"tools"`: Include full tool definitions
 - `"tool_names"`: Include tool names only
 - `"structured_output"`: Include structured output schema
 - `"kwargs"`: Include extra kwargs passed to the request
@@ -58,11 +57,11 @@ Now switching from `gpt-4o` to `gpt-4o-mini` produces a different hash and a sep
 agt.ask_llm(
     "Search the web",
     tools=[{"type": "web_search"}],
-    hash_by=["tools"]
+    hash_by=["tool_names"]
 )
 ```
 
-Using `hash_by=["tools"]` ensures that different tool sets produce separate cache entries.
+Using `hash_by=["tool_names"]` ensures that different tool sets produce separate cache entries.
 
 
 ### `salt`

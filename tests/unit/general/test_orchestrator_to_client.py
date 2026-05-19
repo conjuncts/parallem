@@ -213,10 +213,7 @@ def test_to_client_sync_hash_by_tools_differentiates_cache(
     mock_client.clear()
     mock_client.set_responses(["toolset A response", "toolset B response"])
 
-    client = shared_sync_orch.to_client(
-        agent_name=test_agent_name,
-        ask_params={"hash_by": ["llm", "tools"]},
-    )
+    client = shared_sync_orch.to_client(agent_name=test_agent_name)
 
     response1 = client.responses.create(
         model="gpt-5-nano",

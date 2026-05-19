@@ -3,7 +3,7 @@ from typing import TYPE_CHECKING, Callable, Dict, List, Optional, Sequence, Unio
 
 from parallem.types import (
     FunctionCallOutput,
-    HashByOptions,
+    HashByOption,
     HumanResponse,
     LLMDocument,
     LLMIdentity,
@@ -34,7 +34,7 @@ class Askable(ABC):
         instructions: Optional[str] = None,
         llm: Union[LLMIdentity, str, None] = None,
         salt: Optional[str] = None,
-        hash_by: HashByOptions = None,
+        hash_by: List[HashByOption] = ["llm"],
         structured_output: Optional["BaseModel"] = None,
         tools: Optional[list[Union[dict, ServerTool]]] = None,
         tag: Optional[str] = None,

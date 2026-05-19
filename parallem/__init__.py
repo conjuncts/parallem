@@ -36,7 +36,7 @@ __all__ = [
     # "to_serial_id",
     # "BatchIdentifier",
     # "CohortIdentifier",
-    # "HashByOptions",
+    # "HashByOption",
     #
     ## Public facing/convenient:
     "AskParameters",

@@ -9,7 +9,7 @@ import warnings
 from parallem.types import (
     FunctionCallOutput,
     FunctionCallRequest,
-    HashByOptions,
+    HashByOption,
     LLMDocument,
     LLMIdentity,
     ServerTool,
@@ -68,7 +68,7 @@ def serialize_tools_for_hash(tools: Optional[list[Union[dict, ServerTool]]]) -> 
 def build_hash_salt_terms(
     *,
     salt: Optional[str] = None,
-    hash_by: HashByOptions = None,
+    hash_by: List[HashByOption] = None,
     llm: LLMIdentity,
     provider_type: Optional[str] = None,
     tools: Optional[list[Union[dict, ServerTool]]] = None,
@@ -81,7 +81,6 @@ def build_hash_salt_terms(
     :param salt: Base salt term.
     :param hash_by: Extra hash dimensions to include. Available options:
         - "llm": Include the LLM identity
-        - "tools": Include full tool definitions
         - "tool_names": Include tool names only
         - "structured_output": Include structured output schema
         - "kwargs": Include extra kwargs
@@ -100,21 +99,22 @@ def build_hash_salt_terms(
         # Expand "all" to include all hash options
         hash_by_expanded = set(hash_by)
         if "all" in hash_by_expanded:
-            hash_by_expanded = ["llm", "tools", "tool_names", "structured_output", "kwargs"]
+            hash_by_expanded = ["llm", "tool_names", "structured_output", "kwargs"]
         
         for term in hash_by_expanded:
             if term == "llm":
                 salt_terms.append(llm.identity)
-            elif term == "tools":
-                salt_terms.append(serialize_tools_for_hash(tools))
             elif term == "tool_names":
                 if tools is not None:
                     tool_names = []
                     for tool in tools:
-                        if isinstance(tool, dict) and "name" in tool:
-                            tool_names.append(tool["name"])
-                        elif isinstance(tool, ServerTool) and hasattr(tool, "name"):
-                            tool_names.append(tool.name)
+                        if isinstance(tool, dict):
+                            if "name" in tool:
+                                tool_names.append(tool["name"])
+                            elif "type" in tool:
+                                tool_names.append(tool["type"])
+                        elif isinstance(tool, ServerTool):
+                            tool_names.append(tool.server_tool_type)
                     if tool_names:
                         salt_terms.append(json.dumps(tool_names, sort_keys=True))
             elif term == "structured_output":

@@ -4,7 +4,7 @@ from io import BytesIO
 import hashlib
 import json
 from pathlib import Path
-from typing import TYPE_CHECKING, Callable, Optional, Union
+from typing import TYPE_CHECKING, Callable, List, Optional, Union
 
 import polars as pl
 
@@ -20,7 +20,7 @@ from parallem.types import (
     FunctionCallRequest,
     to_serial_id,
     LLMIdentity,
-    HashByOptions,
+    HashByOption,
     ServerTool,
 )
 from parallem.utils.image import is_image
@@ -272,7 +272,7 @@ class InputStorage:
         llm: LLMIdentity,
         structured_output,
         tools: Optional[list[Union[dict, ServerTool, Callable]]],
-        hash_by: HashByOptions,
+        hash_by: List[HashByOption],
         salt: Optional[str],
         request_kwargs: dict,
     ) -> dict:
@@ -421,7 +421,7 @@ class InputStorage:
         call_id: CallIdentifier,
         *,
         params: CommonQueryParameters,
-        hash_by: Optional[HashByOptions] = None,
+        hash_by: Optional[List[HashByOption]] = None,
         salt: Optional[str] = None,
         request_kwargs: Optional[dict] = None,
     ) -> None:

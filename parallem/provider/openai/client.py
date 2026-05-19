@@ -236,6 +236,7 @@ class _OpenAICompatResponsesSync:
             llm=model,
             tools=tools,
             structured_output=text_format,
+            hash_by=["all"],
             **kwargs,
         )
         return _llm_response_to_openai_payload(
