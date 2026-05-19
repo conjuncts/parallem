@@ -188,30 +188,30 @@ class AgentContext(Askable):
 
     def _compute_hash(
         self,
-        resolved_docs,
+        params: CommonQueryParameters,
         *,
         salt,
         hash_by,
-        llm,
         provider_type,
-        tools,
-        instructions,
+        kwargs=None,
     ):
         """Compute the input hash (doc_hash) for a list of documents."""
         # Compute salt
         salt_terms = build_hash_salt_terms(
             salt=salt,
             hash_by=hash_by,
-            llm=llm,
+            llm=params["llm"],
             provider_type=provider_type,
-            tools=tools,
+            tools=params["tools"],
+            structured_output=params["structured_output"],
+            kwargs=kwargs,
         )
 
         # Use a null-byte separator so individual terms cannot be confused with one
         # another, and pass as the `salt` parameter (applied via re-hash) so that
         # salt content can never collide with document content.
         combined_salt = "\x00".join(salt_terms) if salt_terms else None
-        hashed = compute_hash(instructions, resolved_docs, salt=combined_salt)
+        hashed = compute_hash(params["instructions"], params["strict_documents"], salt=combined_salt)
         return hashed, salt_terms
 
     def _get_cached_response(
@@ -266,15 +266,21 @@ class AgentContext(Askable):
         documents = reduce_to_list(documents, list(additional_documents))
         resolved_docs = cast_documents(documents)
 
+        # convenient params dict
+        params: CommonQueryParameters = {
+            "instructions": instructions,
+            "strict_documents": resolved_docs,
+            "llm": llm,
+            "structured_output": structured_output,
+            "tools": tools,
+        }
         # 2. compute hash for inputs
         hashed, salt_terms = self._compute_hash(
-            resolved_docs,
+            params,
             salt=salt,
             hash_by=hash_by,
-            llm=llm,
             provider_type=provider_type,
-            tools=tools,
-            instructions=instructions,
+            kwargs=kwargs,
         )
 
         call_id: CallIdentifier = {
@@ -288,15 +294,11 @@ class AgentContext(Askable):
             },
         }
 
-        # 3. save inputs if needed
+        # 3. save inputs if needed (pass `params` mapping)
         if save_input:
             self._orch._backend.store_input(
                 call_id,
-                instructions=instructions,
-                msgs=documents,
-                llm=llm,
-                structured_output=structured_output,
-                tools=tools,
+                params=params,
                 hash_by=hash_by,
                 salt=salt,
                 request_kwargs=kwargs,
@@ -312,14 +314,6 @@ class AgentContext(Askable):
             raise ValueError(
                 f"LLM {llm} is not compatible with provider {provider_type}"
             )
-
-        params: CommonQueryParameters = {
-            "instructions": instructions,
-            "strict_documents": resolved_docs,
-            "llm": llm,
-            "structured_output": structured_output,
-            "tools": tools,
-        }
 
         return self._orch._backend.submit_query(
             self._orch._provider,

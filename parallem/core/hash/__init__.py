@@ -72,35 +72,58 @@ def build_hash_salt_terms(
     llm: LLMIdentity,
     provider_type: Optional[str] = None,
     tools: Optional[list[Union[dict, ServerTool]]] = None,
+    structured_output: Optional[Any] = None,
+    kwargs: Optional[dict] = None,
 ) -> list[str]:
     """
     Build the salt terms used to differentiate cache keys.
 
     :param salt: Base salt term.
-    :param hash_by: Extra hash dimensions to include.
+    :param hash_by: Extra hash dimensions to include. Available options:
+        - "llm": Include the LLM identity
+        - "tools": Include full tool definitions
+        - "tool_names": Include tool names only
+        - "structured_output": Include structured output schema
+        - "kwargs": Include extra kwargs
+        - "all": Include everything (llm, tools, tool_names, structured_output, kwargs)
     :param llm: Selected LLM identity, if any.
     :param provider_type: Provider type for the current call.
-    :param tools: Reserved for future use.
+    :param tools: Tools available to the LLM.
+    :param structured_output: Structured output schema, if any.
+    :param kwargs: Extra kwargs passed to the request.
     :return: Ordered salt terms to join into the final salt string.
     """
     salt_terms: list[str] = []
     if salt is not None:
         salt_terms.append(str(salt))
     if hash_by is not None:
-        for term in hash_by:
-            if term in ["llm", "llm+provider"]:
-                if term == "llm+provider":
-                    # legacy support
-                    if llm is None:
-                        salt_terms.append(provider_type)
-                    else:
-                        salt_terms.append(llm.identity)
-                else:
-                    # standard:
-                    salt_terms.append(llm.identity)
+        # Expand "all" to include all hash options
+        hash_by_expanded = set(hash_by)
+        if "all" in hash_by_expanded:
+            hash_by_expanded = ["llm", "tools", "tool_names", "structured_output", "kwargs"]
+        
+        for term in hash_by_expanded:
+            if term == "llm":
+                salt_terms.append(llm.identity)
             elif term == "tools":
-                # salt_terms.append(serialize_tools_for_hash(tools))
-                pass
+                salt_terms.append(serialize_tools_for_hash(tools))
+            elif term == "tool_names":
+                if tools is not None:
+                    tool_names = []
+                    for tool in tools:
+                        if isinstance(tool, dict) and "name" in tool:
+                            tool_names.append(tool["name"])
+                        elif isinstance(tool, ServerTool) and hasattr(tool, "name"):
+                            tool_names.append(tool.name)
+                    if tool_names:
+                        salt_terms.append(json.dumps(tool_names, sort_keys=True))
+            elif term == "structured_output":
+                if structured_output is not None:
+                    schema_str = json.dumps(structured_output.model_json_schema(), sort_keys=True, separators=(",", ":")) if hasattr(structured_output, "model_json_schema") else json.dumps(str(structured_output), sort_keys=True, separators=(",", ":"))
+                    salt_terms.append(schema_str)
+            elif term == "kwargs":
+                if kwargs:
+                    salt_terms.append(json.dumps(kwargs, sort_keys=True, separators=(",", ":"), default=str))
     return salt_terms
 
 

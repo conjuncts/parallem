@@ -10,7 +10,7 @@ Every call to `ask_llm` computes a SHA-256 hash of:
 - All input documents (strings, images, function call outputs, …)
 - Any additional salt terms (see below)
 
-If parallem has already seen your hash, then the previous value is returned immediately. Otherwise, a request is sent to the provider and stored.
+If ParaLLeM has already seen your hash, then the previous value is returned immediately. Otherwise, a request is sent to the provider and stored.
 
 ```python
 with pllm.resume_directory(
@@ -39,7 +39,14 @@ This means that if you change the model but keep the same prompt, the cached res
 
 ### `hash_by`
 
-`hash_by` is a list of named terms to fold into the hash. Currently the only supported value is `"llm"`, which appends the model identity string before hashing.
+`hash_by` is a list of named terms to fold into the hash. Available options are:
+
+- `"llm"`: Include the LLM identity (model name/provider)
+- `"tools"`: Include full tool definitions
+- `"tool_names"`: Include tool names only
+- `"structured_output"`: Include structured output schema
+- `"kwargs"`: Include extra kwargs passed to the request
+- `"all"`: Include everything (equivalent to all of the above)
 
 ```python
 agt.ask_llm("Name a prime.", hash_by=["llm"])
@@ -47,21 +54,26 @@ agt.ask_llm("Name a prime.", hash_by=["llm"])
 
 Now switching from `gpt-4o` to `gpt-4o-mini` produces a different hash and a separate cache entry.
 
+```python
+agt.ask_llm(
+    "Search the web",
+    tools=[{"type": "web_search"}],
+    hash_by=["tools"]
+)
+```
+
+Using `hash_by=["tools"]` ensures that different tool sets produce separate cache entries.
+
 
 ### `salt`
 
-`salt` is a free-form string that can distinguish otherwise identical content. For example, if you are not happy with the cached result, pass a `salt` parameter to bypass that previous result.
+`salt` can distinguish otherwise identical content. Use it to bypass a cached result.
 
 ```python
 agt.ask_llm("Name a prime.")
 agt.ask_llm("Name a prime.", salt=1)  # Will not collide
 ```
 
-Use `salt` when you want to force a fresh response without clearing the whole cache — for example when tool definitions change (which are not hashed):
-
-```python
-agt.ask_llm(prompt, tools=my_tools, salt="tools-v2")
-```
 
 ## `ignore_cache` and `rewrite_cache`
 

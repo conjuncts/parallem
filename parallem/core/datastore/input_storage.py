@@ -4,7 +4,7 @@ from io import BytesIO
 import hashlib
 import json
 from pathlib import Path
-from typing import TYPE_CHECKING, Callable, List, Optional, Union
+from typing import TYPE_CHECKING, Callable, Optional, Union
 
 import polars as pl
 
@@ -13,6 +13,7 @@ from parallem.core.compress.to_parquet import ParquetWriter, write_to_parquet
 from parallem.core.file_manager import FileManager
 from parallem.types import (
     CallIdentifier,
+    CommonQueryParameters,
     LLMDocument,
     LLMResponse,
     FunctionCallOutput,
@@ -419,15 +420,18 @@ class InputStorage:
         self,
         call_id: CallIdentifier,
         *,
-        instructions: Optional[str],
-        msgs: List[Union[LLMDocument, LLMResponse]],
-        llm: LLMIdentity,
-        structured_output,
-        tools: Optional[list[Union[dict, ServerTool, Callable]]],
-        hash_by: HashByOptions,
-        salt: Optional[str],
-        request_kwargs: dict,
+        params: CommonQueryParameters,
+        hash_by: Optional[HashByOptions] = None,
+        salt: Optional[str] = None,
+        request_kwargs: Optional[dict] = None,
     ) -> None:
+        # Extract expected fields from params
+        instructions = params.get("instructions")
+        msgs = params.get("strict_documents")
+        llm = params.get("llm")
+        structured_output = params.get("structured_output")
+        tools = params.get("tools")
+
         session_id = call_id["session_id"]
         seq_id = call_id["seq_id"]
         agent_name = call_id["agent_name"]

@@ -57,7 +57,7 @@ FunctionCall(name=count_files, call_id=call_Xau, args={'directory': '~/examples'
 
 !!! warning
 
-    ParaLLeM saves progress by hashing. However, **not all config settings are hashed.** For instance, tool definitions are not hashed. If available tools change, then the hashes are still considered identical, so the old cached value is still returned. See the [Persistence guide](concepts/persistence.md) for how to control this with `hash_by` and `salt`.
+    ParaLLeM caches requests by hash. By default, hashes only consider **input documents**, the **LLM**, and **available tool names**. If only a non-hashed parameter changes (ie. reasoning level), there will be a hash collision. To avoid this, customize `hash_by` or compute a custom `salt`. See the [Persistence guide](concepts/persistence.md).
 
 
 ## Advanced Usage

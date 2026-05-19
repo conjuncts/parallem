@@ -28,11 +28,13 @@ def _sample_call_id(session_id: int, seq_id: int):
 def _store_input(storage: InputStorage, call_id: dict, msgs: list, instructions=None):
     storage.store_input(
         call_id,
-        instructions=instructions,
-        msgs=msgs,
-        llm=LLMIdentity("gpt-4o-mini"),
-        structured_output=None,
-        tools=None,
+        params={
+            "instructions": instructions,
+            "llm": LLMIdentity("gpt-4o-mini"),
+            "strict_documents": msgs,
+            "structured_output": None,
+            "tools": None,
+        },
         hash_by=None,
         salt=None,
         request_kwargs={},

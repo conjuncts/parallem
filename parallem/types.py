@@ -94,7 +94,14 @@ class CohortIdentifier:
     """Numeric ID of session. Here, it also serves as a cohort ID."""
 
 
-HashByOptions: TypeAlias = Optional[list[Literal["llm"]]]
+HashByOptions: TypeAlias = Optional[list[Literal[
+    "llm",
+    "tools",
+    "tool_names",
+    "structured_output",
+    "kwargs",
+    "all",
+]]]
 
 
 class AskParameters(TypedDict):

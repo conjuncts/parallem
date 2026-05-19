@@ -4,6 +4,7 @@ from parallem.types import (
     BaseRetriever,
     CallIdentifier,
     CommonQueryParameters,
+    HashByOptions,
     LLMResponse,
     ParsedResponse,
 )
@@ -54,22 +55,21 @@ class BaseBackend(BaseRetriever):
         self,
         call_id: CallIdentifier,
         *,
-        instructions: Optional[str],
-        msgs: list,
-        llm,
-        structured_output,
-        tools,
-        hash_by,
-        salt: Optional[str],
-        request_kwargs: dict,
+        params: CommonQueryParameters,
+        hash_by: Optional[HashByOptions] = None,
+        salt: Optional[str] = None,
+        request_kwargs: Optional[dict] = None,
     ) -> None:
+        """Store input documents and associated request config.
+
+        This method now accepts a `params` mapping (`CommonQueryParameters`) which
+        contains `instructions`, `strict_documents`, `llm`, `structured_output`,
+        and `tools`. Additional request metadata such as `hash_by`, `salt`, and
+        `request_kwargs` are passed explicitly.
+        """
         self._get_input_storage().store_input(
             call_id,
-            instructions=instructions,
-            msgs=msgs,
-            llm=llm,
-            structured_output=structured_output,
-            tools=tools,
+            params=params,
             hash_by=hash_by,
             salt=salt,
             request_kwargs=request_kwargs,

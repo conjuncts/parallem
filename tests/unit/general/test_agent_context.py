@@ -282,7 +282,7 @@ class TestAskLLMMethod:
 
     @patch("parallem.core.agent.agent.compute_hash")
     def test_ask_llm_hash_by_tools(self, mock_compute_hash, mock_orchestrator):
-        """hash_by=['tools'] is currently unwired and should not alter salt."""
+        """hash_by=['tools'] should include the tools in the salt."""
         mock_compute_hash.return_value = "test_hash_123"
 
         agent = AgentContext("test_agent", mock_orchestrator)
@@ -296,11 +296,13 @@ class TestAskLLMMethod:
                 tools=tools,
             )
 
-        mock_compute_hash.assert_called_once_with(
-            "Test instructions",
-            ["Test prompt"],
-            salt=None,
-        )
+        # Verify that compute_hash was called with a salt containing the tools
+        assert mock_compute_hash.call_count == 1
+        call_args = mock_compute_hash.call_args
+        assert call_args[0] == ("Test instructions", ["Test prompt"])
+        # The salt should contain the serialized tools
+        assert call_args[1]["salt"] is not None
+        assert "web_search" in call_args[1]["salt"]
 
     def test_context_manager_preserves_anonymous_counter(self, mock_orchestrator):
         """Test that context manager preserves anonymous counter across contexts"""

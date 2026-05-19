@@ -22,7 +22,7 @@ print(resp.final_answer)
     - `pllm.MCPOutput`
 - LLMResponse
 
-`ask_llm` also has these keyword arguments:
+`ask_llm` has these keyword arguments:
 
 | Parameter | Type | Purpose |
 |---|---|---|
@@ -35,6 +35,10 @@ print(resp.final_answer)
 | `tag` | `str` | Optional metadata tag for the request |
 | `save_input` | `bool` | Whether to persist input documents (default: `None`) |
 
+
+!!! warning
+
+    ParaLLeM caches requests by hash. By default, hashes only consider **input documents**, the **LLM**, and **available tool names**. If only a non-hashed parameter changes (ie. reasoning level), there will be a hash collision. To avoid this, customize `hash_by` or compute a custom `salt`. See [persistence](persistence.md).
 
 ### Structured output
 

@@ -205,9 +205,10 @@ def test_to_client_sync_hash_by_llm_differentiates_cache(
     assert len(mock_client.calls) == 2
 
 
-def test_to_client_sync_hash_by_tools_does_not_differentiate_cache_yet(
+def test_to_client_sync_hash_by_tools_differentiates_cache(
     shared_sync_orch, test_agent_name
 ):
+    """hash_by=['tools'] now differentiates cache based on different tools."""
     mock_client = shared_sync_orch._mock_client
     mock_client.clear()
     mock_client.set_responses(["toolset A response", "toolset B response"])
@@ -231,8 +232,8 @@ def test_to_client_sync_hash_by_tools_does_not_differentiate_cache_yet(
     )
 
     assert response1.output_text == "toolset A response"
-    assert response2.output_text == "toolset A response"
-    assert len(mock_client.calls) == 1
+    assert response2.output_text == "toolset B response"
+    assert len(mock_client.calls) == 2
 
 
 def test_to_client_sync_surfaces_function_calls(fake_openai_orch, test_agent_name):
