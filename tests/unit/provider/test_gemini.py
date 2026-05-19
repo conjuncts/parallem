@@ -10,7 +10,7 @@ Tests the Gemini provider functionality including:
 from dotenv import load_dotenv
 import pytest
 from parallem.provider.google.adapter import _fix_docs_for_google
-from parallem.types import LLMIdentity
+from parallem.types import LLMIdentity, MCPOutput
 from parallem.provider.google.sdk import (
     SyncGoogleProvider,
     GoogleProvider,
@@ -36,6 +36,46 @@ class TestGeminiDocumentFormatting:
         assert len(result) == 2
         assert result[0] == {"role": "user", "parts": [{"text": "First message"}]}
         assert result[1] == {"role": "user", "parts": [{"text": "Second message"}]}
+
+    def test_fix_docs_mcp_output(self):
+        """Test MCPOutput gets converted to Gemini function_response."""
+
+        class _FakeTextBlock:
+            type = "text"
+            text = "tool says hello"
+
+            def model_dump_json(self, exclude_none=True):
+                return '{"type":"text","text":"tool says hello"}'
+
+        docs = [
+            MCPOutput(
+                name="my_mcp_tool",
+                call_id="call_123",
+                content=[_FakeTextBlock()],
+            )
+        ]
+
+        result = _fix_docs_for_google(docs)
+
+        assert len(result) == 1
+        assert result[0] == {
+            "role": "user",
+            "parts": [
+                {
+                    "function_response": {
+                        "name": "my_mcp_tool",
+                        "response": {
+                            "output": [
+                                {
+                                    "type": "text",
+                                    "text": "tool says hello",
+                                }
+                            ]
+                        },
+                    }
+                }
+            ],
+        }
 
 
 class TestGeminiProviders:

@@ -12,6 +12,7 @@ from parallem.types import (
     HashByOption,
     LLMDocument,
     LLMIdentity,
+    MCPOutput,
     ServerTool,
 )
 from parallem.utils.image import get_type_and_b64
@@ -176,6 +177,11 @@ def compute_hash(
                 _updateh(hasher, call.call_id)
         elif isinstance(doc, FunctionCallOutput):
             hasher.update(b"function_call_output")
+            _updateh(hasher, doc.name)
+            _updateh(hasher, str(doc.content))
+            _updateh(hasher, doc.call_id)
+        elif isinstance(doc, MCPOutput):
+            hasher.update(b"mcp_output")
             _updateh(hasher, doc.name)
             _updateh(hasher, str(doc.content))
             _updateh(hasher, doc.call_id)

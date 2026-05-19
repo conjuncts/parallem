@@ -229,6 +229,12 @@ class MCPOutput(AskItem):
 
     type: Literal["mcp_output"] = field(init=False, default="mcp_output")
 
+    call_id: str
+    """The ID of the function call this output corresponds to."""
+
+    name: str
+    """The name of the function call this output corresponds to."""
+
     content: List["ContentBlock"]
     """Content blocks from the MCP function call."""
 
@@ -257,6 +263,7 @@ LLMDocument = Union[
     Tuple[Literal["user", "assistant", "system", "developer"], str],
     FunctionCallRequest,
     FunctionCallOutput,
+    MCPOutput,
 ]
 """
 Type alias for documents that can be either text or images.

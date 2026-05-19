@@ -43,7 +43,7 @@ Responses are saved and cached. On the subsequent runs, answers are instant.
 | Function Calls | ✅ | ✅ | ✅ |
 | Web Search | ✅ | ✅ | ✅ |
 | Image Input | ✅ | ✅ | ✅ |
-| MCP | ✅ | ✅ | - |
+| MCP | ✅ | ✅ | ✅ |
 
 ## Examples
 - [Agents are python functions](examples/simplest_agent.py)

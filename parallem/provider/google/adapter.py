@@ -1,7 +1,7 @@
 from pydantic import BaseModel
 
 from parallem.provider.base import BaseAdapter
-from parallem.types import CommonQueryParameters, FunctionCall, FunctionCallOutput, FunctionCallRequest, LLMDocument, ParsedResponse, ServerTool
+from parallem.types import CommonQueryParameters, FunctionCall, FunctionCallOutput, FunctionCallRequest, LLMDocument, MCPOutput, ParsedResponse, ServerTool
 
 from collections.abc import Mapping
 from typing import TYPE_CHECKING, List, Union
@@ -13,6 +13,7 @@ from parallem.utils.manip import maybe_snake_to_camel
 
 if TYPE_CHECKING:
     from google.genai import types
+    from mcp.types import ContentBlock
     from pydantic import BaseModel
 
 
@@ -37,12 +38,19 @@ def _fix_docs_for_google(
                     "parts": [{"text": doc}],
                 }
             )
-        elif isinstance(doc, FunctionCallOutput):
+        elif isinstance(doc, (FunctionCallOutput, MCPOutput)):
             # https://ai.google.dev/gemini-api/docs/function-calling?example=meeting
+            if isinstance(doc, MCPOutput):
+                response_content = {
+                    "output": [_fix_mcp_block(block) for block in doc.content],
+                }
+            else:
+                response_content = {"output": doc.content}
+
             function_response_part: "types.PartDict" = {
                 "function_response": {
                     "name": doc.name,
-                    "response": {"output": doc.content},
+                    "response": response_content,
                 }
             }
             # types.Part()
@@ -127,6 +135,58 @@ def _fix_docs_for_google(
             raise ValueError(f"Unsupported document type: {type(doc)}")
 
     return formatted_docs
+
+
+def _fix_mcp_block(content_block: "ContentBlock") -> dict:
+    if content_block.type == "text":
+        return {
+            "type": "text",
+            "text": content_block.text,
+        }
+    if content_block.type == "image":
+        return {
+            "type": "image",
+            "mime_type": content_block.mimeType,
+            "data": content_block.data,
+        }
+    if content_block.type == "resource":
+        resource = content_block.resource
+        output = {"type": "resource"}
+
+        try:
+            blob = resource.blob
+        except AttributeError:
+            blob = None
+        if blob is not None:
+            output["blob"] = blob
+
+        try:
+            text = resource.text
+        except AttributeError:
+            text = None
+        if text is not None:
+            output["text"] = text
+
+        try:
+            uri = resource.uri
+        except AttributeError:
+            uri = None
+        if uri is not None:
+            output["uri"] = str(uri)
+
+        try:
+            mime_type = resource.mimeType
+        except AttributeError:
+            mime_type = None
+        if mime_type is not None:
+            output["mime_type"] = mime_type
+
+        return output
+
+    return {
+        "type": "text",
+        "text": content_block.model_dump_json(exclude_none=True),
+    }
 
 
 def _prepare_tool_schema(

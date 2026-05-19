@@ -5,7 +5,7 @@ build-backend = "flit_core.buildapi"
 [project]
 name = "parallem"
 version = "0.0.3"
-description = "A library for building LLM pipelines with built-in support for batch processing and multi-provider compatibility. Beta prerelease - use at your own risk."
+description = "A library for building LLM pipelines with built-in support for batch processing and multi-provider compatibility."
 readme = "README.md"
 requires-python = ">=3.10"
 authors = [
