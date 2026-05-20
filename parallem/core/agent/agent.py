@@ -107,7 +107,7 @@ class AgentContext(Askable):
         if exc_type is not None and exc_type not in (NotAvailable, PendingNotAvailable):
             self._orch._dashlog.agent_errored(self.agent_name)
             if self._error_mode == "emit":
-                self._orch._logger.error(exc_value)
+                self._orch._logger.error(type(exc_value).__name__ + ": " + str(exc_value))
         if self._print_context is not None:
             self._print_context.__exit__(exc_type, exc_value, traceback)
             self._print_context = None
@@ -315,6 +315,7 @@ class AgentContext(Askable):
                 f"LLM {llm} is not compatible with provider {provider_type}"
             )
 
+        # The below function typically calls the LLM
         return self._orch._backend.submit_query(
             self._orch._provider,
             params,

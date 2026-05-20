@@ -53,8 +53,9 @@ def function_calling_agent(agt: pllm.AgentContext):
     fc_outs = agt.ask_functions(resp5, count_files=count_files)
     resp6 = agt.ask_llm([ls_prompt, resp5, *fc_outs])
     
+    final_answer = ""
     if resp5.function_calls:
-        final_answer = f"Function calls: {resp5.function_calls}\n6. "
+        final_answer += f"Function calls: {resp5.function_calls}\n6. "
     final_answer += resp5.final_answer.replace("\n", " ")
     final_answer += resp6.final_answer.replace("\n", " ")
     return final_answer
@@ -66,12 +67,11 @@ if __name__ == "__main__":
 
     with pllm.resume_directory(
         ".pllm/example/batch",
-        provider="gemini",
+        provider="google",
         strategy="sync",
         dashboard=True,
         llm="gemini-2.5-flash",
-        save_input=True,
-        tweaks={"error_mode": "emit"}
+        tweaks={"error_mode": "emit"},
     ) as orch:
         with orch.agent() as agt:
             print("1. " + power_of_3_agent(agt))

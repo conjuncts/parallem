@@ -9,7 +9,7 @@ from parallem.provider.base import (
     ConcurrentProvider,
     SyncProvider,
 )
-from parallem.provider.openai_chat.parser import OpenAIChatAdapter
+from parallem.provider.openai_chat.adapter import OpenAIChatAdapter
 from parallem.types import (
     CommonQueryParameters,
     LLMIdentity,

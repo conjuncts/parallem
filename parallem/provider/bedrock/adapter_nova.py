@@ -1,4 +1,3 @@
-import json
 from typing import TYPE_CHECKING, List, Union
 
 from parallem.core.exception import ProviderCompatibilityError
@@ -272,7 +271,7 @@ def _collect_inference_config(model_kwargs: dict) -> dict:
 def _prepare_nova_body(
 	params: CommonQueryParameters,
 	model_kwargs: dict,
-) -> tuple[str, Union[str, bytes, dict], dict]:
+) -> dict:
 	"""Prepare the Amazon Nova InvokeModel request payload.
 
 	:param params: Common query parameters for the request.
@@ -280,20 +279,15 @@ def _prepare_nova_body(
 	:return: A tuple of (model_name, body, invoke_options).
 	"""
 	nova_body = model_kwargs.pop("nova_body", None)
-	invoke_options = model_kwargs.pop("nova_invoke_options", None) or model_kwargs.pop(
-		"bedrock_invoke_options", None
-	)
-	if invoke_options is None:
-		invoke_options = {}
 
 	if nova_body is not None:
 		if isinstance(nova_body, dict) and model_kwargs:
-			return None, {**nova_body, **model_kwargs}, invoke_options
+			return {**nova_body, **model_kwargs}
 		if model_kwargs:
 			raise ProviderCompatibilityError(
 				"nova_body is not a dict; cannot merge model parameters."
 			)
-		return None, nova_body, invoke_options
+		return nova_body
 
 	body: dict = {
 		"messages": _fix_docs_for_nova(params["strict_documents"]),
@@ -332,7 +326,7 @@ def _prepare_nova_body(
 	if model_kwargs:
 		body.update(model_kwargs)
 
-	return None, body, invoke_options
+	return body
 
 
 def _extract_text_from_nova_body(body: dict) -> tuple[str, list[FunctionCall]]:
@@ -373,27 +367,7 @@ def _extract_text_from_nova_body(body: dict) -> tuple[str, list[FunctionCall]]:
 
 
 def _convert_to_nova_response(raw_response: dict) -> ParsedResponse:
-	if not isinstance(raw_response, dict):
-		raise ValueError(f"Unsupported Nova response type: {type(raw_response)}")
-
-	body_payload = raw_response.get("body", raw_response)
-	try:
-		raw_body = body_payload.read()
-	except Exception:
-		raw_body = body_payload
-
-	if isinstance(raw_body, dict):
-		body_obj = raw_body
-	else:
-		if isinstance(raw_body, bytes):
-			raw_body_text = raw_body.decode("utf-8")
-		else:
-			raw_body_text = raw_body or ""
-
-		try:
-			body_obj = json.loads(raw_body_text) if raw_body_text else {}
-		except json.JSONDecodeError:
-			body_obj = {}
+	body_obj = raw_response
 
 	text, function_calls = _extract_text_from_nova_body(body_obj)
 	response_id = body_obj.get("id")
@@ -421,7 +395,7 @@ class BedrockNovaAdapter(BaseAdapter):
 	) -> list[dict]:
 		return _prepare_tool_schema(tools)
 
-	def fix_config(self, params, **kwargs):
+	def prepare_request(self, params, **kwargs):
 		return _prepare_nova_body(params, kwargs)
 
 	def convert_response(self, raw_response):

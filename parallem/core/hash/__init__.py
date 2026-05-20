@@ -1,6 +1,5 @@
 import hashlib
 import json
-from io import BytesIO
 from typing import Any, List, Optional, Union
 
 from PIL import Image

@@ -1,4 +1,3 @@
-import json
 from typing import TYPE_CHECKING, List, Union
 
 from parallem.core.exception import ProviderCompatibilityError
@@ -75,16 +74,15 @@ def _prepare_bedrock_body(
     """
     bedrock_body = model_kwargs.pop("bedrock_body", None)
     model_family = model_kwargs.pop("bedrock_model_family", None)
-    invoke_options = model_kwargs.pop("bedrock_invoke_options", None) or {}
 
     if bedrock_body is not None:
         if isinstance(bedrock_body, dict) and model_kwargs:
-            return None, {**bedrock_body, **model_kwargs}, invoke_options
+            return {**bedrock_body, **model_kwargs}
         if model_kwargs:
             raise ProviderCompatibilityError(
                 "bedrock_body is not a dict; cannot merge model parameters."
             )
-        return None, bedrock_body, invoke_options
+        return bedrock_body
 
     if model_family is None:
         model_family = "anthropic"
@@ -111,7 +109,7 @@ def _prepare_bedrock_body(
             )
         body["system"] = instructions
 
-    return None, body, invoke_options
+    return body
 
 
 def _extract_text_from_bedrock_body(body: dict) -> tuple[str, list[FunctionCall]]:
@@ -176,26 +174,7 @@ def _convert_to_bedrock_response(raw_response: dict) -> ParsedResponse:
     if not isinstance(raw_response, dict):
         raise ValueError(f"Unsupported Bedrock response type: {type(raw_response)}")
 
-    body_payload = raw_response.get("body")
-    if hasattr(body_payload, "read"):
-        raw_body = body_payload.read()
-    elif isinstance(body_payload, dict):
-        raw_body = body_payload
-    else:
-        raw_body = body_payload
-
-    if isinstance(raw_body, dict):
-        body_obj = raw_body
-    else:
-        if isinstance(raw_body, bytes):
-            raw_body_text = raw_body.decode("utf-8")
-        else:
-            raw_body_text = raw_body or ""
-
-        try:
-            body_obj = json.loads(raw_body_text) if raw_body_text else {}
-        except json.JSONDecodeError:
-            body_obj = {}
+    body_obj = raw_response
 
     text, function_calls = _extract_text_from_bedrock_body(body_obj)
     response_id = body_obj.get("id")
@@ -216,8 +195,8 @@ class BedrockLegacyAdapter(BaseAdapter):
     ):
         return _fix_docs_for_bedrock(documents)
 
-    def fix_config(self, params, **kwargs):
-        return _prepare_bedrock_body(params, **kwargs)
+    def prepare_response(self, params, **kwargs):
+        return _prepare_bedrock_body(params, kwargs)
 
     def convert_response(self, raw_response):
         return _convert_to_bedrock_response(raw_response)

@@ -133,7 +133,9 @@ class OpenAIAdapter(BaseAdapter):
         params: CommonQueryParameters,
         **kwargs,
     ):
-        raise NotImplementedError
+        raise NotImplementedError(
+            "OpenAIAdapter does not implement fix_config; use prepare_request instead."
+        )
 
     def fix_docs(
         self,
