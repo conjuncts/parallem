@@ -195,7 +195,7 @@ class BedrockLegacyAdapter(BaseAdapter):
     ):
         return _fix_docs_for_bedrock(documents)
 
-    def prepare_response(self, params, **kwargs):
+    def prepare_request(self, params, **kwargs):
         return _prepare_bedrock_body(params, kwargs)
 
     def convert_response(self, raw_response):

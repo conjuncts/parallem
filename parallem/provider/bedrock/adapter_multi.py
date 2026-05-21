@@ -33,34 +33,31 @@ class BedrockAdapter(BaseAdapter):
         # cannot just split by period. for example: gpt-3.5-turbo
         if model_name.startswith("amazon."):
             _key = "amazon"
-        elif model_name.startswith("openai."):
-            _key = "openai"
         elif model_name.startswith("anthropic."):
             _key = "anthropic"
-        elif model_name.startswith("google."):
-            _key = "google"
-        elif model_name.startswith("moonshotai."):
+        else:
+            # most models accept OpenAI ChatCompletions
+            # "moonshotai.",
+            # "deepseek.",
+            # "google.",
+            # "openai.",
+            # "qwen.",
+            # "minimax.",
+            # "mistral.", - most models
+            # "nvidia.",
+            # "zai.",
             _key = "openai-chat"
-
-        if _key is None:
-            return self._fallback_adapter
 
         if _key not in self._adapters:
             if _key == "amazon":
                 from parallem.provider.bedrock.adapter_nova import BedrockNovaAdapter
                 self._adapters[_key] = BedrockNovaAdapter()
-            elif _key == "openai":
-                from parallem.provider.openai.adapter import OpenAIAdapter
-                self._adapters[_key] = OpenAIAdapter()
             elif _key == "openai-chat":
                 from parallem.provider.openai_chat.adapter import OpenAIChatAdapter
                 self._adapters[_key] = OpenAIChatAdapter()
             elif _key == "anthropic":
-                from parallem.provider.anthropic.adapter import AnthropicAdapter
-                self._adapters[_key] = AnthropicAdapter()
-            elif _key == "google":
-                from parallem.provider.google.adapter import GoogleAdapter
-                self._adapters[_key] = GoogleAdapter()
+                from parallem.provider.bedrock.adapter_anthropic import BedrockAnthropicAdapter
+                self._adapters[_key] = BedrockAnthropicAdapter()
         return self._adapters[_key]
 
     def fix_config(

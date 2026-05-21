@@ -2,6 +2,7 @@ import json
 from pathlib import Path
 from typing import TYPE_CHECKING, List, Optional, Union
 
+from parallem.core.exception import ProviderCompatibilityError
 from parallem.types import BatchResult, LLMIdentity, ParsedError, ParsedResponse, ServerTool
 from parallem.utils._batch_helper import _split_batch_response
 
@@ -11,10 +12,13 @@ if TYPE_CHECKING:
 
 def map_server_tools(
     tools: Optional[list[Union[dict, ServerTool]]],
+    *,
+    web_search_supported: bool = True,
 ) -> list[Union[dict, ServerTool]]:
     """Translate ServerTool into OpenAI tool dictionaries.
 
     :param tools: Tools to translate.
+    :param web_search_supported: Web search is not supported in OpenAI ChatCompletions.
     :return: List of tool dictionaries.
     """
     if tools is None:
@@ -24,6 +28,10 @@ def map_server_tools(
     for tool in tools:
         if isinstance(tool, ServerTool):
             if tool.server_tool_type == "web_search":
+                if not web_search_supported:
+                    raise ProviderCompatibilityError(
+                        "Web search tool is not supported with OpenAI ChatCompletions. Use Responses API instead."
+                    )
                 openai_tools.append({"type": "web_search", **tool.kwargs})
             elif tool.server_tool_type == "code_interpreter":
                 openai_tools.append({"type": "code_interpreter", **tool.kwargs})

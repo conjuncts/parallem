@@ -2,6 +2,7 @@ import asyncio
 import json
 from typing import TYPE_CHECKING, Optional, Union
 
+from parallem.core.exception import ProviderCompatibilityError
 from parallem.provider.base import (
     BaseProvider,
     ConcurrentProvider,
@@ -13,6 +14,7 @@ from parallem.types import (
     LLMIdentity,
     ParsedResponse,
 )
+from parallem.utils.image import is_image
 
 if TYPE_CHECKING:
     from pydantic import BaseModel
@@ -43,6 +45,26 @@ class BedrockProvider(BaseProvider):
         :param params: Common query parameters for the request.
         :return: None.
         """
+        img_support = True
+        if any(
+            model in params["llm"].model_name
+            for model in [
+                "deepseek.r1-v1",
+                "deepseek.v3-v1",
+                "deepseek.v3.2",
+                "openai.gpt-oss-20b",
+                "openai.gpt-oss-120b",
+                "openai.gpt-oss-safeguard-20b",
+                "openai.gpt-oss-safeguard-120b",
+            ]
+        ):
+            img_support = False
+
+        for doc in params["strict_documents"]:
+            if not img_support and is_image(doc):
+                raise ProviderCompatibilityError(
+                    f"Image input not supported for model {params['llm'].model_name} on Bedrock."
+                )
 
     def parse_response(
         self, raw_response: Union["BaseModel", dict], llm: Optional[LLMIdentity] = None

@@ -36,14 +36,16 @@ Responses are saved and cached. On the subsequent runs, answers are instant.
 
 ## Compatibility
 
-| Sync/Batch | OpenAI | Anthropic | Google |
-| --- | --- | --- | --- |
-| Simple | ✅ | ✅ | ✅ |
-| Structured Output | ✅ | ✅ | ✅ |
-| Function Calls | ✅ | ✅ | ✅ |
-| Web Search | ✅ | ✅ | ✅ |
-| Image Input | ✅ | ✅ | ✅ |
-| MCP | ✅ | ✅ | ✅ |
+| Sync/Batch | OpenAI | Anthropic | Google | Amazon Bedrock |
+| --- | --- | --- | --- |  --- |
+| Simple | ✅ | ✅ | ✅ | ✅ |
+| Structured Output | ✅ | ✅ | ✅ | ✅* |
+| Function Calls | ✅ | ✅ | ✅ | ✅ |
+| Web Search | ✅ | ✅ | ✅ | ❌ |
+| Image Input | ✅ | ✅ | ✅ | ✅* |
+| MCP | ✅ | ✅ | ✅ | ✅ |
+
+*supported models only
 
 ## Examples
 - [Agents are python functions](examples/simplest_agent.py)

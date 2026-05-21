@@ -104,11 +104,9 @@ def _fix_tools_for_openai_chat(
     tools: Optional[list[Union[dict, ServerTool]]],
 ) -> list[dict]:
     """Translate ServerTool into OpenAI chat completions format."""
-    openai_tools = map_server_tools(tools)
+    openai_tools = map_server_tools(tools, web_search_supported=False)
     chat_tools = []
     for tool in openai_tools:
-        if isinstance(tool, ServerTool):
-            raise ValueError("Unexpected ServerTool after mapping")
         if isinstance(tool, dict):
             # ChatCompletions expects {"type": "function", "function": {...}}
             # whereas Responses expects {"type": "function", "name": ..., "parameters": ...}
