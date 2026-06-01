@@ -123,30 +123,28 @@ class MockAsyncOpenAIClient(MockOpenAIClient):
 
     def __init__(self):
         super().__init__()
-        self.responses.create = self._concurrent_create_response
-        self.responses.parse = self._concurrent_create_response
+        self.responses.create = self._async_create_response
+        self.responses.parse = self._async_create_response
 
-    async def _concurrent_create_response(
-        self, model=None, instructions=None, input=None, **kwargs
-    ):
-        """Mock concurrent responses.create"""
+    async def _async_create_response(self, model=None, instructions=None, input=None, **kwargs):
+        """Mock async responses.create"""
         result = self._create_response(model, instructions, input, **kwargs)
-        await asyncio.sleep(0.01)  # Simulate concurrent delay
+        await asyncio.sleep(0.01)  # Simulate async delay
         return result
 
 
 def mock_openai_client(
     responses: Optional[List[Union[str, MockResponse]]] = None,
     *,
-    concurrent: bool = False,
+    async_mode: bool = False,
 ) -> Union[MockOpenAIClient, MockAsyncOpenAIClient]:
     """Create a mock OpenAI client for testing
 
     :param responses: List of responses to return sequentially
-    :param concurrent: If True, return concurrent mock client
+    :param async_mode: If True, return async mock client
     :return: Mock client that can be passed to orchestrator constructor
     """
-    if concurrent:
+    if async_mode:
         mock_client = MockAsyncOpenAIClient()
     else:
         mock_client = MockOpenAIClient()

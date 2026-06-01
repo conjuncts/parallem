@@ -113,15 +113,15 @@ def test_mixed_pattern_methods(shared_sync_orch):
     assert len(mock_client.calls) == 4
 
 
-def test_concurrent_provider(shared_concurrent_orch):
-    """Test with concurrent provider"""
+def test_async_provider(shared_async_orch):
+    """Test with async provider"""
     responses = ["Async response 1", "Async response 2"]
 
-    mock_client = shared_concurrent_orch._mock_client
+    mock_client = shared_async_orch._mock_client
     mock_client.clear()
     mock_client.set_responses(responses)
 
-    with shared_concurrent_orch.agent("test_concurrent_provider") as a:
+    with shared_async_orch.agent("test_async_provider") as a:
         resp1 = a.ask_llm("First async question")
         resp2 = a.ask_llm("Second async question")
 

@@ -175,7 +175,7 @@ class AsyncBackend(BaseBackend):
             **kwargs,
         )
 
-        # Submit for concurrent execution
+        # Submit for async execution
         self.submit_coro(
             call_id=call_id,
             coro=coro,

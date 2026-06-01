@@ -219,10 +219,10 @@ Team D
     assert game2 == game2_2
 
 
-def test_tournament_with_concurrent_strategy(shared_concurrent_orch, test_agent_name):
-    """Test tournament works with concurrent strategy"""
+def test_tournament_with_async_strategy(shared_async_orch, test_agent_name):
+    """Test tournament works with async strategy"""
     responses = [
-        """Concurrent teams:
+        """Async teams:
 ```
 Alpha
 Beta
@@ -233,11 +233,11 @@ Delta
         "Gamma beats Delta",
     ]
 
-    mock_client = shared_concurrent_orch._mock_client
+    mock_client = shared_async_orch._mock_client
     mock_client.clear()
     mock_client.set_responses(responses)
 
-    with shared_concurrent_orch.agent(test_agent_name) as agent:
+    with shared_async_orch.agent(test_agent_name) as agent:
         teams_resp = agent.ask_llm("Get teams")
 
         # Submit multiple requests concurrently

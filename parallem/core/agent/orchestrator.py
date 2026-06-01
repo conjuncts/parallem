@@ -77,7 +77,7 @@ class AgentOrchestrator:
         Create a future-like handle for an agent function.
 
         - sync/batch: executes coroutine agents immediately.
-        - concurrent/async: queues coroutine agents to run together.
+        - async: queues coroutine agents to run together.
         """
         promise: Future[Any] = Future()
 

@@ -8,7 +8,7 @@ from parallem.provider.base import AsyncProvider
 from parallem.types import LLMIdentity, ParsedResponse
 
 
-class StubConcurrentProvider(AsyncProvider):
+class StubAsyncProvider(AsyncProvider):
     provider_type = "multi"
 
     def __init__(self):
@@ -36,11 +36,11 @@ class StubConcurrentProvider(AsyncProvider):
         )
 
 
-def test_concurrent_backend_passes_llm_provider_type_to_parse_response():
+def test_async_backend_passes_llm_provider_type_to_parse_response():
     with tempfile.TemporaryDirectory() as tmp:
         file_manager = FileManager(Path(tmp))
         backend = AsyncBackend(file_manager)
-        provider = StubConcurrentProvider()
+        provider = StubAsyncProvider()
 
         call_id = {
             "agent_name": "test_agent",

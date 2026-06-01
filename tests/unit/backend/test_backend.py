@@ -2,12 +2,12 @@
 Unit tests for backend functionality
 
 Tests the backend implementations including:
-- ConcurrentBackend initialization, task management, and lifecycle
+- AsyncBackend initialization, task management, and lifecycle
 - SyncBackend initialization and synchronous operations
 - Backend persistence and data storage
 - Backend retrieve operations
 - Backend shutdown and cleanup
-- ConcurrentBackend functionality after persist() calls
+- AsyncBackend functionality after persist() calls
 """
 
 import pytest
@@ -48,11 +48,11 @@ def sample_call_id():
     }
 
 
-class TestConcurrentBackend:
-    """Test ConcurrentBackend functionality"""
+class TestAsyncBackend:
+    """Test AsyncBackend functionality"""
 
-    def test_concurrent_backend_submit_coro(self, file_manager, sample_call_id):
-        """Test submitting coroutines to ConcurrentBackend"""
+    def test_async_backend_submit_coro(self, file_manager, sample_call_id):
+        """Test submitting coroutines to AsyncBackend"""
         backend = AsyncBackend(file_manager)
 
         async def sample_coro():
@@ -75,8 +75,8 @@ class TestConcurrentBackend:
         # Clean up
         backend.shutdown()
 
-    def test_concurrent_backend_shutdown(self, file_manager):
-        """Test ConcurrentBackend shutdown functionality"""
+    def test_async_backend_shutdown(self, file_manager):
+        """Test AsyncBackend shutdown functionality"""
         backend = AsyncBackend(file_manager)
 
         assert backend._loop is not None
@@ -91,8 +91,8 @@ class TestConcurrentBackend:
         backend._loop_thread.join(timeout=5.0)
         assert not backend._loop_thread.is_alive()
 
-    def test_concurrent_backend_persist(self, file_manager, sample_call_id):
-        """Test ConcurrentBackend persist functionality"""
+    def test_async_backend_persist(self, file_manager, sample_call_id):
+        """Test AsyncBackend persist functionality"""
         backend = AsyncBackend(file_manager)
 
         async def sample_coro():
@@ -111,8 +111,8 @@ class TestConcurrentBackend:
         # Clean up
         backend.shutdown()
 
-    def test_concurrent_backend_functionality_after_persist(self, file_manager, sample_call_id):
-        """Test that ConcurrentBackend remains functional after calling persist()"""
+    def test_async_backend_functionality_after_persist(self, file_manager, sample_call_id):
+        """Test that AsyncBackend remains functional after calling persist()"""
         backend = AsyncBackend(file_manager)
 
         # Submit initial task
@@ -156,9 +156,7 @@ class TestConcurrentBackend:
         # Clean up
         backend.shutdown()
 
-    def test_concurrent_backend_does_not_wait_for_unrelated_tasks(
-        self, file_manager, sample_call_id
-    ):
+    def test_async_backend_does_not_wait_for_unrelated_tasks(self, file_manager, sample_call_id):
         """Test that retrieve() for one task doesn't wait for unrelated slow tasks"""
         backend = AsyncBackend(file_manager)
 

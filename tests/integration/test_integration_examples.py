@@ -79,7 +79,7 @@ def test_strategy_switching_persistence(temp_integration_dir):
     assert len(mock_client_sync.calls) == 1
 
     # Run 2: Switch to async strategy, load same data
-    mock_client_async = mock_openai_client(responses=["Should not be called"], concurrent=True)
+    mock_client_async = mock_openai_client(responses=["Should not be called"], async_mode=True)
     with resume_directory(
         test_dir,
         provider="openai",

@@ -24,8 +24,8 @@ def test_run_agent_executes_async_fn_in_sync_mode(async_sync_orch, test_agent_na
     assert result.result() == f"done:{test_agent_name}"
 
 
-def test_run_agent_queues_and_persists_async_agents_in_concurrent_mode(
-    async_concurrent_orch, test_agent_name
+def test_run_agent_queues_and_persists_async_agents_in_async_mode(
+    async_async_orch, test_agent_name
 ):
     seen = []
     agent_name_a = f"{test_agent_name}-a"
@@ -36,13 +36,13 @@ def test_run_agent_queues_and_persists_async_agents_in_concurrent_mode(
         seen.append(agent.agent_name)
         return agent.agent_name
 
-    fut1 = async_concurrent_orch.create_agent(_agent_fn, agent_name=agent_name_a)
-    fut2 = async_concurrent_orch.create_agent(_agent_fn, agent_name=agent_name_b)
+    fut1 = async_async_orch.create_agent(_agent_fn, agent_name=agent_name_a)
+    fut2 = async_async_orch.create_agent(_agent_fn, agent_name=agent_name_b)
     assert not fut1.done()
     assert not fut2.done()
     assert seen == []
 
-    out = async_concurrent_orch.run_agents(fut1, fut2)
+    out = async_async_orch.run_agents(fut1, fut2)
     assert out == [agent_name_a, agent_name_b]
     assert sorted(seen) == sorted([agent_name_a, agent_name_b])
 

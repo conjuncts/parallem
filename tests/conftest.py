@@ -104,8 +104,8 @@ def async_sync_orch(session_orch_root):
 
 
 @pytest.fixture(scope="session")
-def async_concurrent_orch(session_orch_root):
-    fm = FileManager(session_orch_root / "async-concurrent")
+def async_async_orch(session_orch_root):
+    fm = FileManager(session_orch_root / "async-async")
     orch = AgentOrchestrator(
         file_manager=fm,
         backend=MockBackend(),
@@ -196,9 +196,9 @@ def shared_sync_orch(session_orch_root):
 
 
 @pytest.fixture(scope="session")
-def shared_concurrent_orch(session_orch_root):
-    orch_dir = session_orch_root / "shared-concurrent"
-    mock_client = mock_openai_client(concurrent=True)
+def shared_async_orch(session_orch_root):
+    orch_dir = session_orch_root / "shared-async"
+    mock_client = mock_openai_client(async_mode=True)
     orch = resume_directory(
         orch_dir,
         provider="openai",
