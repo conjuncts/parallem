@@ -6,7 +6,7 @@ from parallem.core.exception import ProviderCompatibilityError
 from parallem.provider.base import (
     BaseProvider,
     BatchProvider,
-    ConcurrentProvider,
+    AsyncProvider,
     SyncProvider,
 )
 from parallem.provider.openai_chat.adapter import OpenAIChatAdapter
@@ -88,17 +88,17 @@ class SyncOpenAIChatProvider(SyncProvider, OpenAIChatProvider):
         )
 
 
-class ConcurrentOpenAIChatProvider(ConcurrentProvider, OpenAIChatProvider):
+class AsyncOpenAIChatProvider(AsyncProvider, OpenAIChatProvider):
     def __init__(self, client: "AsyncOpenAI"):
         super().__init__()
         self.client = client
 
-    def prepare_concurrent_call(
+    def prepare_async_call(
         self,
         params: CommonQueryParameters,
         **kwargs,
     ):
-        """Prepare a concurrent coroutine for OpenAI chat completions API."""
+        """Prepare an async coroutine for OpenAI chat completions API."""
         instructions = params["instructions"]
         fixed_documents = self.adapter.fix_docs(params["strict_documents"], instructions)
         llm = params["llm"]

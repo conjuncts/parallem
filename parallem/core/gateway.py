@@ -26,7 +26,7 @@ DEFAULT_MINOR_TWEAKS: MinorTweaks = {
 def resume_directory(
     directory,
     *,
-    strategy: Literal["sync", "concurrent", "batch"] = "sync",
+    strategy: Literal["sync", "async", "batch"] = "sync",
     provider: Literal[
         "openai",
         "openai-chat",
@@ -79,7 +79,7 @@ def resume_directory(
 
     # Logic to resume from the specified directory
     # 1. Validation
-    if strategy not in ["sync", "concurrent", "batch"]:
+    if strategy not in ["sync", "async", "batch"]:
         raise ValueError(f"Unknown strategy '{strategy}'")
     if dry_run:
         raise NotImplementedError("Dry run is not implemented yet")
@@ -108,10 +108,10 @@ def resume_directory(
     if datastore == "sqlite":
         datastore_cls = None  # default
 
-    if strategy == "concurrent":
-        from parallem.core.backend.concurrent_backend import ConcurrentBackend
+    if strategy == "async":
+        from parallem.core.backend.async_backend import AsyncBackend
 
-        backend = ConcurrentBackend(
+        backend = AsyncBackend(
             fm,
             dashlog=dashlog,
             datastore_cls=datastore_cls,

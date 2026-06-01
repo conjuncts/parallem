@@ -83,7 +83,7 @@ def test_strategy_switching_persistence(temp_integration_dir):
     with resume_directory(
         test_dir,
         provider="openai",
-        strategy="concurrent",  # Different strategy
+        strategy="async",  # Different strategy
         client=mock_client_async,
     ) as orch_async:
         # Add new data with async strategy

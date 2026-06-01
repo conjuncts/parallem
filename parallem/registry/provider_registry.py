@@ -20,9 +20,9 @@ satisfies this protocol.
 
 @dataclass
 class _ProviderEntry:
-    sync: Optional[ProviderFactory] = None
-    concurrent: Optional[ProviderFactory] = None
-    batch: Optional[ProviderFactory] = None
+    sync_entry: Optional[ProviderFactory] = None
+    async_entry: Optional[ProviderFactory] = None
+    batch_entry: Optional[ProviderFactory] = None
 
 
 _registry: dict[str, _ProviderEntry] = {}
@@ -32,9 +32,9 @@ _lock = threading.Lock()
 def register_provider(
     name: str,
     *,
-    sync: Optional[ProviderFactory] = None,
-    concurrent: Optional[ProviderFactory] = None,
-    batch: Optional[ProviderFactory] = None,
+    sync_entry: Optional[ProviderFactory] = None,
+    async_entry: Optional[ProviderFactory] = None,
+    batch_entry: Optional[ProviderFactory] = None,
 ) -> None:
     """Register a custom provider under *name*.
 
@@ -45,9 +45,9 @@ def register_provider(
     :param name: Unique identifier for the provider (e.g. ``"myprovider"``).
         Used in :class:`~parallem.types.LLMIdentity` strings like
         ``"myprovider/my-model"``.
-    :param sync: Factory for the synchronous strategy.
-    :param concurrent: Factory for the concurrent (async) strategy.
-    :param batch: Factory for the batch strategy.
+    :param sync_entry: Factory for the synchronous strategy.
+    :param async_entry: Factory for the async strategy.
+    :param batch_entry: Factory for the batch strategy.
     :raises ValueError: If *name* is empty or collides with a built-in provider
         name, or if no factory is provided.
     :raises TypeError: If a supplied factory is not callable.
@@ -59,21 +59,21 @@ def register_provider(
     if name in _builtin_names:
         raise ValueError(f"'{name}' is a built-in provider name and cannot be overridden.")
 
-    if sync is None and concurrent is None and batch is None:
-        raise ValueError(
-            "At least one strategy factory (sync, concurrent, or batch) must be provided."
-        )
+    if sync_entry is None and async_entry is None and batch_entry is None:
+        raise ValueError("At least one strategy factory (sync, async, or batch) must be provided.")
 
     for label, factory in (
-        ("sync", sync),
-        ("concurrent", concurrent),
-        ("batch", batch),
+        ("sync", sync_entry),
+        ("async", async_entry),
+        ("batch", batch_entry),
     ):
         if factory is not None and not callable(factory):
             raise TypeError(f"'{label}' factory must be callable, got {type(factory)!r}.")
 
     with _lock:
-        _registry[name] = _ProviderEntry(sync=sync, concurrent=concurrent, batch=batch)
+        _registry[name] = _ProviderEntry(
+            sync_entry=sync_entry, async_entry=async_entry, batch_entry=batch_entry
+        )
 
 
 def unregister_provider(name: str) -> None:
@@ -106,7 +106,7 @@ def get_provider(
     """Instantiate a registered provider for *strategy*.
 
     :param name: Provider name.
-    :param strategy: One of ``"sync"``, ``"concurrent"``, or ``"batch"``.
+    :param strategy: One of ``"sync"``, ``"async"``, or ``"batch"``.
     :param client: Optional pre-initialised client to pass to the factory.
     :return: A :class:`~parallem.provider.base.BaseProvider` instance.
     :raises KeyError: If *name* is not registered.

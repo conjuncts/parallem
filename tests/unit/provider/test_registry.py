@@ -1,6 +1,6 @@
 import pytest
 
-from parallem.provider.base import SyncProvider, ConcurrentProvider, BatchProvider
+from parallem.provider.base import SyncProvider, AsyncProvider, BatchProvider
 from parallem.registry.provider_registry import (
     get_provider,
     is_registered,
@@ -34,7 +34,7 @@ class _StubSync(SyncProvider):
         raise NotImplementedError
 
 
-class _StubConcurrent(ConcurrentProvider):
+class _StubConcurrent(AsyncProvider):
     provider_type = "stub"
 
     def __init__(self, client=None):
@@ -49,7 +49,7 @@ class _StubConcurrent(ConcurrentProvider):
     def parse_response(self, raw_response, provider_type=None):
         raise NotImplementedError
 
-    def prepare_concurrent_call(self, params, **kwargs):
+    def prepare_async_call(self, params, **kwargs):
         raise NotImplementedError
 
 
@@ -96,12 +96,12 @@ def _cleanup():
 
 def test_register_empty_name_raises():
     with pytest.raises(ValueError, match="non-empty"):
-        register_provider("", sync=_StubSync)
+        register_provider("", sync_entry=_StubSync)
 
 
 def test_register_builtin_name_raises():
     with pytest.raises(ValueError, match="built-in"):
-        register_provider("openai", sync=_StubSync)
+        register_provider("openai", sync_entry=_StubSync)
 
 
 def test_register_no_factories_raises():
@@ -111,7 +111,7 @@ def test_register_no_factories_raises():
 
 def test_register_non_callable_factory_raises():
     with pytest.raises(TypeError, match="callable"):
-        register_provider("stubprovider", sync="not_a_callable")
+        register_provider("stubprovider", sync_entry="not_a_callable")
 
 
 # ---------------------------------------------------------------------------
@@ -120,7 +120,7 @@ def test_register_non_callable_factory_raises():
 
 
 def test_register_and_is_registered():
-    register_provider("stubprovider", sync=_StubSync)
+    register_provider("stubprovider", sync_entry=_StubSync)
     assert is_registered("stubprovider")
 
 
@@ -129,7 +129,7 @@ def test_is_registered_false_for_unknown():
 
 
 def test_unregister_removes_provider():
-    register_provider("stubprovider", sync=_StubSync)
+    register_provider("stubprovider", sync_entry=_StubSync)
     unregister_provider("stubprovider")
     assert not is_registered("stubprovider")
 
@@ -140,12 +140,12 @@ def test_unregister_unknown_raises():
 
 
 def test_register_overwrites_existing():
-    register_provider("stubprovider", sync=_StubSync)
+    register_provider("stubprovider", sync_entry=_StubSync)
 
     class _AltSync(_StubSync):
         pass
 
-    register_provider("stubprovider", sync=_AltSync)
+    register_provider("stubprovider", sync_entry=_AltSync)
     provider = get_provider("stubprovider", "sync")
     assert isinstance(provider, _AltSync)
 
@@ -156,14 +156,14 @@ def test_register_overwrites_existing():
 
 
 def test_get_provider_sync_class():
-    register_provider("stubprovider", sync=_StubSync)
+    register_provider("stubprovider", sync_entry=_StubSync)
     provider = get_provider("stubprovider", "sync")
     assert isinstance(provider, _StubSync)
 
 
 def test_get_provider_passes_client():
     sentinel = object()
-    register_provider("stubprovider", sync=_StubSync)
+    register_provider("stubprovider", sync_entry=_StubSync)
     provider = get_provider("stubprovider", "sync", client=sentinel)
     assert provider.client is sentinel
 
@@ -177,7 +177,7 @@ def test_get_provider_factory_callable():
         instances.append(inst)
         return inst
 
-    register_provider("factorybased", sync=_factory)
+    register_provider("factorybased", sync_entry=_factory)
     provider = get_provider("factorybased", "sync", client=sentinel)
     assert len(instances) == 1
     assert provider.client is sentinel
@@ -189,20 +189,20 @@ def test_get_provider_unknown_raises():
 
 
 def test_get_provider_unsupported_strategy_raises():
-    register_provider("synconly", sync=_StubSync)
-    with pytest.raises(NotImplementedError, match="concurrent"):
-        get_provider("synconly", "concurrent")
+    register_provider("synconly", sync_entry=_StubSync)
+    with pytest.raises(NotImplementedError, match="async"):
+        get_provider("synconly", "async")
 
 
 def test_get_provider_all_strategies():
     register_provider(
         "stubprovider",
-        sync=_StubSync,
-        concurrent=_StubConcurrent,
-        batch=_StubBatch,
+        sync_entry=_StubSync,
+        async_entry=_StubConcurrent,
+        batch_entry=_StubBatch,
     )
     assert isinstance(get_provider("stubprovider", "sync"), _StubSync)
-    assert isinstance(get_provider("stubprovider", "concurrent"), _StubConcurrent)
+    assert isinstance(get_provider("stubprovider", "async"), _StubConcurrent)
     assert isinstance(get_provider("stubprovider", "batch"), _StubBatch)
 
 
@@ -212,7 +212,7 @@ def test_get_provider_all_strategies():
 
 
 def test_dynamic_select_provider_uses_registry():
-    register_provider("stubprovider", sync=_StubSync)
+    register_provider("stubprovider", sync_entry=_StubSync)
     provider = dynamic_select_provider("stubprovider", "sync")
     assert isinstance(provider, _StubSync)
 

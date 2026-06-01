@@ -18,7 +18,7 @@ if __name__ == "__main__":
     with pllm.resume_directory(
         ".pllm/simplest",
         provider="openai",
-        strategy="concurrent",
+        strategy="async",
         dashboard=True,
     ) as orch:
         # Instantiate the agent.

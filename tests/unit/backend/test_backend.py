@@ -14,7 +14,7 @@ import pytest
 import tempfile
 import asyncio
 from pathlib import Path
-from parallem.core.backend.concurrent_backend import ConcurrentBackend
+from parallem.core.backend.async_backend import AsyncBackend
 from parallem.core.backend.sync_backend import SyncBackend
 from parallem.core.file_manager import FileManager
 from parallem.types import ParsedResponse, to_serial_id
@@ -53,7 +53,7 @@ class TestConcurrentBackend:
 
     def test_concurrent_backend_submit_coro(self, file_manager, sample_call_id):
         """Test submitting coroutines to ConcurrentBackend"""
-        backend = ConcurrentBackend(file_manager)
+        backend = AsyncBackend(file_manager)
 
         async def sample_coro():
             await asyncio.sleep(0.01)
@@ -77,7 +77,7 @@ class TestConcurrentBackend:
 
     def test_concurrent_backend_shutdown(self, file_manager):
         """Test ConcurrentBackend shutdown functionality"""
-        backend = ConcurrentBackend(file_manager)
+        backend = AsyncBackend(file_manager)
 
         assert backend._loop is not None
         assert backend._loop_thread.is_alive()
@@ -93,7 +93,7 @@ class TestConcurrentBackend:
 
     def test_concurrent_backend_persist(self, file_manager, sample_call_id):
         """Test ConcurrentBackend persist functionality"""
-        backend = ConcurrentBackend(file_manager)
+        backend = AsyncBackend(file_manager)
 
         async def sample_coro():
             return {"role": "assistant", "content": "persist test"}
@@ -113,7 +113,7 @@ class TestConcurrentBackend:
 
     def test_concurrent_backend_functionality_after_persist(self, file_manager, sample_call_id):
         """Test that ConcurrentBackend remains functional after calling persist()"""
-        backend = ConcurrentBackend(file_manager)
+        backend = AsyncBackend(file_manager)
 
         # Submit initial task
         async def first_coro():
@@ -160,7 +160,7 @@ class TestConcurrentBackend:
         self, file_manager, sample_call_id
     ):
         """Test that retrieve() for one task doesn't wait for unrelated slow tasks"""
-        backend = ConcurrentBackend(file_manager)
+        backend = AsyncBackend(file_manager)
 
         # Submit a very slow task first
         slow_call_id = sample_call_id.copy()

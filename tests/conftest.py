@@ -112,7 +112,7 @@ def async_concurrent_orch(session_orch_root):
         provider=object(),
         logger=logging.getLogger("parallem.test"),
         dashlog=PrimitiveDashboardLogger(),
-        strategy="concurrent",
+        strategy="async",
     )
     yield orch
     orch.finalize_and_persist()
@@ -202,7 +202,7 @@ def shared_concurrent_orch(session_orch_root):
     orch = resume_directory(
         orch_dir,
         provider="openai",
-        strategy="concurrent",
+        strategy="async",
         client=mock_client,
     )
     orch._mock_client = mock_client

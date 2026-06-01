@@ -44,7 +44,7 @@ def nfl_tournament(agt: pllm.AgentContext):
 with pllm.resume_directory(
     ".pllm/example/nfl",
     provider="openai",
-    strategy="concurrent",
+    strategy="async",
     log_level=logging.DEBUG,
     dashboard=True,
 ) as orch:

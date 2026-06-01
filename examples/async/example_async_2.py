@@ -17,7 +17,7 @@ async def main():
     with pllm.resume_directory(
         ".pllm/fresh/1/simplest",
         provider="openai",
-        strategy="concurrent",
+        strategy="async",
         dashboard=True,
         load_dotenv=True,
     ) as orch:

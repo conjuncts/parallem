@@ -6,7 +6,7 @@ from parallem.types import ProviderType
 
 def dynamic_select_provider(
     provider_type: ProviderType,
-    strategy: Literal["sync", "concurrent", "batch"],
+    strategy: Literal["sync", "async", "batch"],
     *,
     multi_allowed=False,
     client=None,
@@ -16,17 +16,17 @@ def dynamic_select_provider(
     """
     if provider_type == "openai":
         from parallem.provider.openai.sdk import (
-            ConcurrentOpenAIProvider,
+            AsyncOpenAIProvider,
             SyncOpenAIProvider,
             BatchOpenAIProvider,
         )
 
-        if strategy == "concurrent":
+        if strategy == "async":
             if client is None:
                 from openai import AsyncOpenAI
 
                 client = AsyncOpenAI()
-            provider = ConcurrentOpenAIProvider(client=client)
+            provider = AsyncOpenAIProvider(client=client)
         elif strategy == "batch":
             if client is None:
                 from openai import OpenAI
@@ -43,16 +43,16 @@ def dynamic_select_provider(
     elif provider_type == "openai-chat":
         from parallem.provider.openai_chat.sdk import (
             BatchOpenAIChatProvider,
-            ConcurrentOpenAIChatProvider,
+            AsyncOpenAIChatProvider,
             SyncOpenAIChatProvider,
         )
 
-        if strategy == "concurrent":
+        if strategy == "async":
             if client is None:
                 from openai import AsyncOpenAI
 
                 client = AsyncOpenAI()
-            provider = ConcurrentOpenAIChatProvider(client=client)
+            provider = AsyncOpenAIChatProvider(client=client)
         elif strategy == "batch":
             if client is None:
                 from openai import OpenAI
@@ -67,7 +67,7 @@ def dynamic_select_provider(
             provider = SyncOpenAIChatProvider(client=client)
     elif provider_type == "google":
         from parallem.provider.google.sdk import (
-            ConcurrentGoogleProvider,
+            AsyncGoogleProvider,
             BatchGoogleProvider,
             SyncGoogleProvider,
         )
@@ -77,8 +77,8 @@ def dynamic_select_provider(
 
             client = genai.Client()
 
-        if strategy == "concurrent":
-            provider = ConcurrentGoogleProvider(client=client)
+        if strategy == "async":
+            provider = AsyncGoogleProvider(client=client)
         elif strategy == "batch":
             provider = BatchGoogleProvider(client=client)
         else:
@@ -86,16 +86,16 @@ def dynamic_select_provider(
     elif provider_type == "anthropic":
         from parallem.provider.anthropic.sdk import (
             BatchAnthropicProvider,
-            ConcurrentAnthropicProvider,
+            AsyncAnthropicProvider,
             SyncAnthropicProvider,
         )
 
-        if strategy == "concurrent":
+        if strategy == "async":
             if client is None:
                 from anthropic import AsyncAnthropic
 
                 client = AsyncAnthropic()
-            provider = ConcurrentAnthropicProvider(client=client)
+            provider = AsyncAnthropicProvider(client=client)
         elif strategy == "batch":
             if client is None:
                 from anthropic import Anthropic
@@ -110,7 +110,7 @@ def dynamic_select_provider(
             provider = SyncAnthropicProvider(client=client)
     elif provider_type == "bedrock":
         from parallem.provider.bedrock.sdk import (
-            ConcurrentBedrockProvider,
+            AsyncBedrockProvider,
             SyncBedrockProvider,
         )
         from parallem.provider.bedrock.sdk_s3 import BatchBedrockProvider
@@ -127,8 +127,8 @@ def dynamic_select_provider(
                 )
             client = boto3.client("bedrock-runtime", region_name=region_name)
 
-        if strategy == "concurrent":
-            provider = ConcurrentBedrockProvider(client=client)
+        if strategy == "async":
+            provider = AsyncBedrockProvider(client=client)
         elif strategy == "batch":
             provider = BatchBedrockProvider(client=client)
         else:
@@ -136,12 +136,12 @@ def dynamic_select_provider(
     elif multi_allowed and provider_type == "multi":
         from parallem.provider.multi.multiplexer import (
             SyncMultiProvider,
-            ConcurrentMultiProvider,
+            AsyncMultiProvider,
             BatchMultiProvider,
         )
 
-        if strategy == "concurrent":
-            provider = ConcurrentMultiProvider()
+        if strategy == "async":
+            provider = AsyncMultiProvider()
         elif strategy == "batch":
             provider = BatchMultiProvider()
         else:

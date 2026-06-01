@@ -2,13 +2,13 @@ import tempfile
 from pathlib import Path
 from typing import Optional
 
-from parallem.core.backend.concurrent_backend import ConcurrentBackend
+from parallem.core.backend.async_backend import AsyncBackend
 from parallem.core.file_manager import FileManager
-from parallem.provider.base import ConcurrentProvider
+from parallem.provider.base import AsyncProvider
 from parallem.types import LLMIdentity, ParsedResponse
 
 
-class StubConcurrentProvider(ConcurrentProvider):
+class StubConcurrentProvider(AsyncProvider):
     provider_type = "multi"
 
     def __init__(self):
@@ -20,7 +20,7 @@ class StubConcurrentProvider(ConcurrentProvider):
     def validate_request_compatibility(self, params, **kwargs):
         return None
 
-    def prepare_concurrent_call(self, params, **kwargs):
+    def prepare_async_call(self, params, **kwargs):
         async def _coro():
             return {"content": "ok"}
 
@@ -39,7 +39,7 @@ class StubConcurrentProvider(ConcurrentProvider):
 def test_concurrent_backend_passes_llm_provider_type_to_parse_response():
     with tempfile.TemporaryDirectory() as tmp:
         file_manager = FileManager(Path(tmp))
-        backend = ConcurrentBackend(file_manager)
+        backend = AsyncBackend(file_manager)
         provider = StubConcurrentProvider()
 
         call_id = {

@@ -118,8 +118,8 @@ class MockOpenAIClient:
         self.response_counter = 0
 
 
-class MockConcurrentOpenAIClient(MockOpenAIClient):
-    """Concurrent version of mock OpenAI client"""
+class MockAsyncOpenAIClient(MockOpenAIClient):
+    """Async version of mock OpenAI client"""
 
     def __init__(self):
         super().__init__()
@@ -139,7 +139,7 @@ def mock_openai_client(
     responses: Optional[List[Union[str, MockResponse]]] = None,
     *,
     concurrent: bool = False,
-) -> Union[MockOpenAIClient, MockConcurrentOpenAIClient]:
+) -> Union[MockOpenAIClient, MockAsyncOpenAIClient]:
     """Create a mock OpenAI client for testing
 
     :param responses: List of responses to return sequentially
@@ -147,7 +147,7 @@ def mock_openai_client(
     :return: Mock client that can be passed to orchestrator constructor
     """
     if concurrent:
-        mock_client = MockConcurrentOpenAIClient()
+        mock_client = MockAsyncOpenAIClient()
     else:
         mock_client = MockOpenAIClient()
 

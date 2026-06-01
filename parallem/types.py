@@ -419,7 +419,7 @@ class MinorTweaks(TypedDict, total=False):
     """
 
     max_concurrent: Optional[int] = 20
-    "Maximum number of concurrent tasks in ConcurrentBackend."
+    "Maximum number of concurrent tasks in AsyncBackend."
 
     batch_user_confirmation: bool = True
     "Whether to ask for user confirmation before submitting a batch."
@@ -587,7 +587,7 @@ class BaseRetriever(ABC):
     async def await_response(
         self, call_id: CallIdentifier, metadata: bool = False
     ) -> Optional[ParsedResponse]:
-        # NOTE: this is synchronous. ConcurrentBackend should handle async retrieval appropriately.
+        # NOTE: this is synchronous. AsyncBackend should handle async retrieval appropriately.
         return self.retrieve(call_id, metadata=metadata)
 
     @abstractmethod

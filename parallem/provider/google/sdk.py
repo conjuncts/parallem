@@ -2,7 +2,7 @@ import json
 from pathlib import Path
 from typing import TYPE_CHECKING, List, Optional, Union
 from parallem.provider.base import (
-    ConcurrentProvider,
+    AsyncProvider,
     BaseProvider,
     BatchProvider,
     SyncProvider,
@@ -70,17 +70,17 @@ class SyncGoogleProvider(SyncProvider, GoogleProvider):
         )
 
 
-class ConcurrentGoogleProvider(ConcurrentProvider, GoogleProvider):
+class AsyncGoogleProvider(AsyncProvider, GoogleProvider):
     def __init__(self, client: "genai.Client"):
         super().__init__()
         self.client = client
 
-    def prepare_concurrent_call(
+    def prepare_async_call(
         self,
         params: CommonQueryParameters,
         **kwargs,
     ):
-        """Prepare a concurrent coroutine for Gemini API"""
+        """Prepare an async coroutine for Gemini API"""
         model_name, contents, config = self.adapter.fix_config(params, **kwargs)
 
         coro = self.client.aio.models.generate_content(

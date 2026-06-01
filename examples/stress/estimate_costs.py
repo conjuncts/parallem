@@ -12,10 +12,12 @@ with gzip.open(loc, "rt", encoding="utf-8") as fh:
         resp_id, metadata_txt = line.split("\t", 1)
         if not line:
             continue
-        collector.append({
-            "response_id": resp_id,
-            **json.loads(metadata_txt),
-        })
+        collector.append(
+            {
+                "response_id": resp_id,
+                **json.loads(metadata_txt),
+            }
+        )
 
 df = pl.json_normalize(collector)
 print(df)

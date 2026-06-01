@@ -1,6 +1,6 @@
 from typing import Optional
 from parallem.core.backend import BaseBackend
-from parallem.core.backend.concurrent_backend import ConcurrentBackend
+from parallem.core.backend.async_backend import AsyncBackend
 from parallem.core.backend.sync_backend import SyncBackend
 from parallem.core.calls import _call_to_concise_dict
 from parallem.core.datastore.base import BaseDatastore
@@ -99,7 +99,7 @@ class MockSyncBackend(SyncBackend):
         super().__init__(None, None, datastore_cls=MockDatastore)
 
 
-class MockConcurrentBackend(ConcurrentBackend):
+class MockAsyncBackend(AsyncBackend):
     def __init__(self):
         super().__init__(None, datastore_cls=MockDatastore)
 

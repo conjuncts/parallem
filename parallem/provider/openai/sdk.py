@@ -2,7 +2,7 @@ from typing import TYPE_CHECKING, Optional, Union
 
 from parallem.provider.openai.common import OpenAIBatchMixin
 from parallem.provider.base import (
-    ConcurrentProvider,
+    AsyncProvider,
     BaseProvider,
     BatchProvider,
     SyncProvider,
@@ -82,17 +82,17 @@ class SyncOpenAIProvider(SyncProvider, OpenAIProvider):
         )
 
 
-class ConcurrentOpenAIProvider(ConcurrentProvider, OpenAIProvider):
+class AsyncOpenAIProvider(AsyncProvider, OpenAIProvider):
     def __init__(self, client: "AsyncOpenAI"):
         super().__init__()
         self.client = client
 
-    def prepare_concurrent_call(
+    def prepare_async_call(
         self,
         params: CommonQueryParameters,
         **kwargs,
     ):
-        """Prepare a concurrent coroutine for OpenAI API"""
+        """Prepare an async coroutine for OpenAI API"""
         instructions = params["instructions"]
         fixed_documents = self.adapter.fix_docs(params["strict_documents"])
         llm = params["llm"]

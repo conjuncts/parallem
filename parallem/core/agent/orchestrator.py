@@ -15,7 +15,7 @@ from parallem.core.seq_id_store import InMemorySeqIdStore, SeqIdStore
 from parallem.provider.base import BaseProvider
 from parallem.core.file_manager import FileManager
 from parallem.logging.dash_logger import DashboardLogger
-from parallem.types import AskParameters, LLMResponse
+from parallem.types import AskParameters
 from parallem.utils.manip import reduce_to_list
 
 
@@ -32,7 +32,7 @@ class AgentOrchestrator:
         dashlog: DashboardLogger,
         ask_params: Optional[AskParameters] = None,
         ignore_cache: bool = False,
-        strategy: Optional[Literal["sync", "concurrent", "batch"]] = None,
+        strategy: Optional[Literal["sync", "async", "batch"]] = None,
         seq_id_store: Optional[SeqIdStore] = None,
         error_mode: Optional[str] = None,
     ):
@@ -127,11 +127,11 @@ class AgentOrchestrator:
 
             agent_coro = _coro_wrapper()
 
-        if self.strategy != "concurrent" or agent_coro is None:
+        if self.strategy != "async" or agent_coro is None:
             promise.set_exception(
                 ValueError(
                     f"Invalid strategy for create_agent: {self.strategy}. "
-                    "Expected one of 'sync', 'batch', or 'concurrent'."
+                    "Expected one of 'sync', 'batch', or 'async'."
                 )
             )
             return promise
@@ -170,14 +170,14 @@ class AgentOrchestrator:
         Similar to asyncio.gather, but this correctly handles batch-related signals.
 
         Similar to gather semantics:
-        - Executes all queued concurrent coroutines first.
+        - Executes all queued async coroutines first.
         - Collects all outcomes.
         - If ``return_exceptions`` is False, raises once at the end if any handle failed,
           prioritizing ParallemSignal subclasses (e.g., NotAvailable).
         - If ``return_exceptions`` is True, returns a list of outcomes and exceptions.
           (Matches behavior of asyncio.gather with return_exceptions=True)
         """
-        if self.strategy == "concurrent" and self._pending_agent_coroutines:
+        if self.strategy == "async" and self._pending_agent_coroutines:
             self._run_pending_agents()
 
         outcomes: list[Any] = []
@@ -281,12 +281,12 @@ class AgentOrchestrator:
     def finalize_tasks(self):
         """
         Run any remaining tasks.
-            - In concurrent mode, waits for all pending agents to complete.
+            - In async mode, waits for all pending agents to complete.
             - In batch mode, executes the entire batch.
             - In sync mode, does nothing since agents are executed immediately.
         """
 
-        if self.strategy == "concurrent":
+        if self.strategy == "async":
             self._run_pending_agents()
 
         if isinstance(self._backend, BatchBackend) and self.strategy == "batch":

@@ -104,14 +104,14 @@ class SyncProvider(BaseProvider):
         raise NotImplementedError
 
 
-class ConcurrentProvider(BaseProvider):
-    def prepare_concurrent_call(
+class AsyncProvider(BaseProvider):
+    def prepare_async_call(
         self,
         params: CommonQueryParameters,
         **kwargs,
     ):
         """
-        Prepare a concurrent coroutine for the backend to execute.
+        Prepare an async coroutine for the backend to execute.
 
         :param params: Common query parameters containing instructions, documents, llm, etc.
         :return: A coroutine that when awaited will make the API call and return the raw response

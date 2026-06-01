@@ -5,7 +5,7 @@ from typing import TYPE_CHECKING, Optional, Union
 from parallem.core.exception import ProviderCompatibilityError
 from parallem.provider.base import (
     BaseProvider,
-    ConcurrentProvider,
+    AsyncProvider,
     SyncProvider,
 )
 from parallem.provider.bedrock.adapter_multi import BedrockAdapter
@@ -112,13 +112,13 @@ class SyncBedrockProvider(SyncProvider, BedrockProvider):
         )
 
 
-class ConcurrentBedrockProvider(ConcurrentProvider, BedrockProvider):
-    def prepare_concurrent_call(
+class AsyncBedrockProvider(AsyncProvider, BedrockProvider):
+    def prepare_async_call(
         self,
         params: CommonQueryParameters,
         **kwargs,
     ):
-        """Prepare a concurrent coroutine for Bedrock InvokeModel.
+        """Prepare an async coroutine for Bedrock InvokeModel.
 
         :param params: Common query parameters for the request.
         :return: Coroutine yielding a raw response.

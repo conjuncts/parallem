@@ -4,7 +4,7 @@ from typing import Literal, Optional, overload
 from parallem.provider.base import (
     BaseProvider,
     BatchProvider,
-    ConcurrentProvider,
+    AsyncProvider,
     SyncProvider,
 )
 from parallem.provider.multi.provider_selector import dynamic_select_provider
@@ -18,7 +18,7 @@ class MultiProvider(BaseProvider):
     def is_compatible(self, other):
         return True
 
-    def __init__(self, base_strategy: Literal["sync", "concurrent", "batch"]):
+    def __init__(self, base_strategy: Literal["sync", "async", "batch"]):
         self.providers: dict[str, BaseProvider] = {}
         self.base_strategy = base_strategy
         self.provider_type = None
@@ -40,15 +40,13 @@ class MultiProvider(BaseProvider):
     @overload
     def _load_provider(self, provider_name: str, strategy: Literal["sync"]) -> SyncProvider: ...
     @overload
-    def _load_provider(
-        self, provider_name: str, strategy: Literal["concurrent"]
-    ) -> ConcurrentProvider: ...
+    def _load_provider(self, provider_name: str, strategy: Literal["async"]) -> AsyncProvider: ...
     @overload
     def _load_provider(self, provider_name: str, strategy: Literal["batch"]) -> BatchProvider: ...
     def _load_provider(
         self,
         provider_name: str,
-        strategy: Literal["sync", "concurrent", "batch"],
+        strategy: Literal["sync", "async", "batch"],
     ) -> BaseProvider:
         if provider_name is None:
             raise ValueError("Cannot resolve None provider.")
@@ -74,17 +72,17 @@ class SyncMultiProvider(SyncProvider, MultiProvider):
         return provider.prepare_sync_call(params, **kwargs)
 
 
-class ConcurrentMultiProvider(ConcurrentProvider, MultiProvider):
+class AsyncMultiProvider(AsyncProvider, MultiProvider):
     def __init__(self):
-        super().__init__(base_strategy="concurrent")
+        super().__init__(base_strategy="async")
 
-    def prepare_concurrent_call(self, params: CommonQueryParameters, **kwargs):
+    def prepare_async_call(self, params: CommonQueryParameters, **kwargs):
         llm_identity = params["llm"]
-        provider = self._load_provider(llm_identity.provider_type, "concurrent")
-        return provider.prepare_concurrent_call(params, **kwargs)
+        provider = self._load_provider(llm_identity.provider_type, "async")
+        return provider.prepare_async_call(params, **kwargs)
 
     def parse_response(self, raw_response, llm: Optional[LLMIdentity] = None):
-        provider: "BaseProvider" = self._load_provider(llm.provider_type, "concurrent")
+        provider: "BaseProvider" = self._load_provider(llm.provider_type, "async")
         return provider.parse_response(raw_response, llm=llm)
 
 

@@ -8,7 +8,7 @@ from parallem.provider.anthropic._version_checks import (
 )
 from parallem.provider.base import (
     BatchProvider,
-    ConcurrentProvider,
+    AsyncProvider,
     BaseProvider,
     SyncProvider,
 )
@@ -87,17 +87,17 @@ class SyncAnthropicProvider(SyncProvider, AnthropicProvider):
         )
 
 
-class ConcurrentAnthropicProvider(ConcurrentProvider, AnthropicProvider):
+class AsyncAnthropicProvider(AsyncProvider, AnthropicProvider):
     def __init__(self, client: "AsyncAnthropic"):
         super().__init__()
         self.client = client
 
-    def prepare_concurrent_call(
+    def prepare_async_call(
         self,
         params: CommonQueryParameters,
         **kwargs,
     ):
-        """Prepare a concurrent coroutine for Anthropic API"""
+        """Prepare a async coroutine for Anthropic API"""
         model_name, messages, config = self.adapter.fix_config(params, **kwargs)
         max_tokens = config.pop("max_tokens", 1024)
 
