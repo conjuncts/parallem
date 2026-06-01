@@ -153,7 +153,7 @@ class ConcurrentBackend(BaseBackend):
             if self._throttler.is_enabled():
                 self._throttler.record_request()
 
-    def ask_llm_and_store(
+    def submit_query(
         self,
         provider: "ConcurrentProvider",
         params: CommonQueryParameters,
