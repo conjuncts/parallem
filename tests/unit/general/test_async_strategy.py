@@ -15,7 +15,6 @@ def test_agent_name(request):
 
 
 def test_run_agent_executes_async_fn_in_sync_mode(async_sync_orch, test_agent_name):
-
     async def _agent_fn(agent):
         await asyncio.sleep(0)
         return f"done:{agent.agent_name}"
@@ -48,9 +47,7 @@ def test_run_agent_queues_and_persists_async_agents_in_concurrent_mode(
     assert sorted(seen) == sorted([agent_name_a, agent_name_b])
 
 
-def test_run_agents_raises_not_available_after_all_complete(
-    async_batch_orch, test_agent_name
-):
+def test_run_agents_raises_not_available_after_all_complete(async_batch_orch, test_agent_name):
     seen = []
     first_agent_name = f"{test_agent_name}-first"
     second_agent_name = f"{test_agent_name}-second"

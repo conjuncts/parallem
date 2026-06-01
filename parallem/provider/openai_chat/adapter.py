@@ -24,7 +24,6 @@ if TYPE_CHECKING:
     from pydantic import BaseModel
 
 
-
 def _fix_docs_for_openai_chat(
     documents: List[LLMDocument],
     instructions: Optional[str],
@@ -100,6 +99,7 @@ def _fix_docs_for_openai_chat(
             raise ValueError(f"Unsupported document type: {type(doc)}")
     return formatted_docs
 
+
 def _fix_tools_for_openai_chat(
     tools: Optional[list[Union[dict, ServerTool]]],
 ) -> list[dict]:
@@ -128,15 +128,13 @@ def _fix_tools_for_openai_chat(
             chat_tools.append(tool)
     return chat_tools
 
+
 def _prepare_response_format(structured_output: object) -> dict:
     """Prepare chat completion response_format from structured_output input."""
     if isinstance(structured_output, dict):
         output_type = structured_output.get("type")
         if output_type in {"json_schema", "json_object"}:
-            if (
-                output_type == "json_schema"
-                and "json_schema" not in structured_output
-            ):
+            if output_type == "json_schema" and "json_schema" not in structured_output:
                 schema_obj = structured_output.get("schema", structured_output)
                 return {
                     "type": "json_schema",
@@ -170,18 +168,16 @@ def _prepare_response_format(structured_output: object) -> dict:
             },
         }
 
-    raise ValueError(
-        "structured_output must be a dict or a pydantic model for chat completions"
-    )
-class OpenAIChatAdapter(BaseAdapter):
+    raise ValueError("structured_output must be a dict or a pydantic model for chat completions")
 
+
+class OpenAIChatAdapter(BaseAdapter):
     def fix_config(
         self,
         params: CommonQueryParameters,
         **kwargs,
     ):
         raise NotImplementedError
-
 
     def fix_docs(
         self,
@@ -210,18 +206,14 @@ class OpenAIChatAdapter(BaseAdapter):
     ) -> dict:
         """Prepare OpenAI API request parameters from common query parameters."""
         instructions = params["instructions"]
-        fixed_documents = self.fix_docs(
-            params["strict_documents"], instructions
-        )
+        fixed_documents = self.fix_docs(params["strict_documents"], instructions)
         llm = params["llm"]
         structured_output = params.get("structured_output")
         tools = self.fix_tools(params.get("tools"))
 
         if structured_output is not None:
             if "response_format" in kwargs:
-                raise AssertionError(
-                    "Cannot supply both structured_output and response_format"
-                )
+                raise AssertionError("Cannot supply both structured_output and response_format")
             kwargs["response_format"] = self.fix_structured_output(structured_output)
 
         body = {
@@ -237,10 +229,8 @@ class OpenAIChatAdapter(BaseAdapter):
         raw_response: Union["BaseModel", dict],
     ) -> ParsedResponse:
         """Parse OpenAI API response into common format."""
-        
-        def _parse_choice(
-            choice: dict, texts: list[str], calls: list[FunctionCall]
-        ) -> None:
+
+        def _parse_choice(choice: dict, texts: list[str], calls: list[FunctionCall]) -> None:
             message = choice.get("message") or {}
             content = message.get("content")
             if content:

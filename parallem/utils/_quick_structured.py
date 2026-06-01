@@ -6,7 +6,6 @@ if TYPE_CHECKING:
     import pydantic
 
 
-
 SupportedTypes = Literal[
     "object",
     "array",
@@ -40,7 +39,7 @@ def _anthropic_transform_schema(
 ) -> dict[str, Any]:
     """
     Transforms a JSON schema to ensure it conforms to the API's expectations.
-    Taken from the Anthropic SDK v0.86.0 (https://github.com/anthropics/anthropic-sdk-python), 
+    Taken from the Anthropic SDK v0.86.0 (https://github.com/anthropics/anthropic-sdk-python),
     which is licensed under the MIT License.
 
     Args:
@@ -61,6 +60,7 @@ def _anthropic_transform_schema(
         {'type': 'integer', 'description': 'A number\n\n{minimum: 1, maximum: 10}'}
     """
     import pydantic
+
     if inspect.isclass(json_schema) and issubclass(json_schema, pydantic.BaseModel):  # pyright: ignore[reportUnnecessaryIsInstance]
         json_schema = json_schema.model_json_schema()
 
@@ -86,11 +86,17 @@ def _anthropic_transform_schema(
     all_of = json_schema.pop("allOf", None)
 
     if _is_list(any_of):
-        strict_schema["anyOf"] = [_anthropic_transform_schema(cast("dict[str, Any]", variant)) for variant in any_of]
+        strict_schema["anyOf"] = [
+            _anthropic_transform_schema(cast("dict[str, Any]", variant)) for variant in any_of
+        ]
     elif _is_list(one_of):
-        strict_schema["anyOf"] = [_anthropic_transform_schema(cast("dict[str, Any]", variant)) for variant in one_of]
+        strict_schema["anyOf"] = [
+            _anthropic_transform_schema(cast("dict[str, Any]", variant)) for variant in one_of
+        ]
     elif _is_list(all_of):
-        strict_schema["allOf"] = [_anthropic_transform_schema(cast("dict[str, Any]", variant)) for variant in all_of]
+        strict_schema["allOf"] = [
+            _anthropic_transform_schema(cast("dict[str, Any]", variant)) for variant in all_of
+        ]
     else:
         if type_ is None:
             raise ValueError("Schema must have a 'type', 'anyOf', 'oneOf', or 'allOf' field.")
@@ -107,7 +113,8 @@ def _anthropic_transform_schema(
 
     if type_ == "object":
         strict_schema["properties"] = {
-            key: _anthropic_transform_schema(prop_schema) for key, prop_schema in json_schema.pop("properties", {}).items()
+            key: _anthropic_transform_schema(prop_schema)
+            for key, prop_schema in json_schema.pop("properties", {}).items()
         }
         json_schema.pop("additionalProperties", None)
         strict_schema["additionalProperties"] = False
@@ -135,7 +142,13 @@ def _anthropic_transform_schema(
             # add it back so its treated as an extra property and appended to the description
             json_schema["minItems"] = min_items
 
-    elif type_ == "boolean" or type_ == "integer" or type_ == "number" or type_ == "null" or type_ is None:
+    elif (
+        type_ == "boolean"
+        or type_ == "integer"
+        or type_ == "number"
+        or type_ == "null"
+        or type_ is None
+    ):
         pass
     else:
         assert_never(type_)
@@ -152,4 +165,3 @@ def _anthropic_transform_schema(
         )
 
     return strict_schema
-

@@ -1,10 +1,8 @@
-
 from PIL import Image
 import pytest
 
 from parallem.core.hash import compute_hash, serialize_tools_for_hash
 from parallem.tools.server import WebSearchTool
-
 
 
 class TestComputeHash:
@@ -45,7 +43,6 @@ class TestHashRegressions:
         expected = "633470c100183a72eace5eca51e253f0d4d14277a38b548290a92c864dbecdcf"
         assert result == expected
 
-
     def test_hash_golden_with_image(self):
         """Regression: Image hashing must remain stable"""
         img = Image.new("RGB", (5, 5), color="blue")
@@ -64,7 +61,6 @@ class TestHashRegressions:
         result = compute_hash("Just instructions", [])
         expected = "0c20f4a03fe4dcf22b2c17499f3ac135bdfebd281461e7247707b7dfdc3084ee"
         assert result == expected
-
 
     def test_hash_golden_salt_v1(self):
         """Regression: Salted hashing with v1 salt must remain stable"""

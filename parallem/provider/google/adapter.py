@@ -1,7 +1,16 @@
 from pydantic import BaseModel
 
 from parallem.provider.base import BaseAdapter
-from parallem.types import CommonQueryParameters, FunctionCall, FunctionCallOutput, FunctionCallRequest, LLMDocument, MCPOutput, ParsedResponse, ServerTool
+from parallem.types import (
+    CommonQueryParameters,
+    FunctionCall,
+    FunctionCallOutput,
+    FunctionCallRequest,
+    LLMDocument,
+    MCPOutput,
+    ParsedResponse,
+    ServerTool,
+)
 
 from collections.abc import Mapping
 from typing import TYPE_CHECKING, List, Union
@@ -15,7 +24,6 @@ if TYPE_CHECKING:
     from google.genai import types
     from mcp.types import ContentBlock
     from pydantic import BaseModel
-
 
 
 def _fix_docs_for_google(
@@ -200,9 +208,9 @@ def _prepare_tool_schema(
     for sch in func_schemas:
         if isinstance(sch, ServerTool):
             # kwargs can be specialized tool parameters
-            extra_params: Union[
-                "types.GoogleSearchDict", "types.ToolCodeExecutionDict"
-            ] = sch.kwargs or {}
+            extra_params: Union["types.GoogleSearchDict", "types.ToolCodeExecutionDict"] = (
+                sch.kwargs or {}
+            )
             if sch.server_tool_type == "web_search":
                 google_tools.append({"google_search": extra_params})
             elif sch.server_tool_type == "code_interpreter":
@@ -282,8 +290,6 @@ def _extract_text_from_gemini_dict(resp: dict):
     return text if any_text_part_text else None
 
 
-
-
 def _camel_case_items(items: dict) -> dict:
     """Convert keys in a dictionary to camelCase."""
     if isinstance(items, list):
@@ -295,9 +301,7 @@ def _camel_case_items(items: dict) -> dict:
     for k, v in items.items():
         if k == "properties":
             # each key in properties is custom, and should be untouched
-            result[k] = {
-                prop_k: _camel_case_items(prop_v) for prop_k, prop_v in v.items()
-            }
+            result[k] = {prop_k: _camel_case_items(prop_v) for prop_k, prop_v in v.items()}
 
         else:
             result[maybe_snake_to_camel(k)] = _camel_case_items(v)
@@ -357,7 +361,6 @@ class GoogleAdapter(BaseAdapter):
         """Make tools ready for API calls."""
         return _prepare_tool_schema(tools)
 
-
     def prepare_request(
         self,
         params: CommonQueryParameters,
@@ -395,25 +398,17 @@ class GoogleAdapter(BaseAdapter):
         }
         return body
 
-    def convert_response(
-        self, raw_response: Union["BaseModel", dict]
-    ) -> ParsedResponse:
+    def convert_response(self, raw_response: Union["BaseModel", dict]) -> ParsedResponse:
         """Parse Gemini API response into common format"""
         if isinstance(raw_response, dict):
-            resp_id = raw_response.pop("response_id", None) or raw_response.pop(
-                "responseId", None
-            )
+            resp_id = raw_response.pop("response_id", None) or raw_response.pop("responseId", None)
 
             # Extract text from Gemini response
             # from google.genai.types.GenerateContentResponse import _get_text
             text_content = _extract_text_from_gemini_dict(raw_response)
 
             tools = []
-            for part in (
-                raw_response.get("candidates", [{}])[0]
-                .get("content", {})
-                .get("parts", [])
-            ):
+            for part in raw_response.get("candidates", [{}])[0].get("content", {}).get("parts", []):
                 func_call = None
                 if "functionCall" in part:
                     func_call = part["functionCall"]

@@ -18,6 +18,7 @@ from parallem.utils.image import is_image
 
 if TYPE_CHECKING:
     from pydantic import BaseModel
+
     try:
         from mypy_boto3_bedrock import BedrockClient
     except ImportError:
@@ -79,7 +80,6 @@ class BedrockProvider(BaseProvider):
 
 
 class SyncBedrockProvider(SyncProvider, BedrockProvider):
-
     def prepare_sync_call(
         self,
         params: CommonQueryParameters,
@@ -96,7 +96,7 @@ class SyncBedrockProvider(SyncProvider, BedrockProvider):
         # TODO: settle on a good pattern for passing invoke options.
         # nova_invoke_options, bedrock_invoke_options
         invoke_options = {}
-    
+
         if not isinstance(body, (str, bytes)):
             body = json.dumps(body)
 
@@ -113,7 +113,6 @@ class SyncBedrockProvider(SyncProvider, BedrockProvider):
 
 
 class ConcurrentBedrockProvider(ConcurrentProvider, BedrockProvider):
-
     def prepare_concurrent_call(
         self,
         params: CommonQueryParameters,
@@ -129,9 +128,7 @@ class ConcurrentBedrockProvider(ConcurrentProvider, BedrockProvider):
             loop = asyncio.get_running_loop()
             return await loop.run_in_executor(
                 None,
-                lambda: SyncBedrockProvider(self.client).prepare_sync_call(
-                    params, **kwargs
-                ),
+                lambda: SyncBedrockProvider(self.client).prepare_sync_call(params, **kwargs),
             )
 
         return _runner()

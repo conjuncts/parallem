@@ -167,9 +167,7 @@ def _fix_docs_for_anthropic(
     return formatted_docs
 
 
-def _fix_mcp_block(
-    content_block: "ContentBlock"
-) -> "ToolResultBlockParam":
+def _fix_mcp_block(content_block: "ContentBlock") -> "ToolResultBlockParam":
     # Overall type:
     if content_block.type == "text":
         output: "TextBlockParam" = {
@@ -198,15 +196,13 @@ def _fix_mcp_block(
             content = resource.blob
         else:
             content = resource.text
-        output: "DocumentBlockParam" = {
-            "type": "document",
-            "source": content
-        }
+        output: "DocumentBlockParam" = {"type": "document", "source": content}
     return content_block.model_dump_json(exclude_none=True)
 
 
 def _transform_schema(base_model) -> dict:
     import anthropic
+
     return anthropic.transform_schema(base_model)
 
 
@@ -221,14 +217,9 @@ def _prepare_anthropic_output_format(structured_output: object) -> dict:
         return strict_format
 
     if isinstance(structured_output, dict):
-        if (
-            structured_output.get("type") == "json_schema"
-            and "schema" in structured_output
-        ):
+        if structured_output.get("type") == "json_schema" and "schema" in structured_output:
             return _strict_format(structured_output)
-        if "format" in structured_output and isinstance(
-            structured_output["format"], dict
-        ):
+        if "format" in structured_output and isinstance(structured_output["format"], dict):
             return _strict_format(structured_output["format"])
         return {
             "type": "json_schema",
@@ -356,9 +347,7 @@ class AnthropicAdapter(BaseAdapter):
                 )
 
             config["output_config"] = config.get("output_config", {})
-            config["output_config"]["format"] = _prepare_anthropic_output_format(
-                structured_output
-            )
+            config["output_config"]["format"] = _prepare_anthropic_output_format(structured_output)
 
         model_name = llm.model_name
 
@@ -386,9 +375,7 @@ class AnthropicAdapter(BaseAdapter):
         }
         return request_params
 
-    def convert_response(
-        self, raw_response: Union[BaseModel, dict]
-    ) -> ParsedResponse:
+    def convert_response(self, raw_response: Union[BaseModel, dict]) -> ParsedResponse:
         # https://docs.claude.com/en/docs/agents-and-tools/tool-use/implement-tool-use
         if isinstance(raw_response, BaseModel):
             # Pydantic model (e.g., anthropic.types.Message)

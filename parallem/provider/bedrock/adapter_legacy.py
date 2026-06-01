@@ -94,9 +94,7 @@ def _prepare_bedrock_body(
 
     messages = _fix_docs_for_bedrock(params["strict_documents"])
     body: dict = {
-        "anthropic_version": model_kwargs.pop(
-            "anthropic_version", "bedrock-2023-05-31"
-        ),
+        "anthropic_version": model_kwargs.pop("anthropic_version", "bedrock-2023-05-31"),
         "messages": messages,
         **model_kwargs,
     }
@@ -170,6 +168,7 @@ def _extract_text_from_bedrock_body(body: dict) -> tuple[str, list[FunctionCall]
 
     return text, function_calls
 
+
 def _convert_to_bedrock_response(raw_response: dict) -> ParsedResponse:
     if not isinstance(raw_response, dict):
         raise ValueError(f"Unsupported Bedrock response type: {type(raw_response)}")
@@ -187,6 +186,7 @@ def _convert_to_bedrock_response(raw_response: dict) -> ParsedResponse:
         metadata=body_obj,
         function_calls=function_calls or None,
     )
+
 
 class BedrockLegacyAdapter(BaseAdapter):
     def fix_docs(

@@ -52,9 +52,7 @@ def update_conversation(conv_df: pl.DataFrame, conv_uuid: str, title: str):
             pl.DataFrame({"conversation_uuid": [conv_uuid], "title": [title]}),
         ]
     )
-    conv_df = conv_df.unique(
-        subset="conversation_uuid", keep="last", maintain_order=True
-    )
+    conv_df = conv_df.unique(subset="conversation_uuid", keep="last", maintain_order=True)
     conv_df.write_parquet(CONV_UUIDS_LOCATION)
     return conv_df
 

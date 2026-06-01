@@ -31,10 +31,7 @@ def test_decode_batch_content_with_tool_call():
     assert parsed_response.custom_id == "-0-2-2"
 
     # Verify the response_id
-    assert (
-        parsed_response.response_id
-        == "resp_02c409ef6120190c0069ac3a88a5788193bcc0a0cfdc109b3d"
-    )
+    assert parsed_response.response_id == "resp_02c409ef6120190c0069ac3a88a5788193bcc0a0cfdc109b3d"
 
     # Verify the function calls
     assert parsed_response.function_calls is not None
@@ -72,9 +69,7 @@ def test_decode_batch_content_with_multiple_lines():
     # Verify first response (custom_id: -0-0-0, message response)
     first_response = batch_result.parsed_responses[0]
     assert first_response.custom_id == "-0-0-0"
-    assert (
-        first_response.function_calls is None or len(first_response.function_calls) == 0
-    )
+    assert first_response.function_calls is None or len(first_response.function_calls) == 0
 
     # Verify third response (custom_id: -0-2-2, count_files tool call)
     third_response = batch_result.parsed_responses[2]

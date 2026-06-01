@@ -313,9 +313,7 @@ class TestProviderIntegration:
         sync_backend = MockSyncBackend()
         concurrent_backend = MockConcurrentBackend()
 
-        sync_provider = SyncOpenAIProvider(
-            client=mock_sync_client, backend=sync_backend
-        )
+        sync_provider = SyncOpenAIProvider(client=mock_sync_client, backend=sync_backend)
         concurrent_provider = ConcurrentOpenAIProvider(
             client=mock_concurrent_client, backend=concurrent_backend
         )
@@ -343,9 +341,7 @@ class TestProviderIntegration:
 
         # Concurrent should return PendingLLMResponse that resolves to same value
         assert isinstance(concurrent_result, PendingLLMResponse)
-        resolved_concurrent_value = await concurrent_backend.resolve_call(
-            concurrent_call_id
-        )
+        resolved_concurrent_value = await concurrent_backend.resolve_call(concurrent_call_id)
         assert resolved_concurrent_value == response_text
 
 

@@ -1,18 +1,31 @@
 from typing import TYPE_CHECKING, List, Union
 
-from openai.types.responses.response_function_tool_call_output_item import ResponseFunctionToolCallOutputItem
+from openai.types.responses.response_function_tool_call_output_item import (
+    ResponseFunctionToolCallOutputItem,
+)
 
 from parallem.provider.base import BaseAdapter
 from parallem.provider.openai.common import map_server_tools
 from parallem.provider.openai.openai_tools import to_strict_json_schema
-from parallem.types import CommonQueryParameters, FunctionCall, FunctionCallOutput, FunctionCallRequest, LLMDocument, MCPOutput, ParsedResponse, ServerTool
+from parallem.types import (
+    CommonQueryParameters,
+    FunctionCall,
+    FunctionCallOutput,
+    FunctionCallRequest,
+    LLMDocument,
+    MCPOutput,
+    ParsedResponse,
+    ServerTool,
+)
 from parallem.utils._quick_pydantic import is_pydantic_model
 from parallem.utils.image import get_type_and_b64, is_image
 
 if TYPE_CHECKING:
     from openai.types.responses.response_input_param import Message
     from openai.types.responses.response import Response
-    from openai.types.responses.response_function_tool_call_output_item import ResponseFunctionToolCallOutputItem
+    from openai.types.responses.response_function_tool_call_output_item import (
+        ResponseFunctionToolCallOutputItem,
+    )
     from pydantic import BaseModel
 
     from mcp.types import ContentBlock
@@ -91,9 +104,7 @@ def _fix_docs_for_openai(
     return formatted_docs
 
 
-def _fix_mcp_block(
-    content_block: "ContentBlock"
-) -> "ResponseFunctionToolCallOutputItem":
+def _fix_mcp_block(content_block: "ContentBlock") -> "ResponseFunctionToolCallOutputItem":
     # Overall type:
     # see openai.types.responses.response_function_tool_call_output_item
     # ResponseFunctionToolCallOutputItem
@@ -108,7 +119,7 @@ def _fix_mcp_block(
     if content_block.type == "image":
         return {
             "type": "input_image",
-            "image_url": f"data:{content_block.mimeType};base64,{content_block.data}"
+            "image_url": f"data:{content_block.mimeType};base64,{content_block.data}",
         }
     if content_block.type == "resource":
         # TODO untested
@@ -185,9 +196,7 @@ class OpenAIAdapter(BaseAdapter):
             **kwargs,
         }
 
-    def convert_response(
-        self, raw_response: Union["BaseModel", dict]
-    ) -> ParsedResponse:
+    def convert_response(self, raw_response: Union["BaseModel", dict]) -> ParsedResponse:
         """Parse OpenAI API response into common format"""
         if isinstance(raw_response, dict):
             # Dict response (e.g., from batch API)
@@ -245,9 +254,7 @@ class OpenAIAdapter(BaseAdapter):
                     )
                 elif item.type == "custom_tool_call":
                     function_calls.append(
-                        FunctionCall(
-                            name=item.name, arguments=item.input, call_id=item.call_id
-                        )
+                        FunctionCall(name=item.name, arguments=item.input, call_id=item.call_id)
                     )
 
             parsed_metadata = obj

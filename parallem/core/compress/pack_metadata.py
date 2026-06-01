@@ -6,9 +6,7 @@ import polars as pl
 from parallem.core.compress.to_parquet import ParquetWriter, write_to_parquet
 
 
-def compress_metadata_to_zip(
-    metadata_rows: list[str], folder: Path, master_index: ParquetWriter
-):
+def compress_metadata_to_zip(metadata_rows: list[str], folder: Path, master_index: ParquetWriter):
     # metadata_rows is actually a sqlite3.Row object
 
     # Extract metadata strings for processing
@@ -63,8 +61,7 @@ def compress_metadata_to_zip(
                 tsv_file.write(f"{response_id}\t{metadata_txt}\n")
                 stored_row_ids.append(row_id)
     return stored_row_ids
-                
-    
+
 
 def compress_metadata(
     metadata_rows: list[Dict], folder: Path, master_index: ParquetWriter
@@ -135,13 +132,9 @@ def compress_metadata(
         processed_dfs = compress_google_metadata(_google_met)
         _sequester_dfs(processed_dfs, folder, provider_type="google")
 
-    response_ids_to_delete = master_index.commit(
-        mode="append", receipt_col="response_id"
-    )
+    response_ids_to_delete = master_index.commit(mode="append", receipt_col="response_id")
     if response_ids_to_delete is not None:
-        response_ids_to_delete = (
-            response_ids_to_delete.select("response_id").to_series().to_list()
-        )
+        response_ids_to_delete = response_ids_to_delete.select("response_id").to_series().to_list()
 
     return response_ids_to_delete
 

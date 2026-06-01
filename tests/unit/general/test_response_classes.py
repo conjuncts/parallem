@@ -32,9 +32,7 @@ class TestReadyLLMResponse:
 
     def test_ready_response_serialization(self, generic_call_id):
         """Test ready response can be serialized"""
-        response = ReadyLLMResponse(
-            call_id=generic_call_id, value="Serializable content"
-        )
+        response = ReadyLLMResponse(call_id=generic_call_id, value="Serializable content")
 
         # Test __getstate__
         state = response.__getstate__()

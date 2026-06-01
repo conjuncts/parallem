@@ -57,9 +57,7 @@ def register_provider(
 
     _builtin_names = {"openai", "anthropic", "google", "bedrock", "multi"}
     if name in _builtin_names:
-        raise ValueError(
-            f"'{name}' is a built-in provider name and cannot be overridden."
-        )
+        raise ValueError(f"'{name}' is a built-in provider name and cannot be overridden.")
 
     if sync is None and concurrent is None and batch is None:
         raise ValueError(
@@ -72,9 +70,7 @@ def register_provider(
         ("batch", batch),
     ):
         if factory is not None and not callable(factory):
-            raise TypeError(
-                f"'{label}' factory must be callable, got {type(factory)!r}."
-            )
+            raise TypeError(f"'{label}' factory must be callable, got {type(factory)!r}.")
 
     with _lock:
         _registry[name] = _ProviderEntry(sync=sync, concurrent=concurrent, batch=batch)
@@ -124,8 +120,6 @@ def get_provider(
 
     factory = getattr(entry, strategy, None)
     if factory is None:
-        raise NotImplementedError(
-            f"Provider '{name}' does not support the '{strategy}' strategy."
-        )
+        raise NotImplementedError(f"Provider '{name}' does not support the '{strategy}' strategy.")
 
     return factory(client)

@@ -48,11 +48,10 @@ class BaseAdapter:
         """Prepare full request payload."""
         raise NotImplementedError
 
-    def convert_response(
-        self, raw_response: Union["BaseModel", dict]
-    ) -> ParsedResponse:
+    def convert_response(self, raw_response: Union["BaseModel", dict]) -> ParsedResponse:
         """Parse raw API response into common format."""
         raise NotImplementedError
+
 
 class BaseProvider:
     provider_type: Optional[ProviderType] = None

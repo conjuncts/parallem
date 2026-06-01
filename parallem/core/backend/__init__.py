@@ -35,9 +35,7 @@ class BaseBackend(BaseRetriever):
         """Persist data and clean up resources"""
         pass
 
-    def retrieve(
-        self, call_id: CallIdentifier, metadata=False
-    ) -> Optional[ParsedResponse]:
+    def retrieve(self, call_id: CallIdentifier, metadata=False) -> Optional[ParsedResponse]:
         """
         Retrieve a response.
 
@@ -46,9 +44,7 @@ class BaseBackend(BaseRetriever):
         """
         return self._get_datastore().retrieve(call_id, metadata=metadata)
 
-    def populate_call_id(
-        self, call_id: CallIdentifier, *, metadata=False
-    ) -> CallIdentifier:
+    def populate_call_id(self, call_id: CallIdentifier, *, metadata=False) -> CallIdentifier:
         return self._get_datastore().populate_call_id(call_id, metadata=metadata)
 
     def store_input(

@@ -31,17 +31,13 @@ class MockOpenAIClient:
         self.patterns = {}
         self.response_index = 0
 
-    def add_pattern(
-        self, pattern: str, response: Union[str, MockResponse], *, literal=False
-    ):
+    def add_pattern(self, pattern: str, response: Union[str, MockResponse], *, literal=False):
         """Add regex pattern -> response mapping"""
         if literal:
             pattern = re.escape(pattern)
         self.patterns[pattern] = self._to_mock_response(response)
 
-    def add_patterns(
-        self, mapping: Dict[str, Union[str, MockResponse]], *, literal=False
-    ):
+    def add_patterns(self, mapping: Dict[str, Union[str, MockResponse]], *, literal=False):
         """Add multiple patterns from a dict mapping"""
         for pattern, response in mapping.items():
             self.add_pattern(pattern, response, literal=literal)
@@ -52,11 +48,7 @@ class MockOpenAIClient:
 
     def _to_mock_response(self, response):
         """Convert string to MockResponse if needed"""
-        return (
-            MockResponse(output_text=response)
-            if isinstance(response, str)
-            else response
-        )
+        return MockResponse(output_text=response) if isinstance(response, str) else response
 
     def _get_input_text(self, input_messages):
         """Extract text from input messages"""

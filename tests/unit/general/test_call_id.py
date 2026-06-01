@@ -131,9 +131,7 @@ class TestCallMatching:
 
         assert _call_matches(call1, call2) is False
 
-    def _create_call_id(
-        self, agent_name, doc_hash, seq_id, session_id
-    ) -> CallIdentifier:
+    def _create_call_id(self, agent_name, doc_hash, seq_id, session_id) -> CallIdentifier:
         """Helper to create call identifiers"""
         return {
             "agent_name": agent_name,
@@ -145,7 +143,6 @@ class TestCallMatching:
                 "tag": None,
             },
         }
-
 
 
 if __name__ == "__main__":

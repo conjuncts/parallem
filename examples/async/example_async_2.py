@@ -27,7 +27,6 @@ async def main():
         with orch.agent("Writer-2") as a2:
             await haiku_writer_agent(a2)
 
+
 if __name__ == "__main__":
     asyncio.run(main())
-
-    

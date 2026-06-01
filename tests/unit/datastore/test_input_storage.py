@@ -59,10 +59,12 @@ def test_store_input_text_and_config():
         assert config_parquet.exists()
         items = pl.read_parquet(config_parquet)
         assert items.height == 1
-        expected = pl.DataFrame({
-            "instructions": ["Test"],
-            "llm_identity": "gpt-4o-mini",
-        })
+        expected = pl.DataFrame(
+            {
+                "instructions": ["Test"],
+                "llm_identity": "gpt-4o-mini",
+            }
+        )
         assert_frame_equal(items.select("instructions", "llm_identity"), expected)
 
 
@@ -146,4 +148,4 @@ def test_store_input_json():
         json_path = storage.path_inputs_json_table()
         df_json = pl.read_parquet(json_path)
         assert df_json.height == 1
-        assert df_json.row(0, named=True)["json_text"] == "{\"a\":1}"
+        assert df_json.row(0, named=True)["json_text"] == '{"a":1}'

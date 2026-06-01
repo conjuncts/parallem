@@ -137,9 +137,7 @@ class TestAskLLMMethod:
         )
         with ask_params_agent:
             ask_params_agent.ask_llm("ask_params default prompt")
-            ask_params_defaults = (
-                mock_orchestrator._backend.submit_query.call_args.args[1]
-            )
+            ask_params_defaults = mock_orchestrator._backend.submit_query.call_args.args[1]
             assert ask_params_defaults["llm"].identity == "gpt-4o-mini"
 
         mock_orchestrator._backend.submit_query.reset_mock()
@@ -149,9 +147,7 @@ class TestAskLLMMethod:
                 "explicit override prompt",
                 llm=LLMIdentity("gpt-5-mini", provider_type="openai"),
             )
-            explicit_override = mock_orchestrator._backend.submit_query.call_args.args[
-                1
-            ]
+            explicit_override = mock_orchestrator._backend.submit_query.call_args.args[1]
             assert explicit_override["llm"].identity == "gpt-5-mini"
 
     def test_msg_state_ask_llm_default_precedence(self, mock_orchestrator):
@@ -167,9 +163,7 @@ class TestAskLLMMethod:
         with agent:
             msg_state = agent.get_msg_state()
             msg_state.ask_llm("msg_state default prompt")
-            ask_params_defaults = (
-                mock_orchestrator._backend.submit_query.call_args.args[1]
-            )
+            ask_params_defaults = mock_orchestrator._backend.submit_query.call_args.args[1]
             assert ask_params_defaults["llm"].identity == "gpt-4o-mini"
 
         mock_orchestrator._backend.submit_query.reset_mock()
@@ -180,9 +174,7 @@ class TestAskLLMMethod:
                 "msg_state explicit override prompt",
                 llm=LLMIdentity("gpt-5-mini", provider_type="openai"),
             )
-            explicit_override = mock_orchestrator._backend.submit_query.call_args.args[
-                1
-            ]
+            explicit_override = mock_orchestrator._backend.submit_query.call_args.args[1]
             assert explicit_override["llm"].identity == "gpt-5-mini"
 
     def test_ask_llm_callable_tool_coercion(self, mock_orchestrator):
@@ -277,7 +269,7 @@ class TestAskLLMMethod:
             agent.ask_llm("Test prompt", instructions="Test instructions")
 
             mock_compute_hash.assert_called_once_with(
-                "Test instructions", ["Test prompt"], salt='gpt-5-nano'
+                "Test instructions", ["Test prompt"], salt="gpt-5-nano"
             )
 
     @pytest.mark.skip(reason="hash_by tools not ready yet")
@@ -353,16 +345,11 @@ class TestAskLLMMethod:
             agent.ask_human("q1", [], input_fn=lambda _: "a1")
             agent.ask_human("q2", ["a1"], input_fn=lambda _: "a2")
 
-        call_ids = [
-            call.args[0]["seq_id"]
-            for call in ds.store.call_args_list
-        ]
+        call_ids = [call.args[0]["seq_id"] for call in ds.store.call_args_list]
         assert call_ids == [0, 1]
 
     @patch("parallem.core.agent.agent.compute_hash")
-    def test_ask_human_hash_uses_prompt_and_documents(
-        self, mock_compute_hash, mock_orchestrator
-    ):
+    def test_ask_human_hash_uses_prompt_and_documents(self, mock_compute_hash, mock_orchestrator):
         """ask_human should hash using prompt as instructions and documents as basis."""
         mock_compute_hash.return_value = "human_hash_123"
         agent = AgentContext("test_agent", mock_orchestrator)

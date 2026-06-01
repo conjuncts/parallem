@@ -91,9 +91,7 @@ def test_mixed_pattern_methods(shared_sync_orch):
 
     # Add batch patterns first
     mock_client.clear()
-    mock_client.add_patterns(
-        {"math|calculate": "Math result: 42", "weather": "It's sunny"}
-    )
+    mock_client.add_patterns({"math|calculate": "Math result: 42", "weather": "It's sunny"})
 
     # Add individual pattern
     mock_client.add_pattern("greeting|hello", "Hello there!")

@@ -171,9 +171,7 @@ def set_schema_version(conn: sqlite3.Connection, version: int) -> None:
         )
         if cursor.rowcount == 0:
             # If no record exists, insert new one
-            conn.execute(
-                "INSERT INTO schema_version (id, version) VALUES (1, ?)", (version,)
-            )
+            conn.execute("INSERT INTO schema_version (id, version) VALUES (1, ?)", (version,))
     except sqlite3.Error as e:
         raise RuntimeError(f"Failed to set schema version: {e}")
 
@@ -206,9 +204,7 @@ def _migrate_sql_schema(conn: sqlite3.Connection, db_name: Optional[str]) -> Non
                 conn.execute("ALTER TABLE batch_pending ADD COLUMN tag TEXT")
 
         # Migrate legacy anon_responses table name to responses if needed
-        if table_exists(conn, "anon_responses") and not object_exists(
-            conn, "responses"
-        ):
+        if table_exists(conn, "anon_responses") and not object_exists(conn, "responses"):
             conn.execute("ALTER TABLE anon_responses RENAME TO responses")
 
         # Add origin_type column to responses table if it doesn't exist
@@ -284,9 +280,7 @@ def _remove_unique_constraint(
         # Copy data from old table to new table
         column_names = [col[1] for col in columns_info]
         columns_str = ", ".join(column_names)
-        conn.execute(
-            f"INSERT INTO {new_table_name} SELECT {columns_str} FROM {table_name}"
-        )
+        conn.execute(f"INSERT INTO {new_table_name} SELECT {columns_str} FROM {table_name}")
 
         # Drop old table and rename new table
         conn.execute(f"DROP TABLE {table_name}")
@@ -300,9 +294,7 @@ def _remove_unique_constraint(
         for index_row in cursor.fetchall():
             if index_row[0] and "UNIQUE" not in index_row[0]:
                 # Recreate non-unique indexes
-                conn.execute(
-                    index_row[0].replace("CREATE INDEX", "CREATE INDEX IF NOT EXISTS")
-                )
+                conn.execute(index_row[0].replace("CREATE INDEX", "CREATE INDEX IF NOT EXISTS"))
 
         conn.execute("COMMIT")
 
@@ -378,9 +370,7 @@ def _drop_column(conn: sqlite3.Connection, table_name: str, column: str) -> None
 
         # Copy data from old table to new table (excluding dropped column)
         columns_str = ", ".join(remaining_names)
-        conn.execute(
-            f"INSERT INTO {temp_table_name} SELECT {columns_str} FROM {table_name}"
-        )
+        conn.execute(f"INSERT INTO {temp_table_name} SELECT {columns_str} FROM {table_name}")
 
         # Drop old table and rename new table
         conn.execute(f"DROP TABLE {table_name}")
@@ -394,9 +384,7 @@ def _drop_column(conn: sqlite3.Connection, table_name: str, column: str) -> None
         for index_row in cursor.fetchall():
             if index_row[0] and column not in index_row[0]:
                 # Only recreate indexes that don't reference the dropped column
-                conn.execute(
-                    index_row[0].replace("CREATE INDEX", "CREATE INDEX IF NOT EXISTS")
-                )
+                conn.execute(index_row[0].replace("CREATE INDEX", "CREATE INDEX IF NOT EXISTS"))
 
         conn.execute("COMMIT")
 

@@ -137,9 +137,7 @@ def test_to_client_sync_chat_completions_create(shared_sync_orch, test_agent_nam
     assert response.choices[0]["message"]["content"] == "Chat completion response"
 
 
-def test_to_client_concurrent_responses_create_is_async(
-    shared_concurrent_orch, test_agent_name
-):
+def test_to_client_concurrent_responses_create_is_async(shared_concurrent_orch, test_agent_name):
     mock_client = shared_concurrent_orch._mock_client
     mock_client.clear()
     mock_client.set_responses(["Async hello"])
@@ -180,9 +178,7 @@ def test_to_client_sync_caches_identical_requests(shared_sync_orch, test_agent_n
     assert len(mock_client.calls) == 1
 
 
-def test_to_client_sync_hash_by_llm_differentiates_cache(
-    shared_sync_orch, test_agent_name
-):
+def test_to_client_sync_hash_by_llm_differentiates_cache(shared_sync_orch, test_agent_name):
     mock_client = shared_sync_orch._mock_client
     mock_client.clear()
     mock_client.set_responses(["nano response", "mini response"])
@@ -205,9 +201,7 @@ def test_to_client_sync_hash_by_llm_differentiates_cache(
     assert len(mock_client.calls) == 2
 
 
-def test_to_client_sync_hash_by_tools_differentiates_cache(
-    shared_sync_orch, test_agent_name
-):
+def test_to_client_sync_hash_by_tools_differentiates_cache(shared_sync_orch, test_agent_name):
     """hash_by=['tools'] now differentiates cache based on different tools."""
     mock_client = shared_sync_orch._mock_client
     mock_client.clear()
@@ -273,9 +267,7 @@ def test_to_client_sync_surfaces_function_calls(fake_openai_orch, test_agent_nam
     assert tool_calls[0]["call_id"] == "call_123"
 
 
-def test_to_client_sync_forwards_function_call_output_input(
-    fake_anthropic_orch, test_agent_name
-):
+def test_to_client_sync_forwards_function_call_output_input(fake_anthropic_orch, test_agent_name):
     fake_client = fake_anthropic_orch._fake_client
     fake_client.messages.clear()
     fake_client.messages.set_payloads(
@@ -314,9 +306,7 @@ def test_to_client_sync_forwards_function_call_output_input(
     assert sent_messages[0]["content"][0]["content"] == "72F and sunny"
 
 
-def test_to_client_sync_forwards_web_search_tool_to_openai(
-    fake_openai_orch, test_agent_name
-):
+def test_to_client_sync_forwards_web_search_tool_to_openai(fake_openai_orch, test_agent_name):
     fake_client = fake_openai_orch._fake_client
     fake_client.responses.clear()
     fake_client.responses.set_payloads(
@@ -356,9 +346,7 @@ def test_to_client_sync_forwards_web_search_tool_to_openai(
     assert sent_tools[0]["user_location"]["country"] == "US"
 
 
-def test_to_client_sync_forwards_web_search_tool_to_anthropic(
-    fake_anthropic_orch, test_agent_name
-):
+def test_to_client_sync_forwards_web_search_tool_to_anthropic(fake_anthropic_orch, test_agent_name):
     fake_client = fake_anthropic_orch._fake_client
     fake_client.messages.clear()
     fake_client.messages.set_payloads(

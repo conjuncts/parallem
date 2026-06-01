@@ -47,9 +47,7 @@ class FileManager:
         """Get the current session ID"""
         return self.metadata.get("session_counter", None)
 
-    def _sanitize(
-        self, user_input: Optional[str], *, default="default", add_hash=True
-    ) -> str:
+    def _sanitize(self, user_input: Optional[str], *, default="default", add_hash=True) -> str:
         """
         Sanitize user input to be safe for use as directory name.
         Uses format: <first_64_chars>-<8_letter_hash>.
@@ -63,9 +61,7 @@ class FileManager:
         if not isinstance(user_input, str):
             user_input = str(user_input)
 
-        cleaned = "".join(
-            [c if (c.isalnum() or c in " _-") else "_" for c in user_input]
-        )
+        cleaned = "".join([c if (c.isalnum() or c in " _-") else "_" for c in user_input])
 
         # Replace multiple spaces/underscores with single ones
         cleaned = re.sub(r"[_\s]+", "_", cleaned)
@@ -99,9 +95,7 @@ class FileManager:
         :param seed: Minimum baseline for migration from legacy metadata.json counter.
         :return: Newly allocated unique session counter
         """
-        conn = sqlite3.connect(
-            self.session_counter_db, timeout=30, isolation_level=None
-        )
+        conn = sqlite3.connect(self.session_counter_db, timeout=30, isolation_level=None)
         try:
             conn.execute("BEGIN IMMEDIATE")
             conn.execute(
@@ -123,9 +117,7 @@ class FileManager:
                 """,
                 (seed, seed),
             )
-            conn.execute(
-                "UPDATE counters SET value = value + 1 WHERE name = 'session_counter'"
-            )
+            conn.execute("UPDATE counters SET value = value + 1 WHERE name = 'session_counter'")
             row = conn.execute(
                 "SELECT value FROM counters WHERE name = 'session_counter'"
             ).fetchone()
@@ -207,9 +199,7 @@ class FileManager:
         batch_dir.mkdir(parents=True, exist_ok=True)
         return batch_dir
 
-    def save_batch_in(
-        self, stuff: list[dict], *, preferred_name=None, batch_counter_id=None
-    ):
+    def save_batch_in(self, stuff: list[dict], *, preferred_name=None, batch_counter_id=None):
         """
         Helper function to persist batch inputs to disk.
         Coordinates with the FileManager to get a suitable location.
@@ -222,9 +212,7 @@ class FileManager:
             self.batch_group_counter += 1
 
         if preferred_name is None:
-            preferred_name = (
-                f"batch_{self._get_session_counter()}_{batch_counter_id}.jsonl"
-            )
+            preferred_name = f"batch_{self._get_session_counter()}_{batch_counter_id}.jsonl"
 
         # Remnants of same-session_id files should not be possible, since
         # session_id should be unique per run.

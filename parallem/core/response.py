@@ -83,9 +83,7 @@ class ReadyLLMResponse(LLMResponse):
     A response that is already resolved.
     """
 
-    def __init__(
-        self, call_id: CallIdentifier, *, pr: ParsedResponse = None, value: str = None
-    ):
+    def __init__(self, call_id: CallIdentifier, *, pr: ParsedResponse = None, value: str = None):
         super().__init__(value=pr.text if pr else value, call_id=call_id)
         self._pr = pr
 

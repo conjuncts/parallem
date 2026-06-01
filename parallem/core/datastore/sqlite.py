@@ -84,10 +84,7 @@ class SQLiteDatastore(BaseDatastore):
         :param conn: SQLite connection.
         :return: None.
         """
-        cols = {
-            row["name"]
-            for row in conn.execute("PRAGMA table_info(memoize_ops)").fetchall()
-        }
+        cols = {row["name"] for row in conn.execute("PRAGMA table_info(memoize_ops)").fetchall()}
         if "item_value" not in cols:
             conn.execute("ALTER TABLE memoize_ops ADD COLUMN item_value BLOB")
         if "item_type" not in cols:
@@ -95,9 +92,7 @@ class SQLiteDatastore(BaseDatastore):
         if "item_extra" not in cols:
             conn.execute("ALTER TABLE memoize_ops ADD COLUMN item_extra TEXT")
         if "target" not in cols:
-            conn.execute(
-                "ALTER TABLE memoize_ops ADD COLUMN target TEXT NOT NULL DEFAULT '.msg'"
-            )
+            conn.execute("ALTER TABLE memoize_ops ADD COLUMN target TEXT NOT NULL DEFAULT '.msg'")
 
     def _ensure_responses_schema(self, conn: sqlite3.Connection) -> None:
         """Ensure responses contains origin_type column.
@@ -105,16 +100,11 @@ class SQLiteDatastore(BaseDatastore):
         :param conn: SQLite connection.
         :return: None.
         """
-        cols = {
-            row["name"]
-            for row in conn.execute("PRAGMA table_info(responses)").fetchall()
-        }
+        cols = {row["name"] for row in conn.execute("PRAGMA table_info(responses)").fetchall()}
         if "origin_type" not in cols:
             conn.execute("ALTER TABLE responses ADD COLUMN origin_type INTEGER")
 
-    def populate_call_id(
-        self, short_call_id: dict, *, metadata=False
-    ) -> CallIdentifier:
+    def populate_call_id(self, short_call_id: dict, *, metadata=False) -> CallIdentifier:
         """Populate a short call_id with doc_hash from the database.
 
         :param short_call_id: Dict with agent_name, seq_id, session_id
@@ -215,9 +205,7 @@ class SQLiteDatastore(BaseDatastore):
             if db_name is None:
                 self._setup_main_table(conn)
             else:
-                raise NotImplementedError(
-                    "Only main database connection is implemented"
-                )
+                raise NotImplementedError("Only main database connection is implemented")
 
             conn.commit()
             connections[connection_key] = conn
@@ -692,9 +680,7 @@ class SQLiteDatastore(BaseDatastore):
             origin_type=origin_type,
         )
 
-    def _read_metadata_tsv(
-        self, provider_type: str, response_id: Optional[str]
-    ) -> Optional[dict]:
+    def _read_metadata_tsv(self, provider_type: str, response_id: Optional[str]) -> Optional[dict]:
         """
         Read metadata for a response_id from the provider TSV.
 
@@ -705,10 +691,7 @@ class SQLiteDatastore(BaseDatastore):
         if not response_id:
             return None
 
-        tsv_path = (
-            self.file_manager.path_metadata_store()
-            / f"{provider_type}-metadata.tsv.gz"
-        )
+        tsv_path = self.file_manager.path_metadata_store() / f"{provider_type}-metadata.tsv.gz"
         if not tsv_path.exists():
             return None
 
@@ -728,9 +711,7 @@ class SQLiteDatastore(BaseDatastore):
 
         return None
 
-    def retrieve_metadata(
-        self, agent_name: str, seq_id: int, session_id: int
-    ) -> Optional[dict]:
+    def retrieve_metadata(self, agent_name: str, seq_id: int, session_id: int) -> Optional[dict]:
         """
         Retrieve metadata from SQLite and parquet cache using agent_name, seq_id, and session_id.
 
@@ -765,8 +746,7 @@ class SQLiteDatastore(BaseDatastore):
                 return metadata_value
 
             parquet_path = (
-                self.file_manager.path_metadata_store()
-                / f"{provider_type}-responses.parquet"
+                self.file_manager.path_metadata_store() / f"{provider_type}-responses.parquet"
             )
             if parquet_path.exists():
                 relevant = ParquetWriter(parquet_path)
@@ -812,17 +792,13 @@ class SQLiteDatastore(BaseDatastore):
             if existing:
                 # Update the oldest existing record (minimum ID)
                 set_clauses = [f"{col} = ?" for col in columns]
-                update_sql = (
-                    f"UPDATE {table_name} SET {', '.join(set_clauses)} WHERE id = ?"
-                )
+                update_sql = f"UPDATE {table_name} SET {', '.join(set_clauses)} WHERE id = ?"
                 conn.execute(update_sql, values + [existing["id"]])
                 return
 
         # Insert new record (either upsert with no existing, or normal insert)
         placeholders = ", ".join(["?" for _ in columns])
-        insert_sql = (
-            f"INSERT INTO {table_name} ({', '.join(columns)}) VALUES ({placeholders})"
-        )
+        insert_sql = f"INSERT INTO {table_name} ({', '.join(columns)}) VALUES ({placeholders})"
         conn.execute(insert_sql, values)
 
     def store(
@@ -1109,9 +1085,7 @@ class SQLiteDatastore(BaseDatastore):
             ORDER BY batch_uuid
             """
         )
-        batch_uuids = [
-            (row["batch_uuid"], row["provider_type"]) for row in cursor.fetchall()
-        ]
+        batch_uuids = [(row["batch_uuid"], row["provider_type"]) for row in cursor.fetchall()]
 
         return batch_uuids
 
@@ -1211,9 +1185,7 @@ class SQLiteDatastore(BaseDatastore):
         conn = self._get_connection(None)
         normalized_tables: dict[str, pl.DataFrame] = {}
         for table_name, df in tables.items():
-            normalized_name = (
-                "responses" if table_name == "anon_responses" else table_name
-            )
+            normalized_name = "responses" if table_name == "anon_responses" else table_name
             if normalized_name not in normalized_tables:
                 normalized_tables[normalized_name] = df
         try:
@@ -1303,9 +1275,7 @@ class SQLiteDatastore(BaseDatastore):
             else:
                 list_index = None
 
-            for item_seq, (item_value, item_type, item_extra) in enumerate(
-                serialized_items
-            ):
+            for item_seq, (item_value, item_type, item_extra) in enumerate(serialized_items):
                 extra_payload = item_extra
                 if op.op_type == "setnonmsgitem":
                     extra_payload = json.dumps(
@@ -1389,9 +1359,7 @@ class SQLiteDatastore(BaseDatastore):
             op_type = group[0]["op_type"]
 
             if op_type == "setnonmsgitem":
-                extra = (
-                    json.loads(group[0]["item_extra"]) if group[0]["item_extra"] else {}
-                )
+                extra = json.loads(group[0]["item_extra"]) if group[0]["item_extra"] else {}
                 key = extra.get("key")
                 value = cast_bytes_to_document(
                     group[0]["item_value"],

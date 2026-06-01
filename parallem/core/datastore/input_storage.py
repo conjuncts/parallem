@@ -29,7 +29,6 @@ if TYPE_CHECKING:
     import pydantic
 
 
-
 class InputStorage:
     """Handle multimedia and request config input storage."""
 
@@ -497,10 +496,16 @@ class InputStorage:
                     "llm_model_name": llm.get("model_name"),
                     "llm_nickname": llm.get("nickname"),
                     "structured_output": structured_output,
-                    "tools_json": json.dumps(tools, separators=(",", ":")) if tools is not None else None,
-                    "hash_by": json.dumps(hash_by, separators=(",", ":")) if hash_by is not None else None,
+                    "tools_json": json.dumps(tools, separators=(",", ":"))
+                    if tools is not None
+                    else None,
+                    "hash_by": json.dumps(hash_by, separators=(",", ":"))
+                    if hash_by is not None
+                    else None,
                     "salt": salt,
-                    "kwargs_json": json.dumps(kwargs_obj, separators=(",", ":")) if kwargs_obj is not None else None,
+                    "kwargs_json": json.dumps(kwargs_obj, separators=(",", ":"))
+                    if kwargs_obj is not None
+                    else None,
                     "cfg_rest": json.dumps(cfg, separators=(",", ":")),
                 }
             )

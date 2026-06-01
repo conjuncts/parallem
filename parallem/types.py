@@ -127,6 +127,7 @@ class BatchResult:
     location: Path = None
     """Where the batch output is stored."""
 
+
 class FunctionCall:
     """Represents a single tool call to a user-defined function."""
 
@@ -162,7 +163,9 @@ class FunctionCall:
         return iter((self.name, self.args, self.call_id))
 
     def __repr__(self):
-        return f"FunctionCall(name={self.name}, call_id={(self.call_id or '')[:8]}, args={self.args})"
+        return (
+            f"FunctionCall(name={self.name}, call_id={(self.call_id or '')[:8]}, args={self.args})"
+        )
 
     def __str__(self):
         return self.__repr__()
@@ -190,9 +193,7 @@ class FunctionCallRequest(AskItem):
     call_id: CallIdentifier
 
     def __repr__(self):
-        brief_calls = [
-            f"{call.name}({(call.call_id or '')[:8]})" for call in self.calls
-        ]
+        brief_calls = [f"{call.name}({(call.call_id or '')[:8]})" for call in self.calls]
         return f"FunctionCallRequest(text_content={self.text_content}, calls={brief_calls})"
 
     def __str__(self):
@@ -203,9 +204,7 @@ class FunctionCallRequest(AskItem):
 class FunctionCallOutput(AskItem):
     """Represents the output/result of a function/tool call."""
 
-    type: Literal["function_call_output"] = field(
-        init=False, default="function_call_output"
-    )
+    type: Literal["function_call_output"] = field(init=False, default="function_call_output")
 
     content: Any
     """The output content from the function call."""
@@ -441,7 +440,6 @@ class MinorTweaks(TypedDict, total=False):
     "How to handle errors."
 
 
-
 class LLMResponse(AskItem):
     """
     Any response outputted by an LLM. **You must access the value through `final_answer`.**
@@ -488,9 +486,7 @@ class LLMResponse(AskItem):
         v = self._value
         if v and len(v) > 50:
             v = v[:47] + "..."
-        return (
-            f"{self.__class__.__name__}({v!r}, doc_hash={self.call_id['doc_hash'][:8]})"
-        )
+        return f"{self.__class__.__name__}({v!r}, doc_hash={self.call_id['doc_hash'][:8]})"
 
     def __str__(self):
         if self._value is not None:
@@ -595,9 +591,7 @@ class BaseRetriever(ABC):
         return self.retrieve(call_id, metadata=metadata)
 
     @abstractmethod
-    def populate_call_id(
-        self, call_id: CallIdentifier, *, metadata=False
-    ) -> CallIdentifier:
+    def populate_call_id(self, call_id: CallIdentifier, *, metadata=False) -> CallIdentifier:
         """
         Given a call_id with potentially missing fields (like doc_hash), populate those fields based on the backend's data.
 

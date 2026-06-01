@@ -106,9 +106,7 @@ def fix_to_snake_case(obj: dict) -> dict:
 
 
 def compress_google_metadata(metas: List[str]):
-    objs = [
-        {**as_is, **json.loads(astring)} for as_is, astring in metas if astring.strip()
-    ]
+    objs = [{**as_is, **json.loads(astring)} for as_is, astring in metas if astring.strip()]
 
     # custom handle messages
     # assume there's almost always only 1 candidate

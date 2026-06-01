@@ -65,9 +65,7 @@ def sample_image():
     return img
 
 
-def _assert_batch_file_matches_expected(
-    temp_integration_dir, provider: str, expected_data: str
-):
+def _assert_batch_file_matches_expected(temp_integration_dir, provider: str, expected_data: str):
     batch_dir = temp_integration_dir / f"full_batch_{provider}" / "batch-in"
     assert batch_dir.exists(), "Batch directory not created"
 
@@ -76,9 +74,7 @@ def _assert_batch_file_matches_expected(
 
     with zipfile.ZipFile(batch_files[0], "r") as z:
         jsonl_names = [n for n in z.namelist() if n.endswith(".jsonl")]
-        assert len(jsonl_names) == 1, (
-            f"Expected 1 JSONL inside zip, found {len(jsonl_names)}"
-        )
+        assert len(jsonl_names) == 1, f"Expected 1 JSONL inside zip, found {len(jsonl_names)}"
         with z.open(jsonl_names[0], "r") as f:
             generated_data = f.read().decode("utf-8")
     generated_lines = generated_data.strip().split("\n")
@@ -86,10 +82,9 @@ def _assert_batch_file_matches_expected(
 
     expected_lines = expected_data.strip().split("\n")
 
-        
     mismatch_in = []
     if len(generated_lines) != len(expected_lines):
-        mismatch_in.append(None) # get diff files to generate
+        mismatch_in.append(None)  # get diff files to generate
 
     for i, (gen, exp) in enumerate(zip(generated_lines, expected_lines)):
         if gen != exp:
@@ -102,7 +97,7 @@ def _assert_batch_file_matches_expected(
             f.write("\n".join(generated_lines))
         with open(test_debug_dir / f"expected_{provider}.jsonl", "w") as f:
             f.write("\n".join(expected_lines))
-    
+
     assert len(generated_lines) == len(expected_lines), (
         f"Line count mismatch: expected {len(expected_lines)}, got {len(generated_lines)}. "
         + f"See tests/data/diffs/generated_{provider}.jsonl and "
@@ -266,6 +261,7 @@ def test_full_batch_anthropic(monkeypatch, temp_integration_dir, sample_tools, s
     expected_data = data_batch_full_anthropic
 
     from parallem.provider.anthropic import adapter as anthropic_parser
+
     monkeypatch.setattr(
         anthropic_parser,
         "_transform_schema",

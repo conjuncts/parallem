@@ -4,23 +4,29 @@ from typing import TYPE_CHECKING, List, Optional, Union
 from parallem.provider.base import BaseAdapter
 from parallem.provider.bedrock.adapter_legacy import BedrockLegacyAdapter
 
-from parallem.types import CommonQueryParameters, LLMDocument, LLMIdentity, ParsedResponse, ServerTool
+from parallem.types import (
+    CommonQueryParameters,
+    LLMDocument,
+    LLMIdentity,
+    ParsedResponse,
+    ServerTool,
+)
 
 
 if TYPE_CHECKING:
     from pydantic import BaseModel
+
 
 class BedrockAdapter(BaseAdapter):
     def __init__(self):
         super().__init__()
         self._fallback_adapter = BedrockLegacyAdapter()
         self._adapters = {}
-        
+
     def _get_adapter_for(
         self,
         llm: LLMIdentity,
     ):
-        
         geo_prefix = None
         model_name = llm.model_name
         _key = None
@@ -51,12 +57,15 @@ class BedrockAdapter(BaseAdapter):
         if _key not in self._adapters:
             if _key == "amazon":
                 from parallem.provider.bedrock.adapter_nova import BedrockNovaAdapter
+
                 self._adapters[_key] = BedrockNovaAdapter()
             elif _key == "openai-chat":
                 from parallem.provider.openai_chat.adapter import OpenAIChatAdapter
+
                 self._adapters[_key] = OpenAIChatAdapter()
             elif _key == "anthropic":
                 from parallem.provider.bedrock.adapter_anthropic import BedrockAnthropicAdapter
+
                 self._adapters[_key] = BedrockAnthropicAdapter()
         return self._adapters[_key]
 
@@ -104,7 +113,9 @@ class BedrockAdapter(BaseAdapter):
         self, raw_response: Union["BaseModel", dict], llm: Optional[LLMIdentity] = None
     ) -> ParsedResponse:
         """Parse raw API response into common format."""
-        assert llm is not None, "LLMIdentity must be provided to convert_response for BedrockAdapter"
+        assert llm is not None, (
+            "LLMIdentity must be provided to convert_response for BedrockAdapter"
+        )
 
         # Should be of format:
         # {"ResponseMetadata": {"RequestId": "abc123"}, "body": {...}}
@@ -134,4 +145,3 @@ class BedrockAdapter(BaseAdapter):
         adapter = self._get_adapter_for(llm) if llm is not None else None
         if adapter is not None:
             return adapter.convert_response(body_obj)
-            

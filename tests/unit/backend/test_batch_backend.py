@@ -92,9 +92,7 @@ class TestBatchBackendExecuteBatch:
     def test_groups_by_llm_identity(self, batch_backend, mock_provider):
         """Test that calls are grouped by LLMIdentity"""
         # Create different LLM identities
-        llm1 = LLMIdentity(
-            "gpt-4o-mini", provider_type="openai", model_name="gpt-4o-mini"
-        )
+        llm1 = LLMIdentity("gpt-4o-mini", provider_type="openai", model_name="gpt-4o-mini")
         llm2 = LLMIdentity("gpt-4o", provider_type="openai", model_name="gpt-4o")
 
         # Add calls with different LLMs
@@ -129,9 +127,7 @@ class TestBatchBackendExecuteBatch:
 
     def test_chunks_into_max_batch_size(self, batch_backend, mock_provider):
         """Test that large groups are chunked into max_batch_size"""
-        llm = LLMIdentity(
-            "gpt-4o-mini", provider_type="openai", model_name="gpt-4o-mini"
-        )
+        llm = LLMIdentity("gpt-4o-mini", provider_type="openai", model_name="gpt-4o-mini")
 
         # Add 10 calls with the same LLM
         for i in range(10):
@@ -170,9 +166,7 @@ class TestBatchBackendExecuteBatch:
         )
         backend._ds = mock_datastore
 
-        llm = LLMIdentity(
-            "gpt-4o-mini", provider_type="openai", model_name="gpt-4o-mini"
-        )
+        llm = LLMIdentity("gpt-4o-mini", provider_type="openai", model_name="gpt-4o-mini")
 
         for i in range(8):
             call_id = create_call_id("agent1", i)
@@ -189,9 +183,7 @@ class TestBatchBackendExecuteBatch:
 
     def test_combined_grouping_and_chunking(self, batch_backend, mock_provider):
         """Test grouping by LLM and chunking together"""
-        llm1 = LLMIdentity(
-            "gpt-4o-mini", provider_type="openai", model_name="gpt-4o-mini"
-        )
+        llm1 = LLMIdentity("gpt-4o-mini", provider_type="openai", model_name="gpt-4o-mini")
         llm2 = LLMIdentity("gpt-4o", provider_type="openai", model_name="gpt-4o")
         llm3 = LLMIdentity(
             "claude-3-5-sonnet-20241022",
@@ -237,9 +229,7 @@ class TestBatchBackendExecuteBatch:
 
     def test_no_partition_by_model_name(self, batch_backend, mock_provider):
         """Test with partition_by_model_name=False"""
-        llm1 = LLMIdentity(
-            "gpt-4o-mini", provider_type="openai", model_name="gpt-4o-mini"
-        )
+        llm1 = LLMIdentity("gpt-4o-mini", provider_type="openai", model_name="gpt-4o-mini")
         llm2 = LLMIdentity("gpt-4o", provider_type="openai", model_name="gpt-4o")
 
         # Add calls with different LLMs
@@ -274,9 +264,7 @@ class TestBatchBackendExecuteBatch:
         )
         backend._ds = mock_datastore
 
-        llm = LLMIdentity(
-            "gpt-4o-mini", provider_type="openai", model_name="gpt-4o-mini"
-        )
+        llm = LLMIdentity("gpt-4o-mini", provider_type="openai", model_name="gpt-4o-mini")
         call_id = create_call_id("agent1", 1)
         payload = {
             "custom_id": "req_1",
@@ -334,9 +322,7 @@ class TestBatchBackendExecuteBatch:
         """Test that pending requests are counted"""
         from parallem.core.exception import PendingNotAvailable
 
-        llm = LLMIdentity(
-            "gpt-4o-mini", provider_type="openai", model_name="gpt-4o-mini"
-        )
+        llm = LLMIdentity("gpt-4o-mini", provider_type="openai", model_name="gpt-4o-mini")
 
         # Add some calls
         call_ids = [create_call_id("agent1", i) for i in range(3)]
@@ -344,9 +330,7 @@ class TestBatchBackendExecuteBatch:
             batch_backend.bookkeep_call(call_id, llm, {"data": "test"})
 
         # Execute batch to store them as pending
-        batch_backend.execute_batch(
-            mock_provider, PrimitiveDashboardLogger(), max_batch_size=10
-        )
+        batch_backend.execute_batch(mock_provider, PrimitiveDashboardLogger(), max_batch_size=10)
 
         # Mock datastore to return True for pending checks
         batch_backend._ds.is_call_in_pending_batch.return_value = True
@@ -376,9 +360,7 @@ class TestBatchBackendExecuteBatch:
     )
     def test_custom_ids_generation(self, batch_backend, mock_provider):
         """Test that custom IDs are properly generated for each call"""
-        llm = LLMIdentity(
-            "gpt-4o-mini", provider_type="openai", model_name="gpt-4o-mini"
-        )
+        llm = LLMIdentity("gpt-4o-mini", provider_type="openai", model_name="gpt-4o-mini")
 
         # Add 5 calls
         for i in range(5):

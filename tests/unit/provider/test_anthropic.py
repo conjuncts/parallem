@@ -28,17 +28,17 @@ def _params(*, structured_output=None):
 def _prepare_anthropic_config(params, **kwargs):
     return AnthropicAdapter().fix_config(params, **kwargs)
 
+
 def test_prepare_anthropic_config_with_pydantic_structured_output(monkeypatch):
     from parallem.provider.anthropic import adapter as anthropic_adapter
+
     monkeypatch.setattr(
         anthropic_adapter,
         "_transform_schema",
         _anthropic_transform_schema,
         raising=True,
     )
-    model_name, messages, config = _prepare_anthropic_config(
-        _params(structured_output=MyModel)
-    )
+    model_name, messages, config = _prepare_anthropic_config(_params(structured_output=MyModel))
 
     assert model_name == "claude-3-haiku-20240307"
     assert messages == [{"role": "user", "content": "What is the capital of France?"}]
@@ -49,6 +49,7 @@ def test_prepare_anthropic_config_with_pydantic_structured_output(monkeypatch):
 
 def test_prepare_anthropic_config_with_json_schema_dict(monkeypatch):
     from parallem.provider.anthropic import adapter as anthropic_adapter
+
     monkeypatch.setattr(
         anthropic_adapter,
         "_transform_schema",

@@ -11,8 +11,8 @@ from parallem.utils._batch_helper import _split_batch_response
 if TYPE_CHECKING:
     pass
 
-class BatchBedrockProvider(BatchProvider, BedrockProvider):
 
+class BatchBedrockProvider(BatchProvider, BedrockProvider):
     def prepare_batch_call(
         self,
         params: CommonQueryParameters,
@@ -87,7 +87,6 @@ class BatchBedrockProvider(BatchProvider, BedrockProvider):
         job_arn = resp["jobArn"]
         return job_arn
 
-
     def download_batch(self, batch_uuid: str, provider_type: str) -> List[BatchResult]:
         """Download the results of a batch from the provider.
 
@@ -99,19 +98,19 @@ class BatchBedrockProvider(BatchProvider, BedrockProvider):
         :param batch_uuid: The unique identifier for the batch to download (job ARN for Bedrock).
         """
         import boto3
- 
+
         region = os.environ.get("AWS_REGION")
         bucket = os.environ.get("BEDROCK_S3_BUCKET")
- 
+
         # 1. Check job status
         batch_client = boto3.client("bedrock", region_name=region)
         job = batch_client.get_model_invocation_job(jobIdentifier=batch_uuid)
         status = job.get("status", "")
- 
+
         # Bedrock statuses: Submitted, InProgress, Completed, Failed, Stopping, Stopped, Expired, PartiallyCompleted
         if status in ("Submitted", "InProgress", "Stopping"):
             return []  # Still pending
- 
+
         if status in ("Failed", "Stopped", "Expired"):
             # The whole job failed before producing any output — surface one error BatchResult.
             return [
@@ -129,24 +128,24 @@ class BatchBedrockProvider(BatchProvider, BedrockProvider):
                     location=None,
                 )
             ]
- 
+
         # status is Completed or PartiallyCompleted — download output JSONL from S3.
         # Derive the output prefix from the job's own outputDataConfig so we never
         # drift from what was actually submitted.
         output_config = job.get("outputDataConfig", {}).get("s3OutputDataConfig", {})
         output_s3_uri = output_config.get("s3Uri", "")
- 
+
         # Parse bucket and prefix from the URI (s3://bucket/prefix/)
         if output_s3_uri.startswith("s3://"):
-            parts = output_s3_uri[len("s3://"):].split("/", 1)
+            parts = output_s3_uri[len("s3://") :].split("/", 1)
             output_bucket = parts[0]
             output_prefix = parts[1] if len(parts) > 1 else ""
         else:
             output_bucket = bucket
             output_prefix = ""
- 
+
         s3 = boto3.client("s3", region_name=region)
- 
+
         # List all objects under the output prefix to find result file(s).
         # Bedrock appends `.out` to the input filename, e.g. input.jsonl → input.jsonl.out
         paginator = s3.get_paginator("list_objects_v2")
@@ -156,28 +155,28 @@ class BatchBedrockProvider(BatchProvider, BedrockProvider):
                 key = obj["Key"]
                 if key.endswith(".jsonl.out") or key.endswith(".jsonl"):
                     output_keys.append(key)
- 
+
         if not output_keys:
             # Job says it's done but S3 output isn't there yet — still treat as pending.
             return []
- 
+
         # Collect all raw lines across every output file, then decode in one pass.
         all_lines: List[str] = []
         for key in output_keys:
             obj = s3.get_object(Bucket=output_bucket, Key=key)
             body = obj["Body"].read().decode("utf-8")
             all_lines.extend(body.splitlines())
- 
+
         raw_output = "\n".join(all_lines)
         if not raw_output.strip():
             return []
- 
+
         # 2. Decode the collected JSONL into BatchResult objects.
         return self.decode_batch_content(raw_output)
- 
+
     def decode_batch_content(self, content: str) -> List[BatchResult]:
         """Decode Bedrock JSONL batch output into BatchResult objects.
- 
+
         Each output line has the shape:
             {"recordId": "...", "modelOutput": {...}}   # success
             {"recordId": "...", "error": {...}}          # per-record error
@@ -185,7 +184,7 @@ class BatchBedrockProvider(BatchProvider, BedrockProvider):
         parsed_responses: List[ParsedResponse] = []
         parsed_errors: List[ParsedResponse] = []
         not_ok_i: List[int] = []
- 
+
         for line_i, line in enumerate(content.strip().splitlines()):
             line = line.strip()
             if not line:
@@ -204,16 +203,14 @@ class BatchBedrockProvider(BatchProvider, BedrockProvider):
                 )
                 not_ok_i.append(line_i)
                 continue
- 
+
             record_id = record.get("recordId", "")
             error_info = record.get("error")
             model_output = record.get("modelOutput")
- 
+
             if error_info:
                 error_message = (
-                    error_info.get("message")
-                    or error_info.get("type")
-                    or str(error_info)
+                    error_info.get("message") or error_info.get("type") or str(error_info)
                 )
                 status_code = error_info.get("status_code") or error_info.get("statusCode")
                 if isinstance(status_code, int):
@@ -222,13 +219,15 @@ class BatchBedrockProvider(BatchProvider, BedrockProvider):
                     error_code = int(status_code)
                 else:
                     error_code = 1
- 
+
                 parsed_errors.append(
                     ParsedResponse(
                         text=str(error_message),
                         response_id=None,
                         custom_id=record_id,
-                        metadata=error_info if isinstance(error_info, dict) else {"raw": str(error_info)},
+                        metadata=error_info
+                        if isinstance(error_info, dict)
+                        else {"raw": str(error_info)},
                         error_code=error_code,
                     )
                 )
@@ -237,31 +236,31 @@ class BatchBedrockProvider(BatchProvider, BedrockProvider):
                 parsed = self.adapter.parse_response(model_output)
                 parsed.custom_id = record_id
                 parsed_responses.append(parsed)
- 
+
         return _split_batch_response(
             parsed_responses=parsed_responses,
             parsed_errors=parsed_errors,
             content=content,
             not_ok_i=not_ok_i,
         )
- 
+
     def cancel_batch(self, batch_uuid: str, provider_type: str) -> None:
         """Cancel a batch on the provider.
- 
+
         :param provider_type: Double check to make sure that batch_uuid is for the same provider.
         :param batch_uuid: The unique identifier for the batch to cancel (job ARN for Bedrock).
         :return: None.
         """
         import boto3
- 
+
         region = os.environ.get("AWS_REGION")
         batch_client = boto3.client("bedrock", region_name=region)
- 
+
         # Bedrock only allows stopping jobs that are in a stoppable state.
         # Check first to avoid raising on already-terminal jobs.
         job = batch_client.get_model_invocation_job(jobIdentifier=batch_uuid)
         status = job.get("status", "")
- 
+
         stoppable_statuses = {"Submitted", "InProgress"}
         if status not in stoppable_statuses:
             # Already in a terminal or stopping state — nothing to do

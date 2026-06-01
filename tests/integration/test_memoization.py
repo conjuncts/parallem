@@ -269,7 +269,6 @@ def test_non_msg_state_memoized_replay(shared_sync_orch, test_agent_name):
 
 
 def test_non_msg_state_accepts_nested_json_values(shared_sync_orch, test_agent_name):
-
     nested_value = {"a": "b", "nested": {"x": 1}, "items": ["x", {"y": 2}]}
     nested_list = ["x", {"k": "v"}, [1, 2, 3]]
 

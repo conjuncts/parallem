@@ -4,9 +4,10 @@ from parallem.core.cast.convert_mcp import mcp_tool_to_tool_schema
 
 mcp_client = Client("examples/mcp/math_server.py")
 
+
 async def my_agent(agt: pllm.AgentContext, mcp_client: Client, question: str):
     conv = agt.get_msg_state()
-    
+
     available_tools = await mcp_client.list_tools()
     schema = [mcp_tool_to_tool_schema(tool) for tool in available_tools]
     last_msg = conv.ask_llm(
@@ -30,6 +31,7 @@ async def my_agent(agt: pllm.AgentContext, mcp_client: Client, question: str):
         last_msg = conv.ask_llm()
         print(conv[-1].final_answer)
 
+
 async def main():
     with pllm.resume_directory(
         ".pllm/simplest",
@@ -42,6 +44,8 @@ async def main():
             async with mcp_client:
                 await my_agent(agt, mcp_client, "Add 3 and 6.")
 
+
 if __name__ == "__main__":
     import asyncio
+
     asyncio.run(main())

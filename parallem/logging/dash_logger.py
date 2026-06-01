@@ -163,9 +163,7 @@ class DashboardLogger:
             self._stdout_cm = contextlib.redirect_stdout(self._stdout_holder)
             self._stdout_cm.__enter__()
         else:
-            self._context_keep_when_done = (
-                self._context_keep_when_done and keep_when_done
-            )
+            self._context_keep_when_done = self._context_keep_when_done and keep_when_done
         self._context_depth += 1
 
     def _pop_context(self, exc_type, exc_value, traceback):
@@ -240,10 +238,10 @@ class DashboardLogger:
         """Mark all active hashes for a given agent as errored"""
         with self._lock:
             for entry in self._hashes.values():
-                if (
-                    entry.agent_name == agent_name
-                    and entry.status in {HashStatus.SENT, HashStatus.SENT_BATCH}
-                ):
+                if entry.agent_name == agent_name and entry.status in {
+                    HashStatus.SENT,
+                    HashStatus.SENT_BATCH,
+                }:
                     entry.status = HashStatus.ERROR
             if self.display:
                 self._update_console()
@@ -277,9 +275,7 @@ class DashboardLogger:
         status_parts = []
         for entry in hashes_to_show:
             color = self._status_colors.get(entry.status, Fore.WHITE)
-            status_parts.append(
-                f"{color}{entry.status.value} {entry.hash_id}{Style.RESET_ALL}"
-            )
+            status_parts.append(f"{color}{entry.status.value} {entry.hash_id}{Style.RESET_ALL}")
 
         display_line = prefix + " ".join(status_parts)
 
@@ -354,9 +350,7 @@ class DashboardLogger:
         print(end="")
         response = input(prompt).strip().lower()
         while valid_responses is not None and response not in valid_responses:
-            print(
-                f"Invalid response. Please enter one of: {', '.join(valid_responses)}"
-            )
+            print(f"Invalid response. Please enter one of: {', '.join(valid_responses)}")
             response = input().strip().lower()
         return response
 
@@ -394,13 +388,13 @@ class DashboardLogger:
         else:
             return "n"
 
-
     def info(self, message: str):
         """Log an info message to the dashboard logger's internal logger."""
         if self._logger is not None:
             self._logger.info(message)
         else:
             print(message)
+
 
 class PrimitiveDashboardLogger(DashboardLogger):
     """

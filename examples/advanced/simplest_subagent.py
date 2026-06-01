@@ -19,7 +19,7 @@ def subagent_app(orch: pllm.AgentOrchestrator):
             with orch.agent(f"subagent-{i}") as subagt:
                 # Give subagent the parent agent conversation
                 subconv = subagt.get_msg_state()
-                subconv.extend(conv)  
+                subconv.extend(conv)
 
                 subconv.ask_llm(
                     f"Please write 2 paragraphs about {item}.",

@@ -116,9 +116,7 @@ class ConcurrentBackend(BaseBackend):
                 for task in pending:
                     task.cancel()
                 if pending:
-                    self._loop.run_until_complete(
-                        asyncio.gather(*pending, return_exceptions=True)
-                    )
+                    self._loop.run_until_complete(asyncio.gather(*pending, return_exceptions=True))
                 self._loop.close()
 
         self._loop_thread = threading.Thread(target=run_event_loop, daemon=True)
@@ -207,9 +205,7 @@ class ConcurrentBackend(BaseBackend):
     def cleanup_datastore_sync(self):
         """Synchronously trigger datastore cleanup in the concurrent thread"""
         if self._loop is not None and not self._loop.is_closed():
-            future = asyncio.run_coroutine_threadsafe(
-                self._cleanup_datastore(), self._loop
-            )
+            future = asyncio.run_coroutine_threadsafe(self._cleanup_datastore(), self._loop)
             try:
                 future.result(timeout=5.0)
             except Exception as e:
@@ -299,9 +295,7 @@ class ConcurrentBackend(BaseBackend):
                 self.task_metas.pop(i)
                 # print(f"Completed {meta['doc_hash'][:8]}:{meta['seq_id']}")
 
-    async def aretrieve(
-        self, call_id: CallIdentifier, metadata=False
-    ) -> Optional[ParsedResponse]:
+    async def aretrieve(self, call_id: CallIdentifier, metadata=False) -> Optional[ParsedResponse]:
         # only poll for changes if we have a matching task
         if any(_call_matches(m, call_id) for m in self.task_metas):
             await self._poll_changes(call_id)
@@ -327,9 +321,7 @@ class ConcurrentBackend(BaseBackend):
         # We want to wait for all pending tasks to complete
         if self._loop is not None and not self._loop.is_closed():
             # Create a dummy TaskIdentifier for _poll_changes - we'll pass None values to poll all
-            future = asyncio.run_coroutine_threadsafe(
-                self._poll_changes(None), self._loop
-            )
+            future = asyncio.run_coroutine_threadsafe(self._poll_changes(None), self._loop)
             try:
                 future.result(timeout=timeout)
             except Exception as e:
@@ -342,9 +334,7 @@ class ConcurrentBackend(BaseBackend):
         # Close datastore connections to ensure proper cleanup, especially important on Windows
         self.cleanup_datastore_sync()
 
-    def retrieve(
-        self, call_id: CallIdentifier, metadata=False
-    ) -> Optional[ParsedResponse]:
+    def retrieve(self, call_id: CallIdentifier, metadata=False) -> Optional[ParsedResponse]:
         """Synchronous retrieve that uses the backend's event loop"""
         return self._run_coroutine(self.aretrieve(call_id, metadata=metadata))
 

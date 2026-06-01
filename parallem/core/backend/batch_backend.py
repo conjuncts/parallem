@@ -135,9 +135,7 @@ class BatchBackend(BaseBackend):
         For batch, not our responsibility
         """
 
-    def retrieve(
-        self, call_id: CallIdentifier, metadata=False
-    ) -> Optional[ParsedResponse]:
+    def retrieve(self, call_id: CallIdentifier, metadata=False) -> Optional[ParsedResponse]:
         return self._ds.retrieve(call_id, metadata=metadata)
 
     def close(self):
@@ -170,9 +168,7 @@ class BatchBackend(BaseBackend):
         if self._ds.is_call_in_pending_batch(call_id):
             return
 
-        self._batch_buffer.append(
-            BatchBufferItem(call_id=call_id, llm=llm, stuff=stuff)
-        )
+        self._batch_buffer.append(BatchBufferItem(call_id=call_id, llm=llm, stuff=stuff))
 
     def generate_custom_id(
         self,
@@ -245,9 +241,7 @@ class BatchBackend(BaseBackend):
                 data.append(item.stuff)
 
             assert llm_common is not None
-            custom_ids = provider.get_batch_custom_ids(
-                data, provider_type=llm_common.provider_type
-            )
+            custom_ids = provider.get_batch_custom_ids(data, provider_type=llm_common.provider_type)
             batch_groups.append(
                 BatchGroup(
                     call_ids=call_ids,
@@ -377,9 +371,7 @@ class BatchBackend(BaseBackend):
                 ending = ".zip" if res.status == "ready" else "_err.zip"
                 batch_fname = os.path.basename(batch_uuid)
                 fpath = self._fm.path_batch_out() / f"{batch_fname}{ending}"
-                self.persist_to_zip(
-                    res.raw_output, fpath=fpath, inner_fname=batch_uuid + ".jsonl"
-                )
+                self.persist_to_zip(res.raw_output, fpath=fpath, inner_fname=batch_uuid + ".jsonl")
                 res.location = fpath
             elif save_to_disk == "jsonl" and res.raw_output is not None:
                 ending = ".jsonl" if res.status == "ready" else "_err.jsonl"

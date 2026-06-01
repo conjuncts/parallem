@@ -46,9 +46,7 @@ def map_server_tools(
                     }
                 )
             else:
-                raise ValueError(
-                    f"Unsupported ServerTool type for OpenAI: {tool.server_tool_type}"
-                )
+                raise ValueError(f"Unsupported ServerTool type for OpenAI: {tool.server_tool_type}")
         else:
             openai_tools.append(tool)
     return openai_tools
@@ -56,6 +54,7 @@ def map_server_tools(
 
 class OpenAIBatchMixin:
     """Handles OpenAI Batch API for both Responses and ChatCompletions APIs."""
+
     batch_endpoint: str
 
     def _decode_openai_batch_result(self, result: dict) -> ParsedResponse:
@@ -168,9 +167,7 @@ class OpenAIBatchMixin:
 
                 response = line_data.get("response", {})
                 status_code = response.get("status_code")
-                has_error = line_data.get("error") or (
-                    status_code and status_code != 200
-                )
+                has_error = line_data.get("error") or (status_code and status_code != 200)
 
                 if not has_error and status_code == 200:
                     parsed_responses.append(self._decode_openai_batch_result(line_data))

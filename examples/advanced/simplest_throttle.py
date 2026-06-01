@@ -28,6 +28,4 @@ with pllm.resume_directory(
             resp = agt.ask_llm(f"Please name a power of {i + 2}.")
             # print(resp.final_answer)
             req_end = time.time()
-            print(
-                f"Response {i} at {req_start - time_start} took {req_end - req_start:.2f}s"
-            )
+            print(f"Response {i} at {req_start - time_start} took {req_end - req_start:.2f}s")

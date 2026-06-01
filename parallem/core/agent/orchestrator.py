@@ -62,9 +62,7 @@ class AgentOrchestrator:
         self.ask_params = ask_params or {}
         self.ignore_cache = ignore_cache
         self.strategy = strategy
-        self._pending_agent_coroutines: list[
-            tuple[Coroutine[Any, Any, Any], Future[Any]]
-        ] = []
+        self._pending_agent_coroutines: list[tuple[Coroutine[Any, Any, Any], Future[Any]]] = []
         self._seq_id_store = seq_id_store or InMemorySeqIdStore()
         self._error_mode = error_mode
 
@@ -123,6 +121,7 @@ class AgentOrchestrator:
                     return promise
                 promise.set_result(resolved)
                 return promise
+
             async def _coro_wrapper():
                 with cm:
                     return await fn(agt, *fn_args, **fn_kwargs)
@@ -371,9 +370,7 @@ class AgentOrchestrator:
         :param directory: Directory to export tables to. If None, uses the default datastore directory.
         :param filetype: Export file type - "polars" or "parquet" for parquet files, "csv" for CSV, "tsv" for TSV.
         """
-        return self._backend._get_datastore().export_tables(
-            directory, filetype=filetype
-        )
+        return self._backend._get_datastore().export_tables(directory, filetype=filetype)
 
     def export_polars(
         self,

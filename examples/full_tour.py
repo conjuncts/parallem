@@ -22,6 +22,7 @@ def power_of_3_agent(agt: pllm.AgentContext):
     )
     return resp.final_answer.replace("\n", " ")
 
+
 def web_search_agent(agt: pllm.AgentContext):
     # 2. Web search tool
     resp = agt.ask_llm(
@@ -30,10 +31,12 @@ def web_search_agent(agt: pllm.AgentContext):
     )
     return resp.final_answer.replace("\n", " ")
 
+
 def structured_output_agent(agt: pllm.AgentContext):
     # 3. Structured output
     resp = agt.ask_llm("What is the capital of France?", structured_output=MyModel)
     return resp.final_answer.replace("\n", " ")
+
 
 def image_input_agent(agt: pllm.AgentContext):
     # 4. Image input. NOTE: Adjust image as needed.
@@ -41,6 +44,7 @@ def image_input_agent(agt: pllm.AgentContext):
     img.thumbnail((100, 100))  # Downsample
     resp = agt.ask_llm("What animal is this?", img)
     return resp.final_answer.replace("\n", " ")
+
 
 def function_calling_agent(agt: pllm.AgentContext):
     # 5,6. Function calling.
@@ -52,14 +56,13 @@ def function_calling_agent(agt: pllm.AgentContext):
     )
     fc_outs = agt.ask_functions(resp5, count_files=count_files)
     resp6 = agt.ask_llm([ls_prompt, resp5, *fc_outs])
-    
+
     final_answer = ""
     if resp5.function_calls:
         final_answer += f"Function calls: {resp5.function_calls}\n6. "
     final_answer += resp5.final_answer.replace("\n", " ")
     final_answer += resp6.final_answer.replace("\n", " ")
     return final_answer
-
 
 
 if __name__ == "__main__":

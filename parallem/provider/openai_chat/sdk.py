@@ -57,6 +57,7 @@ class OpenAIChatProvider(BaseProvider):
         """Parse OpenAI chat completions response into common format."""
         return self.adapter.convert_response(raw_response)
 
+
 class SyncOpenAIChatProvider(SyncProvider, OpenAIChatProvider):
     def __init__(self, client: "OpenAI"):
         super().__init__()
@@ -69,18 +70,14 @@ class SyncOpenAIChatProvider(SyncProvider, OpenAIChatProvider):
     ):
         """Prepare a synchronous callable for OpenAI chat completions API."""
         instructions = params["instructions"]
-        fixed_documents = self.adapter.fix_docs(
-            params["strict_documents"], instructions
-        )
+        fixed_documents = self.adapter.fix_docs(params["strict_documents"], instructions)
         llm = params["llm"]
         structured_output = params.get("structured_output")
         tools = self.adapter.fix_tools(params.get("tools"))
 
         if structured_output is not None:
             if "response_format" in kwargs:
-                raise AssertionError(
-                    "Cannot supply both structured_output and response_format"
-                )
+                raise AssertionError("Cannot supply both structured_output and response_format")
             kwargs["response_format"] = self.adapter.fix_structured_output(structured_output)
 
         return self.client.chat.completions.create(
@@ -103,18 +100,14 @@ class ConcurrentOpenAIChatProvider(ConcurrentProvider, OpenAIChatProvider):
     ):
         """Prepare a concurrent coroutine for OpenAI chat completions API."""
         instructions = params["instructions"]
-        fixed_documents = self.adapter.fix_docs(
-            params["strict_documents"], instructions
-        )
+        fixed_documents = self.adapter.fix_docs(params["strict_documents"], instructions)
         llm = params["llm"]
         structured_output = params.get("structured_output")
         tools = self.adapter.fix_tools(params.get("tools"))
 
         if structured_output is not None:
             if "response_format" in kwargs:
-                raise AssertionError(
-                    "Cannot supply both structured_output and response_format"
-                )
+                raise AssertionError("Cannot supply both structured_output and response_format")
             kwargs["response_format"] = self.adapter.fix_structured_output(structured_output)
 
         return self.client.chat.completions.create(

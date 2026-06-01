@@ -12,9 +12,7 @@ class MemoizedSignal(ParallemSignal):
     """Signal used to indicate that a memoized value should be returned."""
 
     def __init__(self, value_hash: str):
-        super().__init__(
-            f"Memoized value with hash {value_hash} found. Returning cached response."
-        )
+        super().__init__(f"Memoized value with hash {value_hash} found. Returning cached response.")
         self.value_hash = value_hash
 
 

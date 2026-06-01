@@ -7,8 +7,9 @@ import polars as pl
 from datasets import load_dataset
 
 ds = load_dataset("Skelebor/book_titles_and_descriptions_en_clean", split="train")
-print(ds.num_rows) # 1,032,335
+print(ds.num_rows)  # 1,032,335
 # NOTE Cost: estimated $5
+
 
 def genre_agent(agt: pllm.AgentContext, title: str):
     ct = agt.ask_llm(
@@ -18,6 +19,7 @@ def genre_agent(agt: pllm.AgentContext, title: str):
         max_output_tokens=20,
     )
     return ct.final_answer.strip()
+
 
 collector = []
 with pllm.resume_directory(
@@ -34,4 +36,4 @@ with pllm.resume_directory(
             out = genre_agent(agt, example["title"])
             collector.append((example["title"], out))
 print(pl.DataFrame(collector, schema={"title": pl.Utf8, "genre": pl.Utf8}, orient="row"))
-# 
+#

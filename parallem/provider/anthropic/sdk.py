@@ -3,7 +3,9 @@ from pathlib import Path
 from typing import TYPE_CHECKING, List, Optional, Union
 from pydantic import BaseModel
 from parallem.provider.anthropic.adapter import AnthropicAdapter
-from parallem.provider.anthropic._version_checks import enforce_anthropic_min_version_for_structured_output
+from parallem.provider.anthropic._version_checks import (
+    enforce_anthropic_min_version_for_structured_output,
+)
 from parallem.provider.base import (
     BatchProvider,
     ConcurrentProvider,
@@ -44,9 +46,7 @@ class AnthropicProvider(BaseProvider):
             enforce_anthropic_min_version_for_structured_output()
 
     def get_default_llm_identity(self) -> LLMIdentity:
-        return LLMIdentity(
-            "claude-haiku-4-5-20251001", provider_type=self.provider_type
-        )
+        return LLMIdentity("claude-haiku-4-5-20251001", provider_type=self.provider_type)
 
     def parse_response(
         self, raw_response: Union[BaseModel, dict], llm: Optional[LLMIdentity] = None
@@ -170,9 +170,7 @@ class BatchAnthropicProvider(BatchProvider, AnthropicProvider):
         message_obj = result.get("message")
 
         if not isinstance(message_obj, dict):
-            raise ValueError(
-                "Missing succeeded message payload in Anthropic batch line"
-            )
+            raise ValueError("Missing succeeded message payload in Anthropic batch line")
 
         parsed = self.parse_response(message_obj)
         parsed.custom_id = custom_id
@@ -219,9 +217,7 @@ class BatchAnthropicProvider(BatchProvider, AnthropicProvider):
                 result_type = (line_data.get("result") or {}).get("type")
 
                 if result_type == "succeeded":
-                    parsed_responses.append(
-                        self._decode_anthropic_batch_success(line_data)
-                    )
+                    parsed_responses.append(self._decode_anthropic_batch_success(line_data))
                 else:
                     parsed_errors.append(self._decode_anthropic_batch_error(line_data))
                     not_ok_i.append(line_i)

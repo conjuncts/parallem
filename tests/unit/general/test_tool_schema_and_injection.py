@@ -48,9 +48,7 @@ class TestAskFunctionsAgentContextInjection:
         assert outputs[1].content == "ok:worker_beta:9"
         assert captured == [(7, "worker_alpha"), (9, "worker_beta")]
 
-    def test_raises_when_injection_required_without_subagent_names(
-        self, mock_orchestrator
-    ):
+    def test_raises_when_injection_required_without_subagent_names(self, mock_orchestrator):
         agent = AgentContext("root", mock_orchestrator)
         response = LLMResponse("", call_id={"doc_hash": "h"})
         response._pr = Mock(

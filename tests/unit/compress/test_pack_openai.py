@@ -98,9 +98,7 @@ def test_compress_openai_input_batches_packs_nested_fields():
     df = compress_openai_input_batches(items)
 
     assert df.schema["body.model"] == pl.Utf8
-    assert df.select("body.input").to_series().to_list() == [
-        '[{"role": "user", "content": "Hi"}]'
-    ]
+    assert df.select("body.input").to_series().to_list() == ['[{"role": "user", "content": "Hi"}]']
     assert df.select("body.text.format").to_series().to_list() == [
         '{"type": "json_schema", "strict": true}'
     ]

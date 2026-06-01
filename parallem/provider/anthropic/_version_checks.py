@@ -38,9 +38,7 @@ def enforce_anthropic_min_version_for_structured_output() -> None:
         ) from exc
 
     installed_version = _numeric_version_triplet(installed_version_text)
-    minimum_required = _numeric_version_triplet(
-        _ANTHROPIC_STRUCTURED_OUTPUT_MIN_VERSION
-    )
+    minimum_required = _numeric_version_triplet(_ANTHROPIC_STRUCTURED_OUTPUT_MIN_VERSION)
     if installed_version < minimum_required:
         raise ProviderCompatibilityError(
             "Structured output with Anthropic requires anthropic>="

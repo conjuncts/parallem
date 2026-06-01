@@ -49,7 +49,6 @@ class GoogleProvider(BaseProvider):
     ) -> ParsedResponse:
         """Parse Gemini API response into common format"""
         return self.adapter.convert_response(raw_response)
-        
 
 
 class SyncGoogleProvider(SyncProvider, GoogleProvider):
@@ -93,7 +92,6 @@ class ConcurrentGoogleProvider(ConcurrentProvider, GoogleProvider):
         return coro
 
 
-
 class BatchGoogleProvider(BatchProvider, GoogleProvider):
     def __init__(self, client: "genai.Client"):
         super().__init__()
@@ -114,9 +112,7 @@ class BatchGoogleProvider(BatchProvider, GoogleProvider):
 
         return request
 
-    def _decode_gemini_batch_result(
-        self, result: dict, custom_id: str
-    ) -> ParsedResponse:
+    def _decode_gemini_batch_result(self, result: dict, custom_id: str) -> ParsedResponse:
         """Decode a single result from Gemini batch response"""
 
         # For successful responses, the result should be a GenerateContentResponse
@@ -130,9 +126,7 @@ class BatchGoogleProvider(BatchProvider, GoogleProvider):
             # Fallback parsing
             raise ValueError("Unexpected gemini response format")
 
-    def _decode_gemini_batch_error(
-        self, result: dict, custom_id: str
-    ) -> ParsedResponse:
+    def _decode_gemini_batch_error(self, result: dict, custom_id: str) -> ParsedResponse:
         """Decode a single error from Gemini batch response"""
 
         error_info = result.get("error", {})
@@ -211,9 +205,7 @@ class BatchGoogleProvider(BatchProvider, GoogleProvider):
                             self._decode_gemini_batch_result(line_data, custom_id)
                         )
                     else:
-                        parsed_errors.append(
-                            self._decode_gemini_batch_error(line_data, custom_id)
-                        )
+                        parsed_errors.append(self._decode_gemini_batch_error(line_data, custom_id))
                         not_ok_i.append(line_i)
 
                 except json.JSONDecodeError as e:
@@ -268,9 +260,7 @@ class BatchGoogleProvider(BatchProvider, GoogleProvider):
             if batch_job.dest and batch_job.dest.file_name:
                 # Results are in a file
                 try:
-                    file_content = self.client.files.download(
-                        file=batch_job.dest.file_name
-                    )
+                    file_content = self.client.files.download(file=batch_job.dest.file_name)
                     content_str = file_content.decode("utf-8")
 
                     results.extend(self.decode_batch_content(content_str))
@@ -287,9 +277,7 @@ class BatchGoogleProvider(BatchProvider, GoogleProvider):
 
         else:
             # Job failed, cancelled, or expired
-            error_msg = getattr(
-                batch_job, "error", f"Job state: {batch_job.state.name}"
-            )
+            error_msg = getattr(batch_job, "error", f"Job state: {batch_job.state.name}")
             results.append(
                 BatchResult(
                     status="error",

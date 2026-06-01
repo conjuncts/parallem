@@ -35,9 +35,7 @@ def compress_openai_metadata(metas: List[tuple[str, str]]):
     """
     Input: List of tuples of (response_id, metadata_json)
     """
-    objs = [
-        {**as_is, **json.loads(astring)} for as_is, astring in metas if astring.strip()
-    ]
+    objs = [{**as_is, **json.loads(astring)} for as_is, astring in metas if astring.strip()]
 
     messages_df = None
     # custom handle messages

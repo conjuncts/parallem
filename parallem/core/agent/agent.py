@@ -149,9 +149,7 @@ class AgentContext(Askable):
                 elif callable(tool):
                     coerced_tools.extend(to_tool_schema(tool))
                 else:
-                    raise ValueError(
-                        f"Tool {tool} is not a dict, ServerTool, or callable."
-                    )
+                    raise ValueError(f"Tool {tool} is not a dict, ServerTool, or callable.")
             return coerced_tools
         return tools
 
@@ -211,7 +209,9 @@ class AgentContext(Askable):
         # another, and pass as the `salt` parameter (applied via re-hash) so that
         # salt content can never collide with document content.
         combined_salt = "\x00".join(salt_terms) if salt_terms else None
-        hashed = compute_hash(params["instructions"], params["strict_documents"], salt=combined_salt)
+        hashed = compute_hash(
+            params["instructions"], params["strict_documents"], salt=combined_salt
+        )
         return hashed, salt_terms
 
     def _get_cached_response(
@@ -255,9 +255,7 @@ class AgentContext(Askable):
         # 1. assign sequential ID, input checks
         seq_id = self._orch.next_seq_id(self.agent_name)
 
-        llm, provider_type, structured_output = self._coerce_options(
-            llm, structured_output, kwargs
-        )
+        llm, provider_type, structured_output = self._coerce_options(llm, structured_output, kwargs)
         tools = self._coerce_tools(tools)
 
         if isinstance(documents, MessageState):
@@ -311,9 +309,7 @@ class AgentContext(Askable):
 
         # 5. use API
         if not self._orch._provider.is_compatible(provider_type):
-            raise ValueError(
-                f"LLM {llm} is not compatible with provider {provider_type}"
-            )
+            raise ValueError(f"LLM {llm} is not compatible with provider {provider_type}")
 
         # The below function typically calls the LLM
         return self._orch._backend.submit_query(
@@ -365,9 +361,7 @@ class AgentContext(Askable):
             if callme is None:
                 # Function not found
                 if if_func_not_exist is ValueError:
-                    raise ValueError(
-                        f"LLM asked for {fc.name}, but it was not provided."
-                    )
+                    raise ValueError(f"LLM asked for {fc.name}, but it was not provided.")
                 if isinstance(if_func_not_exist, Exception):
                     raise if_func_not_exist
                 elif if_func_not_exist is None:
@@ -387,9 +381,7 @@ class AgentContext(Askable):
             result = callme(**call_args)
             if convert_to_str and not isinstance(result, str):
                 result = str(result)
-            fc_outs.append(
-                FunctionCallOutput(content=result, name=fc.name, call_id=fc.call_id)
-            )
+            fc_outs.append(FunctionCallOutput(content=result, name=fc.name, call_id=fc.call_id))
         return fc_outs
 
     def _inject_subagent_context(

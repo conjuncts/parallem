@@ -24,11 +24,7 @@ def _split_batch_response(
         ]
     else:
         not_ok_set = set(not_ok_i)
-        err_lines = [
-            line
-            for i, line in enumerate(content.strip().split("\n"))
-            if i in not_ok_set
-        ]
+        err_lines = [line for i, line in enumerate(content.strip().split("\n")) if i in not_ok_set]
         err_str = "\n".join(err_lines)
 
         return [

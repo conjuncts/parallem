@@ -198,9 +198,7 @@ class BatchNamespace:
         datastore = self._orch._backend._get_datastore()
         datastore.clear_batch_pending(batch_uuid)
 
-    def _import_batch(
-        self, batch_uuid, path_to_batch, *, provider_type: ProviderType
-    ) -> None:
+    def _import_batch(self, batch_uuid, path_to_batch, *, provider_type: ProviderType) -> None:
         """
         Not implemented yet - do not use.
         """

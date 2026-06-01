@@ -16,9 +16,7 @@ def _to_assistant_message(resp: LLMResponse) -> LLMDocument:
 
 
 def reduce_to_list(
-    documents: Union[
-        Union[LLMDocument, LLMResponse], List[Union[LLMDocument, LLMResponse]]
-    ],
+    documents: Union[Union[LLMDocument, LLMResponse], List[Union[LLMDocument, LLMResponse]]],
     additional_documents: Optional[List[Union[LLMDocument, LLMResponse]]] = None,
 ) -> List[Union[LLMDocument, LLMResponse]]:
     """

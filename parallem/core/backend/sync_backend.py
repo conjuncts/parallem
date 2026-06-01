@@ -109,9 +109,7 @@ class SyncBackend(BaseBackend):
             **kwargs,
         )
         self.dashlog.update_call(call_id, HashStatus.RECEIVED)
-        parsed = provider.parse_response(
-            result, llm=params["llm"]
-        )
+        parsed = provider.parse_response(result, llm=params["llm"])
         self._ds.store(call_id, parsed, upsert=self._rewrite_cache)
 
         return ReadyLLMResponse(call_id=call_id, pr=parsed)
@@ -124,9 +122,7 @@ class SyncBackend(BaseBackend):
         # So there's nothing to poll for
         pass
 
-    def retrieve(
-        self, call_id: CallIdentifier, metadata=False
-    ) -> Optional[ParsedResponse]:
+    def retrieve(self, call_id: CallIdentifier, metadata=False) -> Optional[ParsedResponse]:
         """
         Synchronous retrieve that checks datastore.
 

@@ -38,17 +38,13 @@ class MultiProvider(BaseProvider):
         provider.validate_request_compatibility(params, **kwargs)
 
     @overload
-    def _load_provider(
-        self, provider_name: str, strategy: Literal["sync"]
-    ) -> SyncProvider: ...
+    def _load_provider(self, provider_name: str, strategy: Literal["sync"]) -> SyncProvider: ...
     @overload
     def _load_provider(
         self, provider_name: str, strategy: Literal["concurrent"]
     ) -> ConcurrentProvider: ...
     @overload
-    def _load_provider(
-        self, provider_name: str, strategy: Literal["batch"]
-    ) -> BatchProvider: ...
+    def _load_provider(self, provider_name: str, strategy: Literal["batch"]) -> BatchProvider: ...
     def _load_provider(
         self,
         provider_name: str,
@@ -106,9 +102,7 @@ class BatchMultiProvider(BatchProvider, MultiProvider):
         provider: "BaseProvider" = self._load_provider(llm_identity.provider_type, "batch")
         return provider.prepare_batch_call(params, **kwargs)
 
-    def download_batch(
-        self, batch_uuid: str, provider_type: str
-    ) -> list["BatchResult"]:
+    def download_batch(self, batch_uuid: str, provider_type: str) -> list["BatchResult"]:
         provider: "BaseProvider" = self._load_provider(provider_type, "batch")
         return provider.download_batch(batch_uuid, provider_type=provider_type)
 

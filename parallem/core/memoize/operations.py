@@ -142,9 +142,7 @@ class OperationLog:
         msg_state._tracking_operations = False
         prev_non_msg_tracking = False
         if non_msg_state is not None:
-            prev_non_msg_tracking = getattr(
-                non_msg_state, "_tracking_operations", False
-            )
+            prev_non_msg_tracking = getattr(non_msg_state, "_tracking_operations", False)
             non_msg_state._tracking_operations = False
 
         try:

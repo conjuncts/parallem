@@ -56,15 +56,11 @@ def batch_identifier(batch_call_ids):
     custom_ids = [f"custom_{i}" for i in range(1, 4)]
     batch_uuid = "test-batch-uuid-123"
 
-    return BatchIdentifier(
-        call_ids=batch_call_ids, custom_ids=custom_ids, batch_uuid=batch_uuid
-    )
+    return BatchIdentifier(call_ids=batch_call_ids, custom_ids=custom_ids, batch_uuid=batch_uuid)
 
 
 class TestSQLite:
-    def test_store_and_retrieve_anonymous_response(
-        self, temp_datastore, generic_call_id
-    ):
+    def test_store_and_retrieve_anonymous_response(self, temp_datastore, generic_call_id):
         """Test storing and retrieving an anonymous response"""
 
         metadata = {"usage": {"total_tokens": 50}, "model": "gpt-4"}
@@ -81,9 +77,7 @@ class TestSQLite:
         assert retrieved.text == "Test response"
 
         # Retrieve with metadata
-        retrieved_with_metadata = temp_datastore.retrieve(
-            generic_call_id, metadata=True
-        )
+        retrieved_with_metadata = temp_datastore.retrieve(generic_call_id, metadata=True)
         assert retrieved_with_metadata.metadata == metadata
 
     def test_store_update_existing_response(self, temp_datastore, generic_call_id):
@@ -113,9 +107,7 @@ class TestSQLite:
         retrieved = temp_datastore.retrieve(generic_call_id)
         assert retrieved is None
 
-    def test_store_human_response_sets_origin_type(
-        self, temp_datastore, generic_call_id
-    ):
+    def test_store_human_response_sets_origin_type(self, temp_datastore, generic_call_id):
         """Human responses should be stored with origin_type=1."""
         parsed = ParsedResponse(text="human", response_id=None, metadata=None)
         temp_datastore.store(generic_call_id, parsed, origin_type=1)
@@ -160,9 +152,7 @@ class TestSQLite:
         assert retrieved is not None
         assert retrieved.text == "llm-second"
 
-    def test_retrieve_human_origin_rows_with_filter(
-        self, temp_datastore, generic_call_id
-    ):
+    def test_retrieve_human_origin_rows_with_filter(self, temp_datastore, generic_call_id):
         """Human retrieval should return only origin_type=1 rows."""
         temp_datastore.store(
             generic_call_id,
@@ -241,9 +231,7 @@ class TestSQLite:
             "session_id": 10,
             "meta": {"provider_type": "openai", "tag": None},
         }
-        temp_datastore.store(
-            call_id, ParsedResponse(text="stored", response_id=None, metadata={})
-        )
+        temp_datastore.store(call_id, ParsedResponse(text="stored", response_id=None, metadata={}))
 
         lookup: CallIdentifier = {
             "agent_name": "agent_b",
@@ -266,9 +254,7 @@ class TestSQLite:
             }
             temp_datastore.store(
                 call_id,
-                ParsedResponse(
-                    text=f"session {session_id}", response_id=None, metadata={}
-                ),
+                ParsedResponse(text=f"session {session_id}", response_id=None, metadata={}),
             )
 
         lookup: CallIdentifier = {
@@ -326,9 +312,7 @@ class TestSQLite:
         )
 
         exported = temp_datastore.export_polars()
-        responses = exported["responses"].with_columns(
-            pl.lit("after").alias("response")
-        )
+        responses = exported["responses"].with_columns(pl.lit("after").alias("response"))
 
         temp_datastore.import_polars({"responses": responses}, update=False)
 
@@ -336,9 +320,7 @@ class TestSQLite:
         assert retrieved is not None
         assert retrieved.text == "after"
 
-    def test_import_polars_empty_dataframe_clears_table(
-        self, temp_datastore, generic_call_id
-    ):
+    def test_import_polars_empty_dataframe_clears_table(self, temp_datastore, generic_call_id):
         """Import with an empty DataFrame clears that table."""
         temp_datastore.store(
             generic_call_id,
@@ -352,9 +334,7 @@ class TestSQLite:
 
         assert temp_datastore.retrieve(generic_call_id) is None
 
-    def test_import_polars_update_mode_preserves_other_rows(
-        self, temp_datastore, generic_call_id
-    ):
+    def test_import_polars_update_mode_preserves_other_rows(self, temp_datastore, generic_call_id):
         """update=True upserts rows without deleting unmentioned rows."""
         other_call_id = {**generic_call_id, "doc_hash": "other_hash", "seq_id": 99}
         temp_datastore.store(
@@ -447,9 +427,7 @@ class TestSQLiteBatch:
         temp_datastore.store_pending_batch(batch_identifier)
 
         # Check that call IDs can be retrieved
-        retrieved_call_ids = temp_datastore.retrieve_batch_call_ids(
-            batch_identifier.batch_uuid
-        )
+        retrieved_call_ids = temp_datastore.retrieve_batch_call_ids(batch_identifier.batch_uuid)
         assert len(retrieved_call_ids) == 3
         assert retrieved_call_ids[0]["doc_hash"] == "batch_hash_1"
 
@@ -476,9 +454,7 @@ class TestSQLiteBatch:
         custom_ids = [f"tag_custom_{i}" for i in range(1, 3)]
         batch_uuid = "tag-batch-uuid-123"
 
-        batch_id = BatchIdentifier(
-            call_ids=call_ids, custom_ids=custom_ids, batch_uuid=batch_uuid
-        )
+        batch_id = BatchIdentifier(call_ids=call_ids, custom_ids=custom_ids, batch_uuid=batch_uuid)
 
         # Store pending batch
         temp_datastore.store_pending_batch(batch_id)
@@ -528,9 +504,7 @@ class TestSQLiteBatch:
         custom_ids = [f"nometa_custom_{i}" for i in range(1, 3)]
         batch_uuid = "nometa-batch-uuid"
 
-        batch_id = BatchIdentifier(
-            call_ids=call_ids, custom_ids=custom_ids, batch_uuid=batch_uuid
-        )
+        batch_id = BatchIdentifier(call_ids=call_ids, custom_ids=custom_ids, batch_uuid=batch_uuid)
         temp_datastore.store_pending_batch(batch_id)
 
         # Responses with NO metadata
@@ -592,9 +566,7 @@ class TestSQLiteBatch:
 
     def test_empty_batch_handling(self, temp_datastore):
         """Test handling of empty batch results"""
-        batch_result = BatchResult(
-            status="ready", raw_output="empty batch", parsed_responses=None
-        )
+        batch_result = BatchResult(status="ready", raw_output="empty batch", parsed_responses=None)
 
         # Should not raise an error
         temp_datastore.store_ready_batch(batch_result)
@@ -623,8 +595,8 @@ class TestSQLiteBatch:
         with pytest.raises(ValueError, match="Could not find pending batch record"):
             temp_datastore.store_ready_batch(batch_result)
 
+
 class TestSQLiteMetadata:
-    
     def test_metadata_operations(self, temp_datastore, generic_call_id):
         """Test metadata storage and retrieval"""
 
@@ -653,9 +625,7 @@ class TestSQLiteMetadata:
         )
         assert retrieved_metadata == metadata
 
-    def test_retrieve_metadata_after_persist(
-        self, temp_datastore, generic_call_id
-    ):
+    def test_retrieve_metadata_after_persist(self, temp_datastore, generic_call_id):
         """Retrieve metadata after it is sequestered to TSV."""
 
         metadata = {
@@ -715,7 +685,6 @@ class TestSQLiteExtras:
 
         assert retrieved is not None
         assert retrieved.text == "Null agent response"
-
 
     def test_persist_and_close(self, temp_datastore, generic_call_id):
         """Test persist and close operations"""
@@ -778,9 +747,7 @@ class TestSQLiteExtras:
 
     @pytest.mark.skip("Fails but idk why")
     @patch("parallem.core.compress._metadata.compress_metadata")
-    def test_metadata_transfer_on_persist(
-        self, mock_sequester, temp_datastore, generic_call_id
-    ):
+    def test_metadata_transfer_on_persist(self, mock_sequester, temp_datastore, generic_call_id):
         """Test that metadata transfer is called during persist"""
 
         metadata = {"usage": {"total_tokens": 75}}

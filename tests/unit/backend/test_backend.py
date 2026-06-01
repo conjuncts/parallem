@@ -111,9 +111,7 @@ class TestConcurrentBackend:
         # Clean up
         backend.shutdown()
 
-    def test_concurrent_backend_functionality_after_persist(
-        self, file_manager, sample_call_id
-    ):
+    def test_concurrent_backend_functionality_after_persist(self, file_manager, sample_call_id):
         """Test that ConcurrentBackend remains functional after calling persist()"""
         backend = ConcurrentBackend(file_manager)
 

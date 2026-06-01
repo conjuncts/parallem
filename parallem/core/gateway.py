@@ -146,9 +146,7 @@ def resume_directory(
         raise NotImplementedError(f"Strategy '{strategy}' is not implemented yet")
 
     logger.debug("Creating provider")
-    provider_obj = dynamic_select_provider(
-        provider, strategy, multi_allowed=True, client=client
-    )
+    provider_obj = dynamic_select_provider(provider, strategy, multi_allowed=True, client=client)
 
     logger.debug("Creating AgentOrchestrator")
 

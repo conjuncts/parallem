@@ -80,9 +80,7 @@ class ParquetWriter:
         on: Optional[list[str]] = None,
         receipt_col: Union[str, list[str]] = None,
     ):
-        return write_to_parquet(
-            self.parquet_fpath, data, mode=mode, on=on, receipt_col=receipt_col
-        )
+        return write_to_parquet(self.parquet_fpath, data, mode=mode, on=on, receipt_col=receipt_col)
 
     def log(self, item: dict):
         """Convenience method. See commit()."""
@@ -111,9 +109,7 @@ class ParquetWriter:
         """Retrieve items. Ignores any uncommitted items."""
         df = pl.read_parquet(self.parquet_fpath)
         query_df = pl.DataFrame([item])
-        result_df = df.join(
-            query_df, on=list(item.keys()), how="semi", nulls_equal=True
-        )
+        result_df = df.join(query_df, on=list(item.keys()), how="semi", nulls_equal=True)
         return result_df
 
 
@@ -129,9 +125,7 @@ class ParquetUniqueWriter(ParquetWriter):
 
     def log(self, item: dict):
         if self._unique_column_name not in item:
-            raise ValueError(
-                "Item must contain unique column", self._unique_column_name
-            )
+            raise ValueError("Item must contain unique column", self._unique_column_name)
         key = item.pop(self._unique_column_name)
         self._log_kv[key] = item
 
@@ -146,10 +140,7 @@ class ParquetUniqueWriter(ParquetWriter):
         receipt_col: Union[str, list[str]] = None,
     ):
         if self._log_kv:
-            _log = [
-                {self._unique_column_name: key, **value}
-                for key, value in self._log_kv.items()
-            ]
+            _log = [{self._unique_column_name: key, **value} for key, value in self._log_kv.items()]
             ret = write_to_parquet(
                 self.parquet_fpath,
                 _log,

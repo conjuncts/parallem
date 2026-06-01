@@ -101,7 +101,7 @@ def build_hash_salt_terms(
         hash_by_expanded = set(hash_by)
         if "all" in hash_by_expanded:
             hash_by_expanded = ["llm", "tool_names", "structured_output", "kwargs"]
-        
+
         for term in hash_by_expanded:
             if term == "llm":
                 salt_terms.append(llm.identity)
@@ -120,11 +120,23 @@ def build_hash_salt_terms(
                         salt_terms.append(json.dumps(tool_names, sort_keys=True))
             elif term == "structured_output":
                 if structured_output is not None:
-                    schema_str = json.dumps(structured_output.model_json_schema(), sort_keys=True, separators=(",", ":")) if hasattr(structured_output, "model_json_schema") else json.dumps(str(structured_output), sort_keys=True, separators=(",", ":"))
+                    schema_str = (
+                        json.dumps(
+                            structured_output.model_json_schema(),
+                            sort_keys=True,
+                            separators=(",", ":"),
+                        )
+                        if hasattr(structured_output, "model_json_schema")
+                        else json.dumps(
+                            str(structured_output), sort_keys=True, separators=(",", ":")
+                        )
+                    )
                     salt_terms.append(schema_str)
             elif term == "kwargs":
                 if kwargs:
-                    salt_terms.append(json.dumps(kwargs, sort_keys=True, separators=(",", ":"), default=str))
+                    salt_terms.append(
+                        json.dumps(kwargs, sort_keys=True, separators=(",", ":"), default=str)
+                    )
     return salt_terms
 
 
