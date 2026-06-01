@@ -13,7 +13,6 @@ from parallem.core.exception import NotAvailable, ParallemSignal, PendingNotAvai
 from parallem.core.state.non_msg_state import NonMessageState
 from parallem.core.seq_id_store import InMemorySeqIdStore, SeqIdStore
 from parallem.provider.base import BaseProvider
-from parallem.provider.openai.client import OpenAICompatClient
 from parallem.core.file_manager import FileManager
 from parallem.logging.dash_logger import DashboardLogger
 from parallem.types import AskParameters, LLMResponse
@@ -308,19 +307,6 @@ class AgentOrchestrator:
         self._backend.persist()
         self._fm.persist()
 
-    def save_to_file(
-        self,
-        responses: List[LLMResponse],
-        fname: str,
-        *,
-        format: str = "batch-openai",
-    ):
-        """
-        Save a list of responses to a file.
-        Creates an openai batch file.
-        """
-        raise NotImplementedError
-
     def get_session_counter(self):
         """
         Get session counter, aka session ID."""
@@ -331,27 +317,6 @@ class AgentOrchestrator:
         Context manager for activating a dashlog only for a specific block of code.
         """
         return self._dashlog.context(keep_when_done=keep_when_done)
-
-    def to_client(
-        self,
-        *,
-        agent_name: str = "",
-        ask_params: Optional[AskParameters] = None,
-    ):
-        """
-        Build an OpenAI-compatible client facade backed by ``ask_llm`` calls.
-
-        !!!WARNING: Experimental, subject to change!
-
-        The returned object exposes:
-        - ``client.responses.create(...)``
-        - ``client.responses.parse(...)``
-        - ``client.chat.completions.create(...)``
-
-        In ``strategy='concurrent'``, these methods are async and must be awaited.
-        """
-        agent = self.agent(agent_name, ask_params=ask_params)
-        return OpenAICompatClient(agent, strategy=self.strategy)
 
     @property
     def batch(self) -> BatchNamespace:
