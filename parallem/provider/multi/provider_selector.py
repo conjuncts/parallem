@@ -147,10 +147,5 @@ def dynamic_select_provider(
         else:
             provider = SyncMultiProvider()
     else:
-        from parallem.registry.provider_registry import get_provider, is_registered
-
-        if is_registered(provider_type):
-            provider = get_provider(provider_type, strategy, client=client)
-        else:
-            raise NotImplementedError(f"Provider '{provider_type}' not implemented yet")
+        raise NotImplementedError(f"Provider '{provider_type}' not implemented yet")
     return provider

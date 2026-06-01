@@ -276,13 +276,12 @@ LLMResponse: Any response from the LLM.
 
 
 BuiltinProviderType = Literal["openai", "anthropic", "google", "bedrock"]
-"""Built-in provider names recognised without the registry."""
+"""Built-in provider names."""
 
-ProviderType = Union[BuiltinProviderType, str]
+ProviderType = BuiltinProviderType
 """
 Provider type string.  Built-in values are ``"openai"``, ``"anthropic"``, and
-``"google"``.  Arbitrary strings are valid for providers registered via
-:func:`parallem.registry.register_provider`.
+``"google"``.
 """
 
 
