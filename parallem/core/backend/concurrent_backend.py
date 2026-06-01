@@ -153,7 +153,7 @@ class ConcurrentBackend(BaseBackend):
             if self._throttler.is_enabled():
                 self._throttler.record_request()
 
-    def submit_query(
+    def ask_llm_and_store(
         self,
         provider: "ConcurrentProvider",
         params: CommonQueryParameters,
@@ -162,8 +162,7 @@ class ConcurrentBackend(BaseBackend):
         **kwargs,
     ) -> PendingLLMResponse:
         """
-        New control flow: Backend calls provider to get coroutine, then executes it.
-        This inverts control from provider calling backend.
+        Backend calls provider to get coroutine, then executes it.
         """
 
         provider.validate_request_compatibility(

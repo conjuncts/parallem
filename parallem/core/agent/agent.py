@@ -312,7 +312,7 @@ class AgentContext(Askable):
             raise ValueError(f"LLM {llm} is not compatible with provider {provider_type}")
 
         # The below function typically calls the LLM
-        return self._orch._backend.submit_query(
+        return self._orch._backend.ask_llm_and_store(
             self._orch._provider,
             params,
             call_id=call_id,
