@@ -337,7 +337,6 @@ class SQLiteDatastore(BaseDatastore):
                 print(f"Warning: Failed to transfer metadata to Parquet: {e}")
 
         # Note: SQLite implementation always commits immediately
-
         # Close all connections to ensure proper cleanup, especially important on Windows
         self.close()
 
@@ -711,17 +710,15 @@ class SQLiteDatastore(BaseDatastore):
             # Store metadata if provided
             if metadata:
                 metadata_json = json.dumps(metadata)
-                conn.execute(
-                    "INSERT OR REPLACE INTO metadata (response_id, agent_name, seq_id, session_id, metadata, provider_type, tag) VALUES (?, ?, ?, ?, ?, ?, ?)",
-                    (
-                        response_id,
-                        agent_name,
-                        seq_id,
-                        session_id,
-                        metadata_json,
-                        provider_type,
-                        tag,
-                    ),
+                self.metadata_table.insert(
+                    conn,
+                    response_id,
+                    agent_name,
+                    seq_id,
+                    session_id,
+                    metadata_json,
+                    provider_type,
+                    tag,
                 )
 
             # Always commit immediately for thread safety
@@ -781,26 +778,18 @@ class SQLiteDatastore(BaseDatastore):
             for call_id, custom_id in zip(batch_id.call_ids, batch_id.custom_ids):
                 call_meta = call_id.get("meta", {})
 
-                # Insert or replace the pending batch record
-                conn.execute(
-                    """
-                    INSERT OR REPLACE INTO batch_pending 
-                    (agent_name, seq_id, session_id, doc_hash, provider_type, batch_uuid, custom_id, tag)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-                    """,
-                    (
-                        call_id["agent_name"],
-                        call_id["seq_id"],
-                        call_id["session_id"],
-                        call_id["doc_hash"],
-                        call_meta.get("provider_type"),
-                        batch_id.batch_uuid,
-                        custom_id,
-                        call_meta.get("tag"),
-                    ),
+                self.batch_pending_table.insert(
+                    conn,
+                    call_id["agent_name"],
+                    call_id["seq_id"],
+                    call_id["session_id"],
+                    call_id["doc_hash"],
+                    call_meta.get("provider_type"),
+                    batch_id.batch_uuid,
+                    custom_id,
+                    call_meta.get("tag"),
                 )
 
-            # Commit immediately for thread safety
             conn.commit()
 
         except sqlite3.Error as e:
@@ -883,17 +872,15 @@ class SQLiteDatastore(BaseDatastore):
                 # Store metadata and tag (tag should always be stored)
                 if metadata or tag:
                     metadata_json = json.dumps(metadata) if metadata else ""
-                    conn.execute(
-                        "INSERT OR REPLACE INTO metadata (response_id, agent_name, seq_id, session_id, metadata, provider_type, tag) VALUES (?, ?, ?, ?, ?, ?, ?)",
-                        (
-                            response_id,
-                            agent_name,
-                            seq_id,
-                            session_id,
-                            metadata_json,
-                            provider_type,
-                            tag,
-                        ),
+                    self.metadata_table.insert(
+                        conn,
+                        response_id,
+                        agent_name,
+                        seq_id,
+                        session_id,
+                        metadata_json,
+                        provider_type,
+                        tag,
                     )
 
             conn.commit()

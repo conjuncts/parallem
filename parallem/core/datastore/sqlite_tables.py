@@ -1,5 +1,5 @@
 import sqlite3
-from typing import List
+from typing import List, Optional
 
 
 class SQLiteTable:
@@ -72,6 +72,30 @@ class MetadataTable(SQLiteTable):
             ]
         )
 
+    def insert(
+        self,
+        conn: sqlite3.Connection,
+        response_id: str,
+        agent_name: str,
+        seq_id: int,
+        session_id: int,
+        metadata_json: str,
+        provider_type: Optional[str],
+        tag: str,
+    ):
+        conn.execute(
+            "INSERT OR REPLACE INTO metadata (response_id, agent_name, seq_id, session_id, metadata, provider_type, tag) VALUES (?, ?, ?, ?, ?, ?, ?)",
+            (
+                response_id,
+                agent_name,
+                seq_id,
+                session_id,
+                metadata_json,
+                provider_type,
+                tag,
+            ),
+        )
+
 class BatchPendingTable(SQLiteTable):
     def __init__(self):
         super().__init__(
@@ -96,6 +120,36 @@ class BatchPendingTable(SQLiteTable):
                 "idx_batch_pending_agent_name ON batch_pending(agent_name)",
                 "idx_batch_pending_doc_hash ON batch_pending(doc_hash)",
             ]
+        )
+
+    def insert(
+        self,
+        conn: sqlite3.Connection,
+        agent_name: str,
+        seq_id: int,
+        session_id: int,
+        doc_hash: str,
+        provider_type: Optional[str],
+        batch_uuid: str,
+        custom_id: str,
+        tag: Optional[str],
+    ):
+        conn.execute(
+            """
+            INSERT OR REPLACE INTO batch_pending 
+            (agent_name, seq_id, session_id, doc_hash, provider_type, batch_uuid, custom_id, tag)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+            (
+                agent_name,
+                seq_id,
+                session_id,
+                doc_hash,
+                provider_type,
+                batch_uuid,
+                custom_id,
+                tag,
+            ),
         )
 
 class ErrorsTable(SQLiteTable):
