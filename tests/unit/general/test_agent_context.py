@@ -8,12 +8,13 @@ Tests the core agent functionality including:
 - Exception handling
 """
 
+import json
 import pytest
 from unittest.mock import patch
 from parallem.core.agent.agent import AgentContext
 from parallem.core.exception import NotAvailable
 from parallem.core.response import ReadyLLMResponse, PendingLLMResponse
-from parallem.types import HumanResponse, LLMIdentity, ParsedResponse
+from parallem.types import FunctionCall, FunctionCallOutput, HumanResponse, LLMIdentity, ParsedResponse
 
 
 class TestAgentContextBasics:
@@ -413,6 +414,90 @@ class TestAskLLMMethod:
         assert response.final_answer == "answer"
         assert len(msg_state) == before_len + 1
         assert msg_state[-1] is response
+
+    def test_ask_functions_cache_hit_skips_execution_and_store(self, mock_orchestrator):
+        """ask_functions should return cached outputs when cache=True."""
+        agent = AgentContext("test_agent", mock_orchestrator)
+
+        ds = mock_orchestrator._backend._get_datastore.return_value
+        ds.retrieve.return_value = ParsedResponse(
+            text=json.dumps(
+                [
+                    {"name": "add", "call_id": "cid-1", "content": "cached-result"},
+                ]
+            ),
+            response_id=None,
+            metadata=None,
+            old_seq_id=9,
+            old_session_id=7,
+        )
+
+        def _boom(**_):
+            raise AssertionError("function should not be called on cache hit")
+
+        response = ReadyLLMResponse(
+            call_id={
+                "agent_name": "test_agent",
+                "doc_hash": "h",
+                "seq_id": 0,
+                "session_id": 1,
+                "meta": {"provider_type": "openai", "tag": None},
+            },
+            value="",
+        )
+        response._pr = ParsedResponse(
+            text="",
+            response_id=None,
+            metadata=None,
+            function_calls=[FunctionCall("add", {"value": 2}, call_id="cid-1")],
+        )
+
+        with agent:
+            outputs = agent.ask_functions(response, add=_boom, cache=True)
+
+        assert len(outputs) == 1
+        assert isinstance(outputs[0], FunctionCallOutput)
+        assert outputs[0].content == "cached-result"
+        ds.retrieve.assert_called_once()
+        assert ds.retrieve.call_args.kwargs["origin_type"] == 2
+        ds.store.assert_not_called()
+
+    def test_ask_functions_cache_miss_persists_outputs(self, mock_orchestrator):
+        """ask_functions should store outputs when cache=True and no cached result exists."""
+        agent = AgentContext("test_agent", mock_orchestrator)
+
+        ds = mock_orchestrator._backend._get_datastore.return_value
+        ds.retrieve.return_value = None
+
+        response = ReadyLLMResponse(
+            call_id={
+                "agent_name": "test_agent",
+                "doc_hash": "h",
+                "seq_id": 0,
+                "session_id": 1,
+                "meta": {"provider_type": "openai", "tag": None},
+            },
+            value="",
+        )
+        response._pr = ParsedResponse(
+            text="",
+            response_id=None,
+            metadata=None,
+            function_calls=[FunctionCall("add", {"value": 2}, call_id="cid-1")],
+        )
+
+        with agent:
+            outputs = agent.ask_functions(response, add=lambda value: value + 1, cache=True)
+
+        assert len(outputs) == 1
+        assert outputs[0].content == "3"
+        ds.retrieve.assert_called_once()
+        ds.store.assert_called_once()
+        stored = ds.store.call_args.args[1]
+        assert json.loads(stored.text) == [
+            {"name": "add", "call_id": "cid-1", "content": "3"}
+        ]
+        assert ds.store.call_args.kwargs["origin_type"] == 2
 
 
 if __name__ == "__main__":

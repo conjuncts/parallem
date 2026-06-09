@@ -1,4 +1,5 @@
 import inspect
+import json
 from functools import partial
 from typing import (
     TYPE_CHECKING,
@@ -40,6 +41,9 @@ from parallem.types import (
     ServerTool,
 )
 
+
+
+_FUNCTION_CALL_ORIGIN_TYPE = 2
 if TYPE_CHECKING:
     from parallem.core.agent.orchestrator import AgentOrchestrator
     from pydantic import BaseModel
@@ -342,6 +346,8 @@ class AgentContext(Askable):
         subagent_names: Optional[Sequence[str]] = None,
         if_func_not_exist: Union[str, Exception, None] = None,
         convert_to_str=True,
+        cache: bool = False,
+        salt: Optional[str] = None,
         **kwargs,
     ) -> List[FunctionCallOutput]:
         if functions is None:
@@ -351,6 +357,30 @@ class AgentContext(Askable):
             raise ValueError(
                 "No functions provided to ask_functions. Provide functions as a dict or as kwargs."
             )
+
+        cache_call_id = None
+        if cache:
+            if response.call_id is None:
+                raise ValueError("ask_functions(cache=True) requires response.call_id to be set")
+
+            cache_call_id = {
+                "agent_name": self.agent_name,
+                "doc_hash": response.call_id["doc_hash"],
+                "seq_id": self._orch.next_seq_id(self.agent_name),
+                "session_id": self._orch.get_session_counter(),
+                "meta": response.call_id.get("meta"),
+            }
+            if salt is not None:
+                cache_call_id["doc_hash"] = compute_hash(cache_call_id["doc_hash"], [], salt=salt)
+
+            datastore = self._orch._backend._get_datastore()
+            cached = None if self.ignore_cache else datastore.retrieve(cache_call_id, origin_type=_FUNCTION_CALL_ORIGIN_TYPE)
+            if cached is not None:
+                if cached.old_session_id is not None:
+                    cache_call_id["session_id"] = cached.old_session_id
+                    cache_call_id["seq_id"] = cached.old_seq_id
+                return self._deserialize_function_call_outputs(cached.text)
+
         subagent_name_iter = iter(subagent_names) if subagent_names is not None else None
 
         # Check if response has function calls. If so, delegate to user-defined functions.
@@ -382,7 +412,62 @@ class AgentContext(Askable):
             if convert_to_str and not isinstance(result, str):
                 result = str(result)
             fc_outs.append(FunctionCallOutput(content=result, name=fc.name, call_id=fc.call_id))
+
+        if cache and not self.ignore_cache and cache_call_id is not None:
+            datastore = self._orch._backend._get_datastore()
+            datastore.store(
+                cache_call_id,
+                ParsedResponse(
+                    text=self._serialize_function_call_outputs(fc_outs),
+                    response_id=None,
+                    metadata=None,
+                    function_calls=None,
+                ),
+                origin_type=_FUNCTION_CALL_ORIGIN_TYPE,
+            )
         return fc_outs
+
+    def _serialize_function_call_outputs(self, outputs: List[FunctionCallOutput]) -> str:
+        payload = [
+            {
+                "name": output.name,
+                "call_id": output.call_id,  # NB: this is *function* call id (str)
+                "content": output.content,
+            }
+            for output in outputs
+        ]
+        try:
+            return json.dumps(payload, separators=(",", ":"))
+        except TypeError as exc:
+            raise ValueError(
+                "ask_functions(cache=True) requires JSON-serializable outputs. "
+                "Set convert_to_str=True or disable caching."
+            ) from exc
+
+    def _deserialize_function_call_outputs(self, payload: str) -> List[FunctionCallOutput]:
+        if not payload:
+            return []
+
+        try:
+            raw_outputs = json.loads(payload)
+        except json.JSONDecodeError as exc:
+            raise ValueError("Cached ask_functions payload is malformed.") from exc
+
+        if not isinstance(raw_outputs, list):
+            raise ValueError("Cached ask_functions payload must be a list.")
+
+        outputs = []
+        for item in raw_outputs:
+            if not isinstance(item, dict):
+                raise ValueError("Cached ask_functions payload item must be a mapping.")
+            outputs.append(
+                FunctionCallOutput(
+                    content=item.get("content"),
+                    name=item.get("name", ""),
+                    call_id=item.get("call_id", ""),
+                )
+            )
+        return outputs
 
     def _inject_subagent_context(
         self,

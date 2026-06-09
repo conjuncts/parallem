@@ -74,6 +74,8 @@ class Askable(ABC):
         subagent_names: Optional[Sequence[str]] = None,
         if_func_not_exist: Union[str, Exception, None] = None,
         convert_to_str=True,
+        cache: bool = False,
+        salt: Optional[str] = None,
         **kwargs,
     ) -> List[FunctionCallOutput]:
         """
@@ -91,6 +93,8 @@ class Askable(ABC):
             Default: None.
         :param convert_to_str: Most APIs (OpenAI, Google, Anthropic) expect function arguments to be strings.
             If True, this method will convert non-string arguments to strings.
+        :param cache: If True, cache and reuse function outputs for matching responses.
+        :param salt: Optional salt to distinguish cached function-output lookups.
         """
 
     @abstractmethod
