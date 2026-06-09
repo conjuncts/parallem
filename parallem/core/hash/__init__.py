@@ -205,6 +205,10 @@ def compute_hash(
             else:
                 for item in content:
                     hasher.update(str(item).encode("utf-8"))
+        elif isinstance(doc, dict):
+            # best effort deterministic dict hash
+            dict_str = json.dumps(_normalize_for_hash(doc), sort_keys=True, separators=(",", ":"))
+            hasher.update(dict_str.encode("utf-8"))
         else:
             raise ValueError(f"Unsupported document type: {type(doc)}")
 
