@@ -662,10 +662,11 @@ class SQLiteDatastore(BaseDatastore):
     def store(
         self,
         call_id: CallIdentifier,
-        parsed_response: "ParsedResponse",
+        parsed_response: ParsedResponse,
         *,
         upsert: bool = False,
         origin_type: Optional[int] = None,
+        _commit_immediately=True,
     ) -> None:
         doc_hash = call_id["doc_hash"]
         seq_id = call_id["seq_id"]
@@ -708,7 +709,7 @@ class SQLiteDatastore(BaseDatastore):
             )
 
             # Store metadata if provided
-            if metadata:
+            if metadata or tag:
                 metadata_json = json.dumps(metadata)
                 self.metadata_table.insert(
                     conn,
@@ -721,8 +722,9 @@ class SQLiteDatastore(BaseDatastore):
                     tag,
                 )
 
-            # Always commit immediately for thread safety
-            conn.commit()
+            if _commit_immediately:
+                # Helps with thread safety
+                conn.commit()
 
         except sqlite3.Error as e:
             conn.rollback()
@@ -832,56 +834,22 @@ class SQLiteDatastore(BaseDatastore):
                         f"Could not find pending batch record for custom_id: {custom_id}"
                     )
 
-                agent_name = row["agent_name"]
-                seq_id = row["seq_id"]
-                session_id = row["session_id"]
-                doc_hash = row["doc_hash"]
-                provider_type = row["provider_type"]
-                tag = row["tag"]
-
-                resp_text = parsed.text
-                response_id = parsed.response_id
-                metadata = parsed.metadata
-                tool_calls = parsed.function_calls
-
-                # Serialize tool_calls to JSON if present
-                tool_calls_json = dump_function_calls(tool_calls)
-
-                # Prepare record for INSERT/UPDATE
-                record = {
-                    "agent_name": agent_name,
-                    "seq_id": seq_id,
-                    "session_id": session_id,
-                    "doc_hash": doc_hash,
-                    "response": resp_text,
-                    # "response_id": custom_id,
-                    # NB: response_id column is deprecated
-                    "tool_calls": tool_calls_json,
-                    "origin_type": None,
+                recall_id: CallIdentifier = {
+                    "agent_name": row["agent_name"],
+                    "seq_id": row["seq_id"],
+                    "session_id": row["session_id"],
+                    "doc_hash": row["doc_hash"],
+                    "meta": {
+                        "provider_type": row["provider_type"],
+                        "tag": row["tag"]
+                    }
                 }
-                # Insert/upsert the response
-                self._insert_response(
-                    conn,
-                    "responses",
-                    record,
-                    where_clause="doc_hash = ? AND agent_name = ?" if upsert else None,
-                    where_params=[doc_hash, agent_name] if upsert else None,
+                self.store(
+                    call_id=recall_id,
+                    parsed_response=parsed,
                     upsert=upsert,
+                    _commit_immediately=False,
                 )
-
-                # Store metadata and tag (tag should always be stored)
-                if metadata or tag:
-                    metadata_json = json.dumps(metadata) if metadata else ""
-                    self.metadata_table.insert(
-                        conn,
-                        response_id,
-                        agent_name,
-                        seq_id,
-                        session_id,
-                        metadata_json,
-                        provider_type,
-                        tag,
-                    )
 
             conn.commit()
 
