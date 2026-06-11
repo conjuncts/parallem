@@ -113,7 +113,7 @@ def _fix_docs_for_google(
             if "parts" in doc and "role" in doc:
                 formatted_docs.append(doc)
             else:
-                raise ValueError(f"Invalid document dict format for Google: {doc}")
+                raise ValueError(f"Invalid document dict format for Google: {type(doc)}")
         elif is_image(doc):
             # https://ai.google.dev/gemini-api/docs/image-understanding
             img_type, img_b64 = get_type_and_b64(
@@ -324,7 +324,7 @@ class GoogleAdapter(BaseAdapter):
         self,
         params: CommonQueryParameters,
         **kwargs,
-    ) -> tuple[str, List["types.ContentDict"], dict]:
+    ) -> tuple[str, List["types.ContentDict"], "types.GenerateContentConfigDict"]:
         instructions = params["instructions"]
         llm = params["llm"]
         structured_output = params.get("structured_output")
@@ -369,32 +369,56 @@ class GoogleAdapter(BaseAdapter):
         """Prepare full request payload."""
         model_name, fixed_documents, config = self.fix_config(params, **kwargs)
 
-        # some differences: generationConfig
-        # convert pydantic schema -> json
-        gen_config = {}
+        # some differences between python SDK and JSON.
+
+        # In essence, The python SDK expects GenerateContentConfigDict
+        # (which is in snake_case)
+        # But the Batch API expects the JSON
+        # (which is in camelCase)
+        
+        # JSON version also expects the following to be bubbled up:
+        # model, contents, tools, toolConfig, safetySettings,
+        # systemInstruction, cachedContent, serviceTier, store
+
+        # The Python SDK flattens what should be 2 nested
+        # JSON configs, which must be reversed.
+        big_config = {}
+        for k in [
+            "tools",
+            "tool_config",
+            "safety_settings",
+            "system_instruction",
+            "cached_content",
+            "service_tier",
+            "store",
+        ]:
+            if k in config:
+                big_config[maybe_snake_to_camel(k)] = _camel_case_items(config.pop(k))
+
+        # this way, if the user provides config in kwargs under
+        # generation_config, it gets observed too
+        gen_config = _camel_case_items(config.pop("generation_config", {}))
         if "response_schema" in config:
             sch = config.pop("response_schema")
             if not isinstance(sch, dict):
                 if getattr(sch, "model_json_schema", None):
                     sch = sch.model_json_schema()
             gen_config["responseJsonSchema"] = sch
-        if "response_mime_type" in config:
-            gen_config["responseMimeType"] = config.pop("response_mime_type")
+        gen_config.update(_camel_case_items(config))
         if gen_config:
-            config["generationConfig"] = gen_config
+            big_config["generationConfig"] = gen_config
 
         # For some reason, batch API uses slightly different
         # enums must be capitalized
-        for tool in config.get("tools") or []:
-            for decl in tool.get("function_declarations") or []:
+        for tool in big_config.get("tools") or []:
+            for decl in tool.get("functionDeclarations") or []:
                 if "parameters" in decl:
                     _capitalize_function_decl(decl["parameters"])
 
         body = {
             # https://ai.google.dev/api/batch-api#GenerateContentRequest
             "contents": _camel_case_items(fixed_documents),
-            **_camel_case_items(config),
-            # "generationConfig": gen_config,
+            **big_config,
         }
         return body
 

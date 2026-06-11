@@ -171,8 +171,16 @@ class FunctionCall:
         return self.__repr__()
 
 
-class AskItem:
-    """An item (a document, LLMResponse, etc.) which can be passed to ask_llm()."""
+class AskItem(ABC):
+    """An item (a document, LLMResponse, etc.) which can be passed to ask_llm().
+    
+    Base class for non-primitive LLM-documents.
+    
+    In addition to classes inheriting AskItem, we also support these primitives:
+    - str
+    - PIL.Image.Image
+    - Tuple[Literal["user", "assistant", "system", "developer"], str]
+    """
 
     type: str
     """Discriminator for the item kind."""
