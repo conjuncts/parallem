@@ -110,10 +110,11 @@ def _fix_docs_for_google(
             )
         elif isinstance(doc, dict):
             # If it's already a proper content dict, keep it
-            if "parts" in doc and "role" in doc:
-                formatted_docs.append(doc)
-            else:
-                raise ValueError(f"Invalid document dict format for Google: {type(doc)}")
+            # needs to be Union[types.ContentDict, types.PartUnionDict]
+            # (types str, PIL.Image)
+            # = [types.ContentDict, types.FileDict, types.PartDict]
+            # doc: Union["types.PartDict", "types.FileDict", "types.ContentDict"] = doc  # type hint for clarity
+            formatted_docs.append(doc)
         elif is_image(doc):
             # https://ai.google.dev/gemini-api/docs/image-understanding
             img_type, img_b64 = get_type_and_b64(
