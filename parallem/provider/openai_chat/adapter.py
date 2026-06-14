@@ -51,7 +51,7 @@ def _fix_docs_for_openai_chat(
                 "content": doc.text_content if doc.text_content else None,
                 "tool_calls": [
                     {
-                        "id": call.call_id,
+                        "id": call.fcall_id,
                         "type": "function",
                         "function": {
                             "name": call.name,
@@ -65,7 +65,7 @@ def _fix_docs_for_openai_chat(
         elif isinstance(doc, FunctionCallOutput):
             msg = {
                 "role": "tool",
-                "tool_call_id": doc.call_id,
+                "tool_call_id": doc.fcall_id,
                 "content": doc.content,
             }
             formatted_docs.append(msg)
@@ -244,7 +244,7 @@ class OpenAIChatAdapter(BaseAdapter):
                         FunctionCall(
                             name=function_obj.get("name"),
                             arguments=function_obj.get("arguments"),
-                            call_id=tool_call.get("id"),
+                            fcall_id=tool_call.get("id"),
                         )
                     )
 
@@ -254,7 +254,7 @@ class OpenAIChatAdapter(BaseAdapter):
                     FunctionCall(
                         name=legacy_call.get("name"),
                         arguments=legacy_call.get("arguments"),
-                        call_id=None,
+                        fcall_id=None,
                     )
                 )
 

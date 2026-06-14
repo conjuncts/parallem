@@ -411,7 +411,7 @@ class AgentContext(Askable):
             result = callme(**call_args)
             if convert_to_str and not isinstance(result, str):
                 result = str(result)
-            fc_outs.append(FunctionCallOutput(content=result, name=fc.name, call_id=fc.call_id))
+            fc_outs.append(FunctionCallOutput(content=result, name=fc.name, fcall_id=fc.fcall_id))
 
         if cache and not self.ignore_cache and cache_call_id is not None:
             datastore = self._orch._backend._get_datastore()
@@ -431,7 +431,7 @@ class AgentContext(Askable):
         payload = [
             {
                 "name": output.name,
-                "call_id": output.call_id,  # NB: this is *function* call id (str)
+                "call_id": output.fcall_id,  # NB: this is *function* call id (str)
                 "content": output.content,
             }
             for output in outputs
@@ -464,7 +464,7 @@ class AgentContext(Askable):
                 FunctionCallOutput(
                     content=item.get("content"),
                     name=item.get("name", ""),
-                    call_id=item.get("call_id", ""),
+                    fcall_id=item.get("call_id", ""),
                 )
             )
         return outputs

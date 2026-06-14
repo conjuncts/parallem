@@ -449,7 +449,7 @@ class TestAskLLMMethod:
             text="",
             response_id=None,
             metadata=None,
-            function_calls=[FunctionCall("add", {"value": 2}, call_id="cid-1")],
+            function_calls=[FunctionCall("add", {"value": 2}, fcall_id="cid-1")],
         )
 
         with agent:
@@ -483,7 +483,7 @@ class TestAskLLMMethod:
             text="",
             response_id=None,
             metadata=None,
-            function_calls=[FunctionCall("add", {"value": 2}, call_id="cid-1")],
+            function_calls=[FunctionCall("add", {"value": 2}, fcall_id="cid-1")],
         )
 
         with agent:

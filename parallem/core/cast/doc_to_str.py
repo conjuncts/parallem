@@ -33,7 +33,7 @@ def cast_document_to_bytes(
         return (
             str(doc.content).encode("utf-8"),
             "function_call_output",
-            json.dumps({"c": doc.call_id, "n": doc.name}, separators=(",", ":")),
+            json.dumps({"c": doc.fcall_id, "n": doc.name}, separators=(",", ":")),
         )
     elif isinstance(doc, tuple):
         return doc[1].encode("utf-8"), "text", doc[0]
@@ -83,7 +83,7 @@ def cast_bytes_to_document(
         extra = json.loads(doc_extra) if doc_extra else {}
         return FunctionCallOutput(
             content=doc_value.decode("utf-8"),
-            call_id=extra.get("c", ""),
+            fcall_id=extra.get("c", ""),
             name=extra.get("n", ""),
         )
     elif doc_type == "function_call":

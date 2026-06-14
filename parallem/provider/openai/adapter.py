@@ -57,7 +57,7 @@ def _fix_docs_for_openai(
                     {
                         "name": call.name,
                         "arguments": call.arg_str,
-                        "call_id": call.call_id,
+                        "call_id": call.fcall_id,
                         "type": "function_call",
                     }
                 )
@@ -68,7 +68,7 @@ def _fix_docs_for_openai(
 
             msg: "ResponseFunctionToolCallOutputItem" = {
                 "type": "function_call_output",
-                "call_id": doc.call_id,
+                "call_id": doc.fcall_id,
                 "output": fc_content,
             }
             formatted_docs.append(msg)
@@ -215,7 +215,7 @@ class OpenAIAdapter(BaseAdapter):
                             FunctionCall(
                                 name=output["name"],
                                 arguments=output["arguments"],
-                                call_id=output.get("call_id"),
+                                fcall_id=output.get("call_id"),
                             )
                         )
                     elif output["type"] == "custom_tool_call":
@@ -223,7 +223,7 @@ class OpenAIAdapter(BaseAdapter):
                             FunctionCall(
                                 name=output["name"],
                                 arguments=output["input"],
-                                call_id=output.get("call_id"),
+                                fcall_id=output.get("call_id"),
                             )
                         )
                     elif output["type"] == "message":
@@ -248,12 +248,12 @@ class OpenAIAdapter(BaseAdapter):
                         FunctionCall(
                             name=item.name,
                             arguments=item.arguments,
-                            call_id=item.call_id,
+                            fcall_id=item.call_id,
                         )
                     )
                 elif item.type == "custom_tool_call":
                     function_calls.append(
-                        FunctionCall(name=item.name, arguments=item.input, call_id=item.call_id)
+                        FunctionCall(name=item.name, arguments=item.input, fcall_id=item.call_id)
                     )
 
             parsed_metadata = obj

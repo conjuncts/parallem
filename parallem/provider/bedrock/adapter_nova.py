@@ -125,7 +125,7 @@ def _fix_docs_for_nova(documents: List[LLMDocument]) -> list[dict]:
                 content_blocks.append(
                     {
                         "toolUse": {
-                            "toolUseId": call.call_id,
+                            "toolUseId": call.fcall_id,
                             "name": call.name,
                             "input": call.args,
                         }
@@ -149,7 +149,7 @@ def _fix_docs_for_nova(documents: List[LLMDocument]) -> list[dict]:
                     "content": [
                         {
                             "toolResult": {
-                                "toolUseId": doc.call_id,
+                                "toolUseId": doc.fcall_id,
                                 "content": tool_content,
                                 "status": "success",
                             }
@@ -359,7 +359,7 @@ def _extract_text_from_nova_body(body: dict) -> tuple[str, list[FunctionCall]]:
                                 FunctionCall(
                                     name=name,
                                     arguments=arguments or {},
-                                    call_id=call_id,
+                                    fcall_id=call_id,
                                 )
                             )
 

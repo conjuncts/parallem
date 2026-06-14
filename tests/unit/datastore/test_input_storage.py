@@ -111,7 +111,7 @@ def test_store_input_function_calls():
 
         call_id = _sample_call_id(session_id=4, seq_id=1)
         function_call = FunctionCall(
-            name="test_function", arguments={"arg": "value"}, call_id="call_123"
+            name="test_function", arguments={"arg": "value"}, fcall_id="call_123"
         )
         func_call_req = FunctionCallRequest(
             text_content="Calling function",
@@ -119,7 +119,7 @@ def test_store_input_function_calls():
             call_id=call_id,
         )
         func_call_out = FunctionCallOutput(
-            content="Function result", call_id="call_123", name="test_function"
+            content="Function result", fcall_id="call_123", name="test_function"
         )
 
         _store_input(storage, call_id, [func_call_req, func_call_out])

@@ -92,7 +92,7 @@ def _fix_docs_for_anthropic(
                     "type": "tool_use",
                     "name": call.name,
                     "input": call.args,
-                    "id": call.call_id,
+                    "id": call.fcall_id,
                 }
                 for call in doc.calls
             ]
@@ -106,7 +106,7 @@ def _fix_docs_for_anthropic(
 
             tool_result_content: "ToolResultBlockParam" = {
                 "type": "tool_result",
-                "tool_use_id": doc.call_id,
+                "tool_use_id": doc.fcall_id,
                 "content": fc_content,
             }
             msg = {
@@ -390,7 +390,7 @@ class AnthropicAdapter(BaseAdapter):
                         FunctionCall(
                             name=content_item.name,
                             arguments=content_item.input,
-                            call_id=content_item.id,
+                            fcall_id=content_item.id,
                         )
                     )
             text_content = "".join(text_contents)
@@ -421,7 +421,7 @@ class AnthropicAdapter(BaseAdapter):
                             FunctionCall(
                                 name=content_item.get("name"),
                                 arguments=content_item.get("input"),
-                                call_id=content_item.get("id"),
+                                fcall_id=content_item.get("id"),
                             )
                         )
             else:

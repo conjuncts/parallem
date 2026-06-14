@@ -73,7 +73,7 @@ class TestCastDocumentToBytes:
         func_call = FunctionCall(
             name="test_function",
             arguments='{"arg": "value"}',
-            call_id="func_123",
+            fcall_id="func_123",
         )
         doc = FunctionCallRequest(
             text_content="Calling test function",
@@ -93,7 +93,7 @@ class TestCastDocumentToBytes:
         """Test casting a FunctionCallOutput"""
         doc = FunctionCallOutput(
             content="Function output result",
-            call_id="func_123",
+            fcall_id="func_123",
             name="test_function",
         )
 
@@ -217,12 +217,12 @@ class TestCastBytesToDocument:
 
     def test_function_call_output(self):
         """FunctionCallOutput is reconstructed."""
-        doc = FunctionCallOutput(content="result", call_id="cid_99", name="my_fn")
+        doc = FunctionCallOutput(content="result", fcall_id="cid_99", name="my_fn")
         byt, dtype, dextra = cast_document_to_bytes(doc)
         result = cast_bytes_to_document(byt, dtype, dextra)
         assert isinstance(result, FunctionCallOutput)
         assert result.content == "result"
-        assert result.call_id == "cid_99"
+        assert result.fcall_id == "cid_99"
         assert result.name == "my_fn"
 
     def test_function_call_stub(self):

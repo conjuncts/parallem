@@ -10,7 +10,7 @@ def dump_function_calls(function_calls: List[FunctionCall]) -> str:
     """
     if function_calls is None:
         return None
-    return json.dumps([[call.name, call.args, call.call_id] for call in function_calls])
+    return json.dumps([[call.name, call.args, call.fcall_id] for call in function_calls])
 
 
 def load_function_calls(data: str) -> List[FunctionCall]:
@@ -19,6 +19,6 @@ def load_function_calls(data: str) -> List[FunctionCall]:
     """
     tuples = json.loads(data)
     return [
-        FunctionCall(name=name, arguments=arguments, call_id=call_id)
+        FunctionCall(name=name, arguments=arguments, fcall_id=call_id)
         for name, arguments, call_id in tuples
     ]

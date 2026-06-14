@@ -131,13 +131,13 @@ class BatchResult:
 class FunctionCall:
     """Represents a single tool call to a user-defined function."""
 
-    __slots__ = ("name", "call_id", "args", "arg_str")
+    __slots__ = ("name", "fcall_id", "args", "arg_str")
 
     def __init__(
         self,
         name: str,
         arguments: Union[str, dict],
-        call_id: str,
+        fcall_id: str,
     ):
         """
         Initialize a FunctionCall.
@@ -149,7 +149,7 @@ class FunctionCall:
             arg_str: The arguments for the function call as a JSON string.
         """
         self.name = name
-        self.call_id = call_id
+        self.fcall_id = fcall_id
 
         if isinstance(arguments, str):
             # Parse arg_str to arguments
@@ -160,11 +160,11 @@ class FunctionCall:
 
     def __iter__(self):
         """Allow unpacking into tuple for backward compatibility."""
-        return iter((self.name, self.args, self.call_id))
+        return iter((self.name, self.args, self.fcall_id))
 
     def __repr__(self):
         return (
-            f"FunctionCall(name={self.name}, call_id={(self.call_id or '')[:8]}, args={self.args})"
+            f"FunctionCall(name={self.name}, call_id={(self.fcall_id or '')[:8]}, args={self.args})"
         )
 
     def __str__(self):
@@ -201,7 +201,7 @@ class FunctionCallRequest(AskItem):
     call_id: CallIdentifier
 
     def __repr__(self):
-        brief_calls = [f"{call.name}({(call.call_id or '')[:8]})" for call in self.calls]
+        brief_calls = [f"{call.name}({(call.fcall_id or '')[:8]})" for call in self.calls]
         return f"FunctionCallRequest(text_content={self.text_content}, calls={brief_calls})"
 
     def __str__(self):
@@ -217,14 +217,14 @@ class FunctionCallOutput(AskItem):
     content: Any
     """The output content from the function call."""
 
-    call_id: str
+    fcall_id: str
     """The ID of the function call this output corresponds to."""
 
     name: str
     """The name of the function call this output corresponds to."""
 
     def __repr__(self):
-        return f"FunctionCallOutput(name={self.name}, call_id={(self.call_id or '')[:8]}, content={str(self.content)[:20]}...)"
+        return f"FunctionCallOutput(name={self.name}, call_id={(self.fcall_id or '')[:8]}, content={str(self.content)[:20]}...)"
 
     def __str__(self):
         return self.__repr__()

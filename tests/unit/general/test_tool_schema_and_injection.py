@@ -27,8 +27,8 @@ class TestAskFunctionsAgentContextInjection:
         response = LLMResponse("", call_id={"doc_hash": "h"})
         response._pr = Mock(
             function_calls=[
-                FunctionCall("needs_ctx", {"value": 7}, call_id="cid-1"),
-                FunctionCall("needs_ctx", {"value": 9}, call_id="cid-2"),
+                FunctionCall("needs_ctx", {"value": 7}, fcall_id="cid-1"),
+                FunctionCall("needs_ctx", {"value": 9}, fcall_id="cid-2"),
             ]
         )
 
@@ -52,7 +52,7 @@ class TestAskFunctionsAgentContextInjection:
         agent = AgentContext("root", mock_orchestrator)
         response = LLMResponse("", call_id={"doc_hash": "h"})
         response._pr = Mock(
-            function_calls=[FunctionCall("needs_ctx", {"value": 7}, call_id="cid-1")]
+            function_calls=[FunctionCall("needs_ctx", {"value": 7}, fcall_id="cid-1")]
         )
 
         def needs_ctx(value: int, ctx: pllm.AgentContext):
@@ -66,8 +66,8 @@ class TestAskFunctionsAgentContextInjection:
         response = LLMResponse("", call_id={"doc_hash": "h"})
         response._pr = Mock(
             function_calls=[
-                FunctionCall("needs_ctx", {"value": 1}, call_id="cid-1"),
-                FunctionCall("needs_ctx", {"value": 2}, call_id="cid-2"),
+                FunctionCall("needs_ctx", {"value": 1}, fcall_id="cid-1"),
+                FunctionCall("needs_ctx", {"value": 2}, fcall_id="cid-2"),
             ]
         )
 

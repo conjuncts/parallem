@@ -135,7 +135,7 @@ def _extract_text_from_bedrock_body(body: dict) -> tuple[str, list[FunctionCall]
                         FunctionCall(
                             name=name,
                             arguments=arguments or {},
-                            call_id=call_id,
+                            fcall_id=call_id,
                         )
                     )
         if text or function_calls:

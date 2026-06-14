@@ -40,7 +40,7 @@ def test_decode_batch_content_with_tool_call():
 
     # Verify function call details
     assert function_call.name == "count_files"
-    assert function_call.call_id == "call_vjTQNlYFTWhxRjwVglvs6Ih7"
+    assert function_call.fcall_id == "call_vjTQNlYFTWhxRjwVglvs6Ih7"
     assert function_call.args == {"directory": "~/examples"}
 
     # Verify metadata includes usage information

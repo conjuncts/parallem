@@ -185,12 +185,12 @@ def compute_hash(
                 # hasher.update(str(call).encode("utf-8"))
                 _updateh(hasher, call.name)
                 _updateh(hasher, call.arg_str)
-                _updateh(hasher, call.call_id)
+                _updateh(hasher, call.fcall_id)
         elif isinstance(doc, FunctionCallOutput):
             hasher.update(b"function_call_output")
             _updateh(hasher, doc.name)
             _updateh(hasher, str(doc.content))
-            _updateh(hasher, doc.call_id)
+            _updateh(hasher, doc.fcall_id)
         elif isinstance(doc, MCPOutput):
             hasher.update(b"mcp_output")
             _updateh(hasher, doc.name)

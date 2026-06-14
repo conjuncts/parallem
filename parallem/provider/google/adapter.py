@@ -82,7 +82,7 @@ def _fix_docs_for_google(
                         "function_call": {
                             "name": call.name,
                             "args": call.args,
-                            "id": call.call_id,
+                            "id": call.fcall_id,
                         }
                     }
                 )
@@ -445,7 +445,7 @@ class GoogleAdapter(BaseAdapter):
                         FunctionCall(
                             name=func_call.get("name"),
                             arguments=func_call.get("args"),
-                            call_id=func_call.get("id"),
+                            fcall_id=func_call.get("id"),
                         )
                     )
 
@@ -480,7 +480,7 @@ class GoogleAdapter(BaseAdapter):
                         FunctionCall(
                             name=func_call.name,
                             arguments=func_call.args,
-                            call_id=func_call.id,
+                            fcall_id=func_call.id,
                         )
                     )
             if text is None:

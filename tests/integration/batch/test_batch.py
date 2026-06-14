@@ -144,7 +144,7 @@ def _common_asks(agt: pllm.AgentContext, sample_tools, sample_image, _do_web_sea
                 pllm.FunctionCall(
                     name="count_files",
                     arguments={"directory": "~/examples"},
-                    call_id="call_123",
+                    fcall_id="call_123",
                 )
             ],
             call_id={
@@ -157,7 +157,7 @@ def _common_asks(agt: pllm.AgentContext, sample_tools, sample_image, _do_web_sea
         ),
         FunctionCallOutput(
             content=4,
-            call_id="call_123",
+            fcall_id="call_123",
             name="count_files",
         ),
     )
