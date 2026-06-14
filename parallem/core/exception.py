@@ -1,4 +1,4 @@
-class ParallemSignal(Exception):
+class ParallemSignal(BaseException):
     """
     parallem uses exceptions as "signals" to prevent
     code from executing.
@@ -12,7 +12,10 @@ class ParallemSignal(Exception):
 
 
 class NotAvailable(ParallemSignal):
-    pass
+
+    def __str__(self):
+        return f"NotAvailable({super().__str__()})"
+
 
 
 class PendingNotAvailable(NotAvailable):

@@ -115,6 +115,9 @@ class AgentOrchestrator:
                     with cm:
                         agent_coro = fn(agt, *fn_args, **fn_kwargs)
                         resolved = asyncio.run(agent_coro)
+                except NotAvailable as exc:
+                    promise.set_exception(exc)
+                    return promise
                 except Exception as exc:
                     promise.set_exception(exc)
                     return promise
