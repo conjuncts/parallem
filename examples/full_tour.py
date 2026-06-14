@@ -65,6 +65,16 @@ def function_calling_agent(agt: pllm.AgentContext):
     return final_answer
 
 
+def file_input_agent(agt: pllm.AgentContext):
+    # 7. File input
+    file_input = pllm.FileInput(
+        filename="example.txt",
+        mime_type="text/plain",
+        file_content=b"Hello from Amsterdam.",
+    )
+    resp = agt.ask_llm("What does this file say?", file_input)
+    return resp.final_answer.replace("\n", " ")
+
 if __name__ == "__main__":
     load_dotenv()
 
@@ -87,3 +97,5 @@ if __name__ == "__main__":
             print("4. " + image_input_agent(agt))
         with orch.agent() as agt:
             print("5. " + function_calling_agent(agt))
+        with orch.agent() as agt:
+            print("7. " + file_input_agent(agt))

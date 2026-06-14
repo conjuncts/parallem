@@ -14,6 +14,7 @@ from parallem.core.file_manager import FileManager
 from parallem.types import (
     CallIdentifier,
     CommonQueryParameters,
+    FileInput,
     LLMDocument,
     LLMResponse,
     FunctionCallOutput,
@@ -107,6 +108,18 @@ class InputStorage:
                 "index_in_msg_state": pl.Int64,
                 "image_path": pl.Utf8,
                 "image_format": pl.Utf8,
+            },
+        )
+
+        self._file_input_table = ParquetWriter(
+            self.path_inputs_multimedia() / "file_inputs.parquet",
+            schema={
+                "doc_hash": pl.Utf8,
+                "index_in_msg_state": pl.Int64,
+                "filename": pl.Utf8,
+                "mime_type": pl.Utf8,
+                "file_url": pl.Utf8,
+                "file_content": pl.Binary,
             },
         )
 
@@ -404,6 +417,20 @@ class InputStorage:
                     "doc_hash": doc_hash,
                     "index_in_msg_state": index_in_msg_state,
                     "json_text": json_text,
+                }
+            )
+            return
+
+
+        if isinstance(msg, FileInput):
+            self._file_input_table.log(
+                {
+                    "doc_hash": doc_hash,
+                    "index_in_msg_state": index_in_msg_state,
+                    "filename": msg.filename,
+                    "mime_type": msg.mime_type,
+                    "file_url": msg.file_url,
+                    "file_content": msg.file_content if self.input_cfg.save_file_contents else None,
                 }
             )
             return

@@ -187,6 +187,21 @@ class AskItem(ABC):
 
 
 @dataclass(slots=True)
+class FileInput(AskItem):
+    mime_type: str
+    filename: str
+    file_content: Optional[bytes] = None
+    file_url: Optional[str] = None
+
+    kwargs: dict = field(default_factory=dict)
+    "Extra custom args"
+
+    def __post_init__(self):
+        if self.file_content is None and self.file_url is None:
+            raise ValueError("FileInput must have either file_content or file_url.")
+
+
+@dataclass(slots=True)
 class FunctionCallRequest(AskItem):
     """Represents the LLM requesting function/tool call(s)"""
 
@@ -268,6 +283,7 @@ LLMDocument = Union[
     str,
     Image.Image,
     Tuple[Literal["user", "assistant", "system", "developer"], str],
+    FileInput,
     FunctionCallRequest,
     FunctionCallOutput,
     MCPOutput,
@@ -615,5 +631,6 @@ class InputStorageConfig:
     save_images: bool = True
     save_json: bool = True
     save_function_call_outputs: bool = True
+    save_file_contents: bool = False
 
     json_char_limit: int = None  # Max characters to store for JSON inputs. Longer texts will not be stored

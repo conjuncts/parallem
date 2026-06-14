@@ -1,3 +1,4 @@
+import base64
 from typing import TYPE_CHECKING, List, Union
 
 from openai.types.responses.response_function_tool_call_output_item import (
@@ -9,6 +10,7 @@ from parallem.provider.openai.common import map_server_tools
 from parallem.provider.openai.openai_tools import to_strict_json_schema
 from parallem.types import (
     CommonQueryParameters,
+    FileInput,
     FunctionCall,
     FunctionCallOutput,
     FunctionCallRequest,
@@ -26,6 +28,7 @@ if TYPE_CHECKING:
     from openai.types.responses.response_function_tool_call_output_item import (
         ResponseFunctionToolCallOutputItem,
     )
+    from openai.types.responses.response_input_file import ResponseInputFile
     from pydantic import BaseModel
 
     from mcp.types import ContentBlock
@@ -84,6 +87,25 @@ def _fix_docs_for_openai(
                 "content": content,
             }
             formatted_docs.append(msg)
+        elif isinstance(doc, FileInput):
+            if doc.file_url:
+                content: "ResponseInputFile" = {
+                    "type": "input_file",
+                    "file_url": doc.file_url,
+                    **doc.kwargs
+                }
+            elif doc.file_content:
+                b64 = base64.b64encode(doc.file_content).decode("utf-8")
+                content: "ResponseInputFile" = {
+                    "type": "input_file",
+                    "filename": doc.filename,
+                    "file_data": f"data:{doc.mime_type};base64,{b64}",
+                    **doc.kwargs
+                }
+            formatted_docs.append({
+                "role": "user",
+                "content": [content],
+            })
         elif is_image(doc):
             img_type, img_b64 = get_type_and_b64(
                 doc, allowed=["image/jpeg", "image/png", "image/gif", "image/webp"]

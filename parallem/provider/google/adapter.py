@@ -3,6 +3,7 @@ from pydantic import BaseModel
 from parallem.provider.base import BaseAdapter
 from parallem.types import (
     CommonQueryParameters,
+    FileInput,
     FunctionCall,
     FunctionCallOutput,
     FunctionCallRequest,
@@ -70,7 +71,6 @@ def _fix_docs_for_google(
                     "parts": [function_response_part],
                 }
             )
-
         elif isinstance(doc, FunctionCallRequest):
             parts: list["types.PartDict"] = []
             if doc.text_content:
@@ -108,6 +108,23 @@ def _fix_docs_for_google(
                     "parts": [{"text": content}],
                 }
             )
+        elif isinstance(doc, FileInput):
+            if doc.file_content:
+                msg: "types.PartDict" = {
+                    "inline_data": {
+                        "mime_type": doc.mime_type,
+                        "data": doc.file_content,
+                        # display_name not supported in Gemini API
+                    }
+                }
+            elif doc.file_url:
+                msg: "types.PartDict" = {
+                    "file_data": {
+                        "mime_type": doc.mime_type,
+                        "file_uri": doc.file_url,
+                    }
+                }
+            formatted_docs.append(msg)
         elif isinstance(doc, dict):
             # If it's already a proper content dict, keep it
             # needs to be Union[types.ContentDict, types.PartUnionDict]

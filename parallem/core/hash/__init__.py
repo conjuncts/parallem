@@ -6,6 +6,7 @@ from PIL import Image
 import warnings
 
 from parallem.types import (
+    FileInput,
     FunctionCallOutput,
     FunctionCallRequest,
     HashByOption,
@@ -205,6 +206,13 @@ def compute_hash(
             else:
                 for item in content:
                     hasher.update(str(item).encode("utf-8"))
+        elif isinstance(doc, FileInput):
+            hasher.update(b"file_input")
+            _updateh(hasher, doc.filename)
+            _updateh(hasher, doc.mime_type)
+            _updateh(hasher, doc.file_url)
+            if doc.file_content:
+                hasher.update(doc.file_content)
         elif isinstance(doc, dict):
             # best effort deterministic dict hash
             dict_str = json.dumps(_normalize_for_hash(doc), sort_keys=True, separators=(",", ":"))

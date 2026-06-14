@@ -2,6 +2,7 @@ from parallem.core.gateway import resume_directory
 from parallem.types import (
     AskParameters,
     BatchStatus,
+    FileInput,
     FunctionCall,
     FunctionCallRequest,
     FunctionCallOutput,
@@ -42,6 +43,7 @@ __all__ = [
     "AskParameters",
     "BatchStatus",
     # "BatchResult",
+    "FileInput",
     "FunctionCall",
     "FunctionCallRequest",
     "FunctionCallOutput",

@@ -23,7 +23,7 @@ class BaseAdapter:
         params: CommonQueryParameters,
         **kwargs,
     ) -> Any:
-        """Make config ready for API calls."""
+        """Make config ready for API calls. Also fixes documents and tools."""
         raise NotImplementedError
 
     def fix_docs(
