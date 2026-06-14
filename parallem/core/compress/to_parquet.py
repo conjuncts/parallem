@@ -44,7 +44,7 @@ def write_to_parquet(
 
             write_value = pl.concat([existing, commit], how="diagonal_relaxed")
         elif mode == "update":
-            write_value = existing.update(commit, on=on)
+            write_value = existing.update(commit, on=on, how="full")
         elif mode == "replace":
             write_value = commit
         else:

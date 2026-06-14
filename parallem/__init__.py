@@ -15,6 +15,7 @@ from parallem.types import (
     LLMIdentity,
     ParsedError,
     LLMResponse,
+    InputStorageConfig,
 )
 from parallem.tools.auto_schema import to_tool_schema
 from parallem.core.throttler import Throttler
@@ -56,6 +57,7 @@ __all__ = [
     "ParsedError",
     "LLMResponse",
     "HumanResponse",
+    "InputStorageConfig",
     ### .tools
     "tools",
     "to_tool_schema",

@@ -606,3 +606,14 @@ class BaseRetriever(ABC):
         :param metadata: Whether to include metadata in the populated call_id.
         :returns: A fully populated CallIdentifier with all necessary fields filled in.
         """
+
+
+@dataclass
+class InputStorageConfig:
+    """Configuration for InputStorage."""
+
+    save_images: bool = True
+    save_json: bool = True
+    save_function_call_outputs: bool = True
+
+    json_char_limit: int = None  # Max characters to store for JSON inputs. Longer texts will not be stored

@@ -24,16 +24,17 @@ from parallem.types import (
     HashByOption,
     ServerTool,
 )
+from parallem.types import InputStorageConfig
 from parallem.utils.image import is_image
 
 if TYPE_CHECKING:
     import pydantic
 
-
 class InputStorage:
     """Handle multimedia and request config input storage."""
 
-    def __init__(self, file_manager: FileManager):
+    def __init__(self, file_manager: FileManager, config: Optional[InputStorageConfig] = None):
+        self.input_cfg = config or InputStorageConfig()
         self._file_manager = file_manager
         self._config_log: list[dict] = []
 
@@ -61,7 +62,7 @@ class InputStorage:
             schema={
                 "doc_hash": pl.Utf8,
                 "index_in_msg_state": pl.Int64,
-                "call_id": pl.Utf8,
+                "fcall_id": pl.Utf8,
                 "text_content": pl.Utf8,
                 "calls_json": pl.Utf8,
             },
@@ -73,8 +74,9 @@ class InputStorage:
                 "doc_hash": pl.Utf8,
                 "index_in_msg_state": pl.Int64,
                 "name": pl.Utf8,
-                "call_id": pl.Utf8,
+                "fcall_id": pl.Utf8,
                 "content_text": pl.Utf8,
+                "content_type": pl.Utf8,
             },
         )
 
@@ -304,7 +306,10 @@ class InputStorage:
             return
 
         if is_image(msg):
-            rel_path, img_format = self._store_image(msg)
+            if self.input_cfg.save_images:
+                rel_path, img_format = self._store_image(msg)
+            else:
+                rel_path, img_format = None, None
             self._image_index_table.log(
                 {
                     "doc_hash": doc_hash,
@@ -316,13 +321,37 @@ class InputStorage:
             return
 
         if isinstance(msg, (FunctionCallOutput, MCPOutput)):
+
+            name = None
+            fcall_id = None
+            content_text = None
+            content_type = None
+            if self.input_cfg.save_function_call_outputs:
+                name = msg.name
+                fcall_id = msg.fcall_id
+                content = msg.content
+                if isinstance(content, (str, int, float, bool)):
+                    content_text = str(content)
+                    content_type = type(content).__name__
+                elif isinstance(content, (dict, list)):
+                    try:
+                        content_text = json.dumps(content, separators=(",", ":"))
+                        content_type = "json"
+                    except json.JSONDecodeError:
+                        content_text = str(content)
+                        content_type = "unknown"
+                else:
+                    # cannot serialize
+                    content_text = str(content)
+                    content_type = "unknown"
             self._function_call_output_table.log(
                 {
                     "doc_hash": doc_hash,
                     "index_in_msg_state": index_in_msg_state,
-                    "name": msg.name,
-                    "call_id": msg.call_id,
-                    "content_text": str(msg.content),
+                    "name": name,
+                    "fcall_id": fcall_id,
+                    "content_text": content_text,
+                    "content_type": content_type,
                 }
             )
             return
@@ -331,7 +360,7 @@ class InputStorage:
             calls = [
                 {
                     "name": call.name,
-                    "call_id": call.call_id,
+                    "fcall_id": call.fcall_id,
                     "args": self._sanitize_for_json(call.args),
                 }
                 for call in msg.calls
@@ -361,7 +390,15 @@ class InputStorage:
             return
 
         if msg is None or isinstance(msg, (int, float, bool, dict, list)):
-            json_text = json.dumps(msg, separators=(",", ":"))
+
+            json_text = None
+            if self.input_cfg.save_json:
+                json_text = json.dumps(msg, separators=(",", ":"))
+                if (
+                    self.input_cfg.json_char_limit is not None
+                    and len(json_text) > self.input_cfg.json_char_limit
+                ):
+                    json_text = None
             self._json_table.log(
                 {
                     "doc_hash": doc_hash,

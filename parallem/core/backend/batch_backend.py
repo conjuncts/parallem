@@ -22,6 +22,7 @@ from parallem.types import (
     CallIdentifier,
     CommonQueryParameters,
     CohortIdentifier,
+    InputStorageConfig,
     LLMIdentity,
     ParsedResponse,
 )
@@ -56,6 +57,7 @@ class BatchBackend(BaseBackend):
         fm: FileManager,
         dashlog: DashboardLogger = PrimitiveDashboardLogger(),
         *,
+        input_storage_config: InputStorageConfig = None,
         datastore_cls=None,
         session_id: int,
         confirm_batch_submission: bool = False,
@@ -68,7 +70,7 @@ class BatchBackend(BaseBackend):
             self._ds = SQLiteDatastore(fm)
         else:
             self._ds = datastore_cls(fm)
-        self._input_storage = InputStorage(fm)
+        self._input_storage = InputStorage(fm, config=input_storage_config)
         self.dashlog = dashlog
         self._confirm_batch_submission = confirm_batch_submission
         if max_batch_size < 1:

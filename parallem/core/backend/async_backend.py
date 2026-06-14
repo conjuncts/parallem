@@ -17,6 +17,7 @@ from parallem.logging.dash_logger import (
 )
 from parallem.types import (
     CallIdentifier,
+    InputStorageConfig,
     LLMIdentity,
     ParsedResponse,
     CommonQueryParameters,
@@ -39,6 +40,7 @@ class AsyncBackend(BaseBackend):
         fm: FileManager,
         dashlog: DashboardLogger = PrimitiveDashboardLogger(),
         *,
+        input_storage_config: InputStorageConfig = None,
         datastore_cls=None,
         rewrite_cache: bool = False,
         max_concurrent: int = 20,
@@ -79,7 +81,7 @@ class AsyncBackend(BaseBackend):
         # Start the event loop in a separate thread
         self.datastore_cls = datastore_cls
         self._ds: Optional[SQLiteDatastore] = None
-        self._input_storage = InputStorage(self._fm)
+        self._input_storage = InputStorage(fm, config=input_storage_config)
         self._start_event_loop()
 
         # Register cleanup to run on program exit

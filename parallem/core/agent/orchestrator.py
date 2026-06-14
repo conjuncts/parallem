@@ -270,6 +270,8 @@ class AgentOrchestrator:
         """
         if ask_params is None:
             ask_params = self.ask_params
+        else:
+            ask_params = {**self.ask_params, **ask_params}
 
         return AgentContext(
             str(name),

@@ -13,6 +13,7 @@ from parallem.logging.dash_logger import (
 )
 from parallem.types import (
     CallIdentifier,
+    InputStorageConfig,
     ParsedResponse,
     CommonQueryParameters,
 )
@@ -32,6 +33,7 @@ class SyncBackend(BaseBackend):
         fm: FileManager,
         dashlog: DashboardLogger = PrimitiveDashboardLogger(),
         *,
+        input_storage_config: InputStorageConfig = None,
         datastore_cls=None,
         rewrite_cache: bool = False,
         throttler=None,
@@ -41,6 +43,7 @@ class SyncBackend(BaseBackend):
 
         :param fm: FileManager for data persistence
         :param dashlog: Optional dashboard logger for monitoring
+        :param input_storage: Input storage instance
         :param datastore_cls: Custom datastore class (defaults to SQLiteDatastore)
         :param rewrite_cache: Whether to overwrite existing cache entries
         :param throttler: Throttler instance for rate limiting (default: None)
@@ -51,7 +54,7 @@ class SyncBackend(BaseBackend):
             self._ds = SQLiteDatastore(self._fm)
         else:
             self._ds = datastore_cls(self._fm)
-        self._input_storage = InputStorage(self._fm)
+        self._input_storage = InputStorage(self._fm, config=input_storage_config)
         self.dashlog = dashlog
         self._rewrite_cache = rewrite_cache
 
