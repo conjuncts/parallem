@@ -191,7 +191,7 @@ def test_full_batch_openai(temp_integration_dir, sample_tools, sample_image):
     inputs_dir = temp_integration_dir / f"full_batch_{provider}" / "inputs"
     assert inputs_dir.exists(), "Inputs directory not created"
 
-    multimedia_dir = inputs_dir / "multimedia"
+    multimedia_dir = inputs_dir / "media"
     assert multimedia_dir.exists(), "Multimedia inputs directory not created"
 
     text_table_path = multimedia_dir / "text.parquet"

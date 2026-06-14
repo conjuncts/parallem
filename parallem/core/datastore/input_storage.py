@@ -18,6 +18,7 @@ from parallem.types import (
     LLMResponse,
     FunctionCallOutput,
     FunctionCallRequest,
+    MCPOutput,
     to_serial_id,
     LLMIdentity,
     HashByOption,
@@ -39,9 +40,7 @@ class InputStorage:
         self._text_table = ParquetWriter(
             self.path_inputs_text_table(),
             schema={
-                "agent_name": pl.Utf8,
-                "session_id": pl.Int64,
-                "seq_id": pl.Int64,
+                "doc_hash": pl.Utf8,
                 "index_in_msg_state": pl.Int64,
                 "text": pl.Utf8,
                 "role": pl.Utf8,
@@ -51,9 +50,7 @@ class InputStorage:
         self._json_table = ParquetWriter(
             self.path_inputs_json_table(),
             schema={
-                "agent_name": pl.Utf8,
-                "session_id": pl.Int64,
-                "seq_id": pl.Int64,
+                "doc_hash": pl.Utf8,
                 "index_in_msg_state": pl.Int64,
                 "json_text": pl.Utf8,
             },
@@ -62,9 +59,7 @@ class InputStorage:
         self._function_call_request_table = ParquetWriter(
             self.path_inputs_function_call_request_table(),
             schema={
-                "agent_name": pl.Utf8,
-                "session_id": pl.Int64,
-                "seq_id": pl.Int64,
+                "doc_hash": pl.Utf8,
                 "index_in_msg_state": pl.Int64,
                 "call_id": pl.Utf8,
                 "text_content": pl.Utf8,
@@ -75,9 +70,7 @@ class InputStorage:
         self._function_call_output_table = ParquetWriter(
             self.path_inputs_function_call_output_table(),
             schema={
-                "agent_name": pl.Utf8,
-                "session_id": pl.Int64,
-                "seq_id": pl.Int64,
+                "doc_hash": pl.Utf8,
                 "index_in_msg_state": pl.Int64,
                 "name": pl.Utf8,
                 "call_id": pl.Utf8,
@@ -88,9 +81,7 @@ class InputStorage:
         self._llm_response_table = ParquetWriter(
             self.path_inputs_llm_response_table(),
             schema={
-                "agent_name": pl.Utf8,
-                "session_id": pl.Int64,
-                "seq_id": pl.Int64,
+                "doc_hash": pl.Utf8,
                 "index_in_msg_state": pl.Int64,
                 "call_id": pl.Utf8,
             },
@@ -99,9 +90,7 @@ class InputStorage:
         self._binary_table = ParquetWriter(
             self.path_inputs_binary_table(),
             schema={
-                "agent_name": pl.Utf8,
-                "session_id": pl.Int64,
-                "seq_id": pl.Int64,
+                "doc_hash": pl.Utf8,
                 "index_in_msg_state": pl.Int64,
                 "doc_type": pl.Utf8,
                 "doc_extra": pl.Utf8,
@@ -112,9 +101,7 @@ class InputStorage:
         self._image_index_table = ParquetWriter(
             self.path_inputs_image_index_table(),
             schema={
-                "agent_name": pl.Utf8,
-                "session_id": pl.Int64,
-                "seq_id": pl.Int64,
+                "doc_hash": pl.Utf8,
                 "index_in_msg_state": pl.Int64,
                 "image_path": pl.Utf8,
                 "image_format": pl.Utf8,
@@ -124,9 +111,7 @@ class InputStorage:
         self._msg_state_len_table = ParquetWriter(
             self.path_inputs_msg_state_len_table(),
             schema={
-                "agent_name": pl.Utf8,
-                "session_id": pl.Int64,
-                "seq_id": pl.Int64,
+                "doc_hash": pl.Utf8,
                 "msg_state_len": pl.Int64,
             },
         )
@@ -141,7 +126,7 @@ class InputStorage:
 
     def path_inputs_multimedia(self) -> Path:
         """Get the multimedia inputs directory."""
-        multimedia_dir = self.path_inputs() / "multimedia"
+        multimedia_dir = self.path_inputs() / "media"
         multimedia_dir.mkdir(parents=True, exist_ok=True)
         return multimedia_dir
 
@@ -291,9 +276,7 @@ class InputStorage:
 
     def _store_input_doc(
         self,
-        agent_name: str,
-        session_id: int,
-        seq_id: int,
+        doc_hash: str,
         index_in_msg_state: int,
         msg: Union[LLMDocument, LLMResponse],
     ) -> None:
@@ -301,9 +284,7 @@ class InputStorage:
             role, text = msg
             self._text_table.log(
                 {
-                    "agent_name": agent_name,
-                    "session_id": session_id,
-                    "seq_id": seq_id,
+                    "doc_hash": doc_hash,
                     "index_in_msg_state": index_in_msg_state,
                     "text": text,
                     "role": role,
@@ -314,9 +295,7 @@ class InputStorage:
         if isinstance(msg, str):
             self._text_table.log(
                 {
-                    "agent_name": agent_name,
-                    "session_id": session_id,
-                    "seq_id": seq_id,
+                    "doc_hash": doc_hash,
                     "index_in_msg_state": index_in_msg_state,
                     "text": msg,
                     "role": None,
@@ -328,9 +307,7 @@ class InputStorage:
             rel_path, img_format = self._store_image(msg)
             self._image_index_table.log(
                 {
-                    "agent_name": agent_name,
-                    "session_id": session_id,
-                    "seq_id": seq_id,
+                    "doc_hash": doc_hash,
                     "index_in_msg_state": index_in_msg_state,
                     "image_path": rel_path,
                     "image_format": img_format,
@@ -338,12 +315,10 @@ class InputStorage:
             )
             return
 
-        if isinstance(msg, FunctionCallOutput):
+        if isinstance(msg, (FunctionCallOutput, MCPOutput)):
             self._function_call_output_table.log(
                 {
-                    "agent_name": agent_name,
-                    "session_id": session_id,
-                    "seq_id": seq_id,
+                    "doc_hash": doc_hash,
                     "index_in_msg_state": index_in_msg_state,
                     "name": msg.name,
                     "call_id": msg.call_id,
@@ -365,9 +340,7 @@ class InputStorage:
             call_id = to_serial_id(msg.call_id)
             self._function_call_request_table.log(
                 {
-                    "agent_name": agent_name,
-                    "session_id": session_id,
-                    "seq_id": seq_id,
+                    "doc_hash": doc_hash,
                     "index_in_msg_state": index_in_msg_state,
                     "call_id": call_id,
                     "text_content": msg.text_content,
@@ -380,9 +353,7 @@ class InputStorage:
             call_id = to_serial_id(msg.call_id) if msg.call_id is not None else None
             self._llm_response_table.log(
                 {
-                    "agent_name": agent_name,
-                    "session_id": session_id,
-                    "seq_id": seq_id,
+                    "doc_hash": doc_hash,
                     "index_in_msg_state": index_in_msg_state,
                     "call_id": call_id,
                 }
@@ -393,9 +364,7 @@ class InputStorage:
             json_text = json.dumps(msg, separators=(",", ":"))
             self._json_table.log(
                 {
-                    "agent_name": agent_name,
-                    "session_id": session_id,
-                    "seq_id": seq_id,
+                    "doc_hash": doc_hash,
                     "index_in_msg_state": index_in_msg_state,
                     "json_text": json_text,
                 }
@@ -405,9 +374,7 @@ class InputStorage:
         content, msg_type, msg_extra = cast_document_to_bytes(msg)
         self._binary_table.log(
             {
-                "agent_name": agent_name,
-                "session_id": session_id,
-                "seq_id": seq_id,
+                "doc_hash": doc_hash,
                 "index_in_msg_state": index_in_msg_state,
                 "doc_type": msg_type,
                 "doc_extra": msg_extra,
@@ -431,20 +398,16 @@ class InputStorage:
         structured_output = params.get("structured_output")
         tools = params.get("tools")
 
-        session_id = call_id["session_id"]
-        seq_id = call_id["seq_id"]
-        agent_name = call_id["agent_name"]
+        doc_hash = call_id["doc_hash"]
         total_len = len(msgs)
         self._msg_state_len_table.log(
             {
-                "agent_name": agent_name,
-                "session_id": session_id,
-                "seq_id": seq_id,
+                "doc_hash": doc_hash,
                 "msg_state_len": total_len,
             }
         )
         for index, msg in enumerate(msgs):
-            self._store_input_doc(agent_name, session_id, seq_id, index, msg)
+            self._store_input_doc(doc_hash, index, msg)
         request_config = self._build_request_config(
             llm=llm,
             structured_output=structured_output,
@@ -456,7 +419,7 @@ class InputStorage:
         self._log_request_config(call_id, instructions, request_config)
 
     def persist(self) -> None:
-        unique_keys = ["agent_name", "session_id", "seq_id", "index_in_msg_state"]
+        unique_keys = ["doc_hash", "index_in_msg_state"]
         self._text_table.commit(mode="unique", on=unique_keys)
         self._json_table.commit(mode="unique", on=unique_keys)
         self._function_call_request_table.commit(mode="unique", on=unique_keys)
@@ -464,7 +427,7 @@ class InputStorage:
         self._llm_response_table.commit(mode="unique", on=unique_keys)
         self._binary_table.commit(mode="unique", on=unique_keys)
         self._image_index_table.commit(mode="unique", on=unique_keys)
-        self._msg_state_len_table.commit(mode="unique", on=["agent_name", "session_id", "seq_id"])
+        self._msg_state_len_table.commit(mode="unique", on=["doc_hash"])
 
         if not self._config_log:
             return
