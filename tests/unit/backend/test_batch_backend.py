@@ -338,7 +338,7 @@ class TestBatchBackendExecuteBatch:
         # Try to submit the same calls again (they're now pending)
         for call_id in call_ids:
             try:
-                batch_backend.submit_query(
+                batch_backend.call_llm(
                     mock_provider,
                     {
                         "instructions": None,

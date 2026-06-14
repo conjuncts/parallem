@@ -153,7 +153,7 @@ class AsyncBackend(BaseBackend):
             if self._throttler.is_enabled():
                 self._throttler.record_request()
 
-    def submit_query(
+    def call_llm(
         self,
         provider: "AsyncProvider",
         params: CommonQueryParameters,

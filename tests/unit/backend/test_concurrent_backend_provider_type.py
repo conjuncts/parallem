@@ -58,7 +58,7 @@ def test_async_backend_passes_llm_provider_type_to_parse_response():
             "tools": None,
         }
 
-        backend.submit_query(provider, params, call_id=call_id)
+        backend.call_llm(provider, params, call_id=call_id)
 
         parsed = backend.retrieve(call_id)
         assert parsed is not None

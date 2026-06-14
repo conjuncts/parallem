@@ -33,12 +33,12 @@ class Askable(ABC):
         *additional_documents: LLMDocument,
         instructions: Optional[str] = None,
         llm: Union[LLMIdentity, str, None] = None,
-        salt: Optional[str] = None,
-        hash_by: List[HashByOption] = ["llm"],
         structured_output: Optional["BaseModel"] = None,
         tools: Optional[list[Union[dict, ServerTool]]] = None,
-        tag: Optional[str] = None,
         save_input: Optional[bool] = None,
+        salt: Optional[str] = None,
+        hash_by: List[HashByOption] = ["llm"],
+        tag: Optional[str] = None,
         **kwargs,
     ) -> LLMResponse:
         """
@@ -49,9 +49,6 @@ class Askable(ABC):
         :param instructions: The system prompt to use.
         :param llm: The identity of the LLM to use.
             Can be helpful multi-agent or multi-model scenarios.
-        :param salt: A value to include in the hash for differentiation.
-        :param hash_by: The names of additional terms to include in the hash for differentiation.
-            Example: "llm" includes the LLM name.
         :param structured_output: Schema or format specification for structured output.
             For OpenAI: uses structured output via responses.parse().
             For Google: sets response_mime_type and response_schema.
@@ -59,8 +56,11 @@ class Askable(ABC):
         :param tools: A list of tools to make available to the LLM.
             Both user-defined tools (function tools) and server-defined tools
             (ie. web search, code interpreter) are supported.
-        :param tag: An optional tag to associate with the request.
         :param save_input: Whether to save input documents. Default None: no saving.
+        :param salt: A value to include in the hash for differentiation.
+        :param hash_by: The names of additional terms to include in the hash for differentiation.
+            Example: "llm" includes the LLM name.
+        :param tag: An optional tag to associate with the request.
         :returns: A LLMResponse. The value is **lazy loaded**: for best efficiency,
             it should not be resolved until you actually need it.
         """

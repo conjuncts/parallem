@@ -319,7 +319,7 @@ class TestAgentOrchestratorIntegration:
     ):
         """Test that ignore_cache parameter works correctly"""
         mock_backend = persistence_ignore_cache_orch._backend
-        mock_backend.submit_query.return_value = ReadyLLMResponse(
+        mock_backend.call_llm.return_value = ReadyLLMResponse(
             call_id=generic_call_id, value="fresh_response"
         )
 

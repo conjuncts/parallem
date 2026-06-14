@@ -71,7 +71,7 @@ class BaseBackend(BaseRetriever):
             request_kwargs=request_kwargs,
         )
 
-    def submit_query(
+    def call_llm(
         self,
         provider: BaseProvider,
         params: CommonQueryParameters,

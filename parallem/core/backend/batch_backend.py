@@ -91,7 +91,7 @@ class BatchBackend(BaseBackend):
     def _get_input_storage(self):
         return self._input_storage
 
-    def submit_query(
+    def call_llm(
         self,
         provider: "BatchProvider",
         params: CommonQueryParameters,

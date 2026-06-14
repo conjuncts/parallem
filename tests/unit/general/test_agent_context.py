@@ -62,21 +62,21 @@ def test_counter_independence(mock_orchestrator):
         agent.ask_llm("anonymous 2")
         seq_ids = [
             call.kwargs["call_id"]["seq_id"]
-            for call in mock_orchestrator._backend.submit_query.call_args_list
+            for call in mock_orchestrator._backend.call_llm.call_args_list
         ]
         assert seq_ids == [0, 1]
 
-    mock_orchestrator._backend.submit_query.reset_mock()
+    mock_orchestrator._backend.call_llm.reset_mock()
     agent2 = AgentContext("test_agent", mock_orchestrator)
     with agent2:
         agent2.ask_llm("anonymous 1")
-        call_id = mock_orchestrator._backend.submit_query.call_args.kwargs["call_id"]
+        call_id = mock_orchestrator._backend.call_llm.call_args.kwargs["call_id"]
         assert call_id["seq_id"] == 2
 
     agent3 = AgentContext("other_agent", mock_orchestrator)
     with agent3:
         agent3.ask_llm("anonymous 1")
-        call_id = mock_orchestrator._backend.submit_query.call_args.kwargs["call_id"]
+        call_id = mock_orchestrator._backend.call_llm.call_args.kwargs["call_id"]
         assert call_id["seq_id"] == 0
 
 
@@ -124,10 +124,10 @@ class TestAskLLMMethod:
 
         with global_default_agent:
             global_default_agent.ask_llm("global default prompt")
-            global_params = mock_orchestrator._backend.submit_query.call_args.args[1]
+            global_params = mock_orchestrator._backend.call_llm.call_args.args[1]
             assert global_params["llm"].identity == "gpt-5-nano"
 
-        mock_orchestrator._backend.submit_query.reset_mock()
+        mock_orchestrator._backend.call_llm.reset_mock()
 
         ask_params_agent = AgentContext(
             "test_agent",
@@ -138,17 +138,17 @@ class TestAskLLMMethod:
         )
         with ask_params_agent:
             ask_params_agent.ask_llm("ask_params default prompt")
-            ask_params_defaults = mock_orchestrator._backend.submit_query.call_args.args[1]
+            ask_params_defaults = mock_orchestrator._backend.call_llm.call_args.args[1]
             assert ask_params_defaults["llm"].identity == "gpt-4o-mini"
 
-        mock_orchestrator._backend.submit_query.reset_mock()
+        mock_orchestrator._backend.call_llm.reset_mock()
 
         with ask_params_agent:
             ask_params_agent.ask_llm(
                 "explicit override prompt",
                 llm=LLMIdentity("gpt-5-mini", provider_type="openai"),
             )
-            explicit_override = mock_orchestrator._backend.submit_query.call_args.args[1]
+            explicit_override = mock_orchestrator._backend.call_llm.call_args.args[1]
             assert explicit_override["llm"].identity == "gpt-5-mini"
 
     def test_msg_state_ask_llm_default_precedence(self, mock_orchestrator):
@@ -164,10 +164,10 @@ class TestAskLLMMethod:
         with agent:
             msg_state = agent.get_msg_state()
             msg_state.ask_llm("msg_state default prompt")
-            ask_params_defaults = mock_orchestrator._backend.submit_query.call_args.args[1]
+            ask_params_defaults = mock_orchestrator._backend.call_llm.call_args.args[1]
             assert ask_params_defaults["llm"].identity == "gpt-4o-mini"
 
-        mock_orchestrator._backend.submit_query.reset_mock()
+        mock_orchestrator._backend.call_llm.reset_mock()
 
         with agent:
             msg_state = agent.get_msg_state()
@@ -175,7 +175,7 @@ class TestAskLLMMethod:
                 "msg_state explicit override prompt",
                 llm=LLMIdentity("gpt-5-mini", provider_type="openai"),
             )
-            explicit_override = mock_orchestrator._backend.submit_query.call_args.args[1]
+            explicit_override = mock_orchestrator._backend.call_llm.call_args.args[1]
             assert explicit_override["llm"].identity == "gpt-5-mini"
 
     def test_ask_llm_callable_tool_coercion(self, mock_orchestrator):
@@ -190,7 +190,7 @@ class TestAskLLMMethod:
             agent.ask_llm("What is the weather in NYC?", tools=[get_weather])
 
             # Check what was passed to submit_query
-            submit_args = mock_orchestrator._backend.submit_query.call_args.args
+            submit_args = mock_orchestrator._backend.call_llm.call_args.args
             params = submit_args[1]
             tool_list = params["tools"]
 
@@ -207,8 +207,8 @@ class TestAskLLMMethod:
             response = agent.ask_llm("Test prompt")
 
             assert isinstance(response, (ReadyLLMResponse, PendingLLMResponse))
-            # Now backend.submit_query is called instead of provider.submit_query_to_provider
-            mock_orchestrator._backend.submit_query.assert_called_once()
+            # Now backend.call_llm is called instead of provider.submit_query_to_provider
+            mock_orchestrator._backend.call_llm.assert_called_once()
 
     def test_ask_llm_with_cache_hit(self, mock_orchestrator):
         """Test ask_llm when response is cached"""
@@ -226,7 +226,7 @@ class TestAskLLMMethod:
             assert isinstance(response, ReadyLLMResponse)
             assert response.final_answer == "Cached response"
             # Backend submit_query should not be called for cached responses
-            mock_orchestrator._backend.submit_query.assert_not_called()
+            mock_orchestrator._backend.call_llm.assert_not_called()
 
     def test_ask_llm_call_id_generation(self, mock_orchestrator):
         """Test that ask_llm generates correct call IDs"""
@@ -236,7 +236,7 @@ class TestAskLLMMethod:
             agent.ask_llm("Test prompt")
 
             # Verify backend was called with correct call_id structure
-            call_args = mock_orchestrator._backend.submit_query.call_args
+            call_args = mock_orchestrator._backend.call_llm.call_args
             call_id = call_args.kwargs["call_id"]
 
             assert call_id["agent_name"] == "test_agent"
@@ -255,7 +255,7 @@ class TestAskLLMMethod:
                 llm=LLMIdentity("gemini-2.5-flash", provider_type="google"),
             )
 
-            call_args = mock_orchestrator._backend.submit_query.call_args
+            call_args = mock_orchestrator._backend.call_llm.call_args
             call_id = call_args.kwargs["call_id"]
             assert call_id["meta"]["provider_type"] == "google"
 
@@ -307,15 +307,15 @@ class TestAskLLMMethod:
             agent.ask_llm("second call")
             call_ids = [
                 call.kwargs["call_id"]["seq_id"]
-                for call in mock_orchestrator._backend.submit_query.call_args_list
+                for call in mock_orchestrator._backend.call_llm.call_args_list
             ]
             assert call_ids[-2:] == [0, 1]
 
         # Second context block - counter should continue
-        mock_orchestrator._backend.submit_query.reset_mock()
+        mock_orchestrator._backend.call_llm.reset_mock()
         with agent:
             agent.ask_llm("third call")
-            call_id = mock_orchestrator._backend.submit_query.call_args.kwargs["call_id"]
+            call_id = mock_orchestrator._backend.call_llm.call_args.kwargs["call_id"]
             assert call_id["seq_id"] == 2
 
     def test_ask_human_returns_human_response_and_persists(self, mock_orchestrator):

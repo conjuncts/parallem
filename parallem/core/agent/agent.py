@@ -248,12 +248,12 @@ class AgentContext(Askable):
         *additional_documents: LLMDocument,
         instructions: Optional[str] = None,
         llm: Union[LLMIdentity, str, None] = None,
+        structured_output: Optional["BaseModel"] = None,
+        tools: Optional[list[Union[dict, ServerTool]]] = None,
+        save_input: Optional[bool] = None,
         salt: Optional[str] = None,
         hash_by: List[HashByOption] = ["llm"],
-        structured_output: Optional["BaseModel"] = None,
-        tools: Optional[list[Union[dict, ServerTool, Callable]]] = None,
         tag: Optional[str] = None,
-        save_input: Optional[bool] = None,
         **kwargs,
     ) -> LLMResponse:
         # 1. assign sequential ID, input checks
@@ -315,8 +315,8 @@ class AgentContext(Askable):
         if not self._orch._provider.is_compatible(provider_type):
             raise ValueError(f"LLM {llm} is not compatible with provider {provider_type}")
 
-        # The below function typically calls the LLM
-        return self._orch._backend.submit_query(
+        # The below function calls the LLM
+        return self._orch._backend.call_llm(
             self._orch._provider,
             params,
             call_id=call_id,
