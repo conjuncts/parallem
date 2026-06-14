@@ -397,7 +397,6 @@ class AnthropicAdapter(BaseAdapter):
 
             resp_id = response.id
             obj = response.model_dump(mode="json")
-            obj.pop("id", None)
             parsed_metadata = obj
 
         elif isinstance(raw_response, dict):
@@ -432,7 +431,6 @@ class AnthropicAdapter(BaseAdapter):
 
             # Create a copy for metadata to avoid mutating the original
             parsed_metadata = raw_response.copy()
-            parsed_metadata.pop("id", None)
         else:
             raise ValueError(f"Unsupported response type: {type(raw_response)}")
         return ParsedResponse(

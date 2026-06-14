@@ -232,7 +232,7 @@ class OpenAIAdapter(BaseAdapter):
                                 texts.append(content["text"])
                 text = "".join(texts)
 
-            resp_id = raw_response.pop("id", None)
+            resp_id = raw_response.get("id")
             parsed_metadata = raw_response
         elif is_pydantic_model(raw_response):
             # Pydantic model (e.g., from openai.types.responses.response.Response)
@@ -240,7 +240,6 @@ class OpenAIAdapter(BaseAdapter):
             text = response.output_text
             obj = response.model_dump(mode="json")
             resp_id = response.id
-            obj.pop("id", None)
 
             function_calls = []
             for item in response.output:

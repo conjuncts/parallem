@@ -266,12 +266,12 @@ class OpenAIChatAdapter(BaseAdapter):
                 _parse_choice(choice, texts, function_calls)
             text = "".join(texts)
 
-            resp_id = raw_response.pop("id", None)
+            resp_id = raw_response.get("id")
             parsed_metadata = raw_response
         elif is_pydantic_model(raw_response):
             response: "ChatCompletion" = raw_response
             obj = response.model_dump(mode="json")
-            resp_id = obj.pop("id", None)
+            resp_id = obj.get("id")
 
             choices = obj.get("choices") or []
             texts = []

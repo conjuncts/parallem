@@ -426,7 +426,7 @@ class GoogleAdapter(BaseAdapter):
     def convert_response(self, raw_response: Union["BaseModel", dict]) -> ParsedResponse:
         """Parse Gemini API response into common format"""
         if isinstance(raw_response, dict):
-            resp_id = raw_response.pop("response_id", None) or raw_response.pop("responseId", None)
+            resp_id = raw_response.get("response_id") or raw_response.get("responseId")
 
             # Extract text from Gemini response
             # from google.genai.types.GenerateContentResponse import _get_text
@@ -466,7 +466,6 @@ class GoogleAdapter(BaseAdapter):
             text = _extract_text_from_gemini_model(response)
             response_id = response.response_id
             obj = response.model_dump(mode="json")
-            obj.pop("response_id", None)
 
             tools = []
 
