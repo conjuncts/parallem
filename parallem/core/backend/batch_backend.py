@@ -381,7 +381,7 @@ class BatchBackend(BaseBackend):
                 res.location = fpath
 
             if res.status == "ready":
-                self._ds.store_ready_batch(res, upsert=self._rewrite_cache)
+                self._ds.store_ready_batch(res, displace=self._rewrite_cache)
                 # Log batch storage to dashboard
                 # self._ds.clear_batch_pending(batch_uuid)
             else:

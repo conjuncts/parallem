@@ -60,7 +60,7 @@ def resume_directory(
     :param dry_run: If True, validate setup without making actual API calls
     :param log_level: Logging level for the session
     :param ignore_cache: If True, always submit to API instead of using cached responses
-    :param rewrite_cache: If True, overwrite cached responses with new ones (uses upsert)
+    :param rewrite_cache: If True, invalidates older cached responses with new ones
     :param throttler: Throttler instance for rate limiting (default: None, no throttling)
     :param tweaks: Minor tweak overrides for fine-tuning behavior
     :param dashboard: If True, pretty prints sent requests in real time

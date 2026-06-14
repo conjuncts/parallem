@@ -615,10 +615,6 @@ class SQLiteDatastore(BaseDatastore):
         conn: sqlite3.Connection,
         table_name: str,
         record: dict[str, any],
-        *,
-        where_clause: Optional[str] = None,
-        where_params: Optional[list] = None,
-        upsert: bool = False,
     ) -> None:
         """
         Insert a response record in the specified table.
@@ -635,35 +631,40 @@ class SQLiteDatastore(BaseDatastore):
         columns = list(record.keys())
         values = list(record.values())
 
-        if upsert:
-            if where_clause is None or where_params is None:
-                raise ValueError("where_clause and where_params required for upsert")
-
-            # Check if record already exists, get the one with minimum ID (oldest)
-            cursor = conn.execute(
-                f"SELECT id FROM {table_name} WHERE {where_clause} ORDER BY id ASC LIMIT 1",
-                where_params,
-            )
-            existing = cursor.fetchone()
-
-            if existing:
-                # Update the oldest existing record (minimum ID)
-                set_clauses = [f"{col} = ?" for col in columns]
-                update_sql = f"UPDATE {table_name} SET {', '.join(set_clauses)} WHERE id = ?"
-                conn.execute(update_sql, values + [existing["id"]])
-                return
-
         # Insert new record (either upsert with no existing, or normal insert)
         placeholders = ", ".join(["?" for _ in columns])
         insert_sql = f"INSERT INTO {table_name} ({', '.join(columns)}) VALUES ({placeholders})"
         conn.execute(insert_sql, values)
+
+    def _invalidate_existing(
+        self,
+        conn: sqlite3.Connection,
+        table_name: str,
+        where_clause: str,
+        where_params: list,
+    ) -> None:
+        """
+        Invalidate existing LLM records by setting origin_type to 16 when origin_type is NULL.
+
+        :param conn: SQLite connection
+        :param table_name: Name of the table to update
+        :param where_clause: WHERE clause for selecting records to invalidate
+        :param where_params: Parameters for the WHERE clause
+        """
+        # For all records matching where_clause and origin_type in [0, 2], set origin_type = origin_type + 16
+        invalidate_sql = f"""
+            UPDATE {table_name}
+            SET origin_type = 16
+            WHERE {where_clause} AND origin_type IS NULL
+        """
+        conn.execute(invalidate_sql, where_params)
 
     def store(
         self,
         call_id: CallIdentifier,
         parsed_response: ParsedResponse,
         *,
-        upsert: bool = False,
+        displace: bool = False,
         origin_type: Optional[int] = None,
         _commit_immediately=True,
     ) -> None:
@@ -697,14 +698,18 @@ class SQLiteDatastore(BaseDatastore):
                 "origin_type": origin_type,
             }
 
-            # Insert/upsert the response
+            # Insert the response
+            if displace:
+                self._invalidate_existing(
+                    conn,
+                    "responses",
+                    "agent_name = ? AND doc_hash = ?",
+                    [agent_name, doc_hash],
+                )
             self._insert_response(
                 conn,
                 "responses",
                 record,
-                where_clause="doc_hash = ? AND agent_name = ?" if upsert else None,
-                where_params=[doc_hash, agent_name] if upsert else None,
-                upsert=upsert,
             )
 
             # Store metadata if provided
@@ -801,7 +806,7 @@ class SQLiteDatastore(BaseDatastore):
         self,
         batch_result: BatchResult,
         *,
-        upsert: bool = False,
+        displace: bool = False,
     ) -> None:
         if not batch_result.parsed_responses:
             return
@@ -846,7 +851,7 @@ class SQLiteDatastore(BaseDatastore):
                 self.store(
                     call_id=recall_id,
                     parsed_response=parsed,
-                    upsert=upsert,
+                    displace=displace,
                     _commit_immediately=False,
                 )
 

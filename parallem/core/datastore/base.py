@@ -73,7 +73,7 @@ class BaseDatastore(BaseRetriever, ABC):
         call_id: CallIdentifier,
         parsed_response: ParsedResponse,
         *,
-        upsert=False,
+        displace=False,
         origin_type: Optional[int] = None,
     ) -> None:
         """
@@ -81,7 +81,8 @@ class BaseDatastore(BaseRetriever, ABC):
 
         :param call_id: The task identifier containing doc_hash, seq_id, and session_id.
         :param parsed_response: The parsed response object containing text, response_id, and metadata.
-        :param upsert: If True, update existing record instead of inserting duplicate (default: False)
+        :param displace: If True, then invalidates any existing response with the same call_id
+            before storing the new response (default: False).
         :param origin_type: Optional origin marker. ``None`` means LLM-originated,
             ``1`` means human-originated.
         """
@@ -123,7 +124,7 @@ class BaseDatastore(BaseRetriever, ABC):
         self,
         batch_result: BatchResult,
         *,
-        upsert: bool = False,
+        displace: bool = False,
     ) -> None:
         """
         Store completed batch results in the datastore.
@@ -132,7 +133,7 @@ class BaseDatastore(BaseRetriever, ABC):
         call_id using custom_id, and stores both the response and metadata.
 
         :param batch_result: The completed batch results to store
-        :param upsert: If True, update existing records instead of inserting duplicates (default: False)
+        :param displace: If True, displace existing records instead of inserting duplicates (default: False)
         """
 
     @abstractmethod

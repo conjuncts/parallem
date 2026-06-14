@@ -95,7 +95,7 @@ class TestSQLite:
             response_id="updated_123",
             metadata={"updated": True},
         )
-        temp_datastore.store(generic_call_id, updated_response, upsert=True)
+        temp_datastore.store(generic_call_id, updated_response, displace=True)
 
         # Retrieve should return updated response
         retrieved = temp_datastore.retrieve(generic_call_id)

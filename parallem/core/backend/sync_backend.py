@@ -110,7 +110,7 @@ class SyncBackend(BaseBackend):
         )
         self.dashlog.update_call(call_id, HashStatus.RECEIVED)
         parsed = provider.parse_response(result, llm=params["llm"])
-        self._ds.store(call_id, parsed, upsert=self._rewrite_cache)
+        self._ds.store(call_id, parsed, displace=self._rewrite_cache)
 
         return ReadyLLMResponse(call_id=call_id, pr=parsed)
 

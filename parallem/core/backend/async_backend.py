@@ -277,7 +277,7 @@ class AsyncBackend(BaseBackend):
 
             call_id: CallIdentifier = metadata.copy()
 
-            self._ds.store(call_id, parsed, upsert=self._rewrite_cache)
+            self._ds.store(call_id, parsed, displace=self._rewrite_cache)
             done_tasks.append(metadata)
 
             self.dashlog.update_call(call_id, HashStatus.RECEIVED)

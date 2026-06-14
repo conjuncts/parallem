@@ -41,7 +41,7 @@ class MockBackend(BaseBackend):
         call_id: CallIdentifier,
         response: ParsedResponse,
         *,
-        upsert: bool = False,
+        displace: bool = False,
         origin_type: Optional[int] = None,
     ):
         self._dict[tuple(_call_to_concise_dict(call_id).values())] = response
@@ -76,7 +76,7 @@ class MockDatastore(BaseDatastore):
         call_id: CallIdentifier,
         parsed_response: ParsedResponse,
         *,
-        upsert: bool = False,
+        displace: bool = False,
         origin_type: Optional[int] = None,
     ):
         """
