@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import TYPE_CHECKING, Literal, Optional
+from typing import TYPE_CHECKING, Optional
 
 from parallem.types import (
     BatchIdentifier,
@@ -167,20 +167,6 @@ class BaseDatastore(BaseRetriever, ABC):
 
         :param call_id: The call identifier to check
         :returns: True if the call_id is in an active pending batch, False otherwise
-        """
-
-    @abstractmethod
-    def export_tables(
-        self,
-        directory: Optional[str],
-        *,
-        format: Literal["csv", "tsv", "parquet"] = "parquet",
-    ) -> None:
-        """
-        Export all tables from the datastore to files.
-
-        :param directory: Directory to export tables to. If None, uses a default location.
-        :param format: Export format - "parquet" for parquet files, "csv" for CSV, "tsv" for TSV.
         """
 
     @abstractmethod

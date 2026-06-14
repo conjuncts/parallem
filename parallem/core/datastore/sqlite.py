@@ -4,8 +4,7 @@ import json
 import threading
 import gzip
 import polars as pl
-from pathlib import Path
-from typing import Literal, Optional
+from typing import Optional
 
 from parallem.core.cast.doc_to_str import cast_bytes_to_document, cast_document_to_bytes
 from parallem.core.cast.fix_tools import dump_function_calls, load_function_calls
@@ -19,7 +18,7 @@ from parallem.core.datastore.sql_migrate import (
     table_exists,
 )
 from parallem.core.datastore.sqlite_tables import BatchPendingTable, ErrorsTable, MemoizeOpsTable, MemoizeTable, MetadataTable, ResponsesTable
-from parallem.core.io.sqlite_to_parquet import export_sqlite_to_folder, sqlite_to_df
+from parallem.core.io.sqlite_to_parquet import sqlite_to_df
 from parallem.core.compress.pack_metadata import compress_metadata_to_zip
 from parallem.core.compress.batch_pending_to_parquet import (
     transfer_batch_pending_to_parquet,
@@ -932,31 +931,6 @@ class SQLiteDatastore(BaseDatastore):
         )
         row = cursor.fetchone()
         return row["count"] > 0 if row else False
-
-    def export_tables(
-        self,
-        directory: Optional[str],
-        *,
-        filetype: Literal["csv", "tsv", "parquet"] = "parquet",
-    ) -> None:
-        """
-        Export all tables from the datastore to files.
-
-        :param directory: Directory to export tables to. If None, uses the default datastore directory.
-        :param filetype: Export file type - "polars" or "parquet" for parquet files, "csv" for CSV, "tsv" for TSV.
-        """
-
-        # Get the database path
-        db_path = self.file_manager.path_datastore() / "datastore.db"
-
-        # Determine export directory
-        if directory is None:
-            export_dir = self.file_manager.path_datastore() / "export"
-        else:
-            export_dir = Path(directory)
-
-        # Export the database
-        return export_sqlite_to_folder(db_path, export_dir, filetype=filetype)
 
     def export_polars(
         self,

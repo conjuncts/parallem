@@ -10,6 +10,7 @@ from parallem.core.backend import BaseBackend
 from parallem.core.backend.batch_backend import BatchBackend
 from parallem.core.batch_namespace import BatchNamespace
 from parallem.core.exception import NotAvailable, ParallemSignal, PendingNotAvailable
+from parallem.core.export_namespace import ExportNamespace
 from parallem.core.state.non_msg_state import NonMessageState
 from parallem.core.seq_id_store import InMemorySeqIdStore, SeqIdStore
 from parallem.provider.base import BaseProvider
@@ -53,6 +54,7 @@ class AgentOrchestrator:
         self._provider = provider
         self._logger = logger
         self._batch = BatchNamespace(self)
+        self._export_ns = ExportNamespace(self)
         self._userdata = NonMessageState(self._backend)
 
         # dashlog's display is disabled by default
@@ -326,29 +328,10 @@ class AgentOrchestrator:
         """Namespace for batch operations."""
         return self._batch
 
-    def export_tables(
-        self,
-        directory: Optional[str],
-        *,
-        filetype: Literal["csv", "tsv", "parquet"] = "parquet",
-    ):
-        """
-        Export all tables from the backend to files.
-
-        :param directory: Directory to export tables to. If None, uses the default datastore directory.
-        :param filetype: Export file type - "polars" or "parquet" for parquet files, "csv" for CSV, "tsv" for TSV.
-        """
-        return self._backend._get_datastore().export_tables(directory, filetype=filetype)
-
-    def export_polars(
-        self,
-    ) -> dict[str, "pl.DataFrame"]:
-        """
-        Export all tables from the backend as Polars DataFrames.
-
-        :returns: A dictionary mapping table names to Polars DataFrames.
-        """
-        return self._backend._get_datastore().export_polars()
+    @property
+    def export(self) -> ExportNamespace:
+        """Namespace for export operations."""
+        return self._export_ns
 
     def import_polars(
         self,
