@@ -31,6 +31,15 @@ from parallem.utils.image import is_image
 if TYPE_CHECKING:
     import pydantic
 
+
+def _hash_bytes(data: bytes) -> str:
+    return hashlib.sha256(data).hexdigest()
+
+
+def _hash_str(text: str) -> str:
+    return _hash_bytes(text.encode("utf-8", errors="replace"))
+
+
 class InputStorage:
     """Handle multimedia and request config input storage."""
 
@@ -39,11 +48,34 @@ class InputStorage:
         self._file_manager = file_manager
         self._config_log: list[dict] = []
 
-        self._text_table = ParquetWriter(
-            self.path_inputs_text_table(),
+        # Tracks item_hashes already written to each content table this session,
+        # so we skip duplicate content writes across calls.
+        self._seen_item_hashes: dict[str, set[str]] = {
+            "text": set(),
+            "json": set(),
+            "function_call_request": set(),
+            "function_call_output": set(),
+            "llm_response": set(),
+            "binary": set(),
+            "image_index": set(),
+            "file_input": set(),
+        }
+
+        # Central index: maps (doc_hash, index_in_msg_state) -> item_hash
+        self._item_index_table = ParquetWriter(
+            self.path_inputs_multimedia() / "item_index.parquet",
             schema={
                 "doc_hash": pl.Utf8,
                 "index_in_msg_state": pl.Int64,
+                "item_hash": pl.Utf8,
+            },
+        )
+
+        # Content tables keyed on item_hash (not doc_hash + index)
+        self._text_table = ParquetWriter(
+            self.path_inputs_text_table(),
+            schema={
+                "item_hash": pl.Utf8,
                 "text": pl.Utf8,
                 "role": pl.Utf8,
             },
@@ -52,8 +84,7 @@ class InputStorage:
         self._json_table = ParquetWriter(
             self.path_inputs_json_table(),
             schema={
-                "doc_hash": pl.Utf8,
-                "index_in_msg_state": pl.Int64,
+                "item_hash": pl.Utf8,
                 "json_text": pl.Utf8,
             },
         )
@@ -61,8 +92,7 @@ class InputStorage:
         self._function_call_request_table = ParquetWriter(
             self.path_inputs_function_call_request_table(),
             schema={
-                "doc_hash": pl.Utf8,
-                "index_in_msg_state": pl.Int64,
+                "item_hash": pl.Utf8,
                 "fcall_id": pl.Utf8,
                 "text_content": pl.Utf8,
                 "calls_json": pl.Utf8,
@@ -72,8 +102,7 @@ class InputStorage:
         self._function_call_output_table = ParquetWriter(
             self.path_inputs_function_call_output_table(),
             schema={
-                "doc_hash": pl.Utf8,
-                "index_in_msg_state": pl.Int64,
+                "item_hash": pl.Utf8,
                 "name": pl.Utf8,
                 "fcall_id": pl.Utf8,
                 "content_text": pl.Utf8,
@@ -84,8 +113,7 @@ class InputStorage:
         self._llm_response_table = ParquetWriter(
             self.path_inputs_llm_response_table(),
             schema={
-                "doc_hash": pl.Utf8,
-                "index_in_msg_state": pl.Int64,
+                "item_hash": pl.Utf8,
                 "call_id": pl.Utf8,
             },
         )
@@ -93,8 +121,7 @@ class InputStorage:
         self._binary_table = ParquetWriter(
             self.path_inputs_binary_table(),
             schema={
-                "doc_hash": pl.Utf8,
-                "index_in_msg_state": pl.Int64,
+                "item_hash": pl.Utf8,
                 "doc_type": pl.Utf8,
                 "doc_extra": pl.Utf8,
                 "doc_value": pl.Binary,
@@ -104,8 +131,7 @@ class InputStorage:
         self._image_index_table = ParquetWriter(
             self.path_inputs_image_index_table(),
             schema={
-                "doc_hash": pl.Utf8,
-                "index_in_msg_state": pl.Int64,
+                "item_hash": pl.Utf8,
                 "image_path": pl.Utf8,
                 "image_format": pl.Utf8,
             },
@@ -114,8 +140,7 @@ class InputStorage:
         self._file_input_table = ParquetWriter(
             self.path_inputs_multimedia() / "file_inputs.parquet",
             schema={
-                "doc_hash": pl.Utf8,
-                "index_in_msg_state": pl.Int64,
+                "item_hash": pl.Utf8,
                 "filename": pl.Utf8,
                 "mime_type": pl.Utf8,
                 "file_url": pl.Utf8,
@@ -131,22 +156,19 @@ class InputStorage:
             },
         )
 
-    def path_inputs(self) -> Path:
-        """
-        Get the base inputs directory.
+    # ------------------------------------------------------------------
+    # Path helpers (unchanged)
+    # ------------------------------------------------------------------
 
-        :returns: Path to the inputs directory.
-        """
+    def path_inputs(self) -> Path:
         return self._file_manager.path_inputs()
 
     def path_inputs_multimedia(self) -> Path:
-        """Get the multimedia inputs directory."""
         multimedia_dir = self.path_inputs() / "media"
         multimedia_dir.mkdir(parents=True, exist_ok=True)
         return multimedia_dir
 
     def path_inputs_config(self) -> Path:
-        """Get the config inputs directory."""
         config_dir = self.path_inputs() / "config"
         config_dir.mkdir(parents=True, exist_ok=True)
         return config_dir
@@ -186,6 +208,10 @@ class InputStorage:
     def path_inputs_config_parquet(self, session_id: int) -> Path:
         return self.path_inputs_config() / f"session_{session_id}.parquet"
 
+    # ------------------------------------------------------------------
+    # Internal helpers
+    # ------------------------------------------------------------------
+
     def _sanitize_for_json(self, value):
         if value is None or isinstance(value, (str, int, float, bool)):
             return value
@@ -208,13 +234,13 @@ class InputStorage:
         buffered = BytesIO()
         img.save(buffered, format=img.format or "PNG")
         img_bytes = buffered.getvalue()
-        img_hash = hashlib.sha256(img_bytes).hexdigest()
+        img_hash = _hash_bytes(img_bytes)
         img_path = img_dir / f"{img_hash}.{ext}"
 
         if not img_path.exists():
             img_path.write_bytes(img_bytes)
         rel_path = img_path.relative_to(self.path_inputs()).as_posix()
-        return rel_path, ext
+        return rel_path, ext, img_hash
 
     def _log_request_config(
         self,
@@ -289,52 +315,70 @@ class InputStorage:
             "kwargs": request_kwargs,
         }
 
+    def _maybe_write(self, table_name: str, item_hash: str, writer: ParquetWriter, row: dict) -> None:
+        """Write to a content table only if this item_hash hasn't been seen yet."""
+        if item_hash not in self._seen_item_hashes[table_name]:
+            self._seen_item_hashes[table_name].add(item_hash)
+            writer.log(row)
+
+    # ------------------------------------------------------------------
+    # Core storage logic
+    # ------------------------------------------------------------------
+
     def _store_input_doc(
         self,
         doc_hash: str,
         index_in_msg_state: int,
         msg: Union[LLMDocument, LLMResponse],
     ) -> None:
+        item_hash: str
+
         if isinstance(msg, tuple):
             role, text = msg
-            self._text_table.log(
-                {
-                    "doc_hash": doc_hash,
-                    "index_in_msg_state": index_in_msg_state,
-                    "text": text,
-                    "role": role,
-                }
+            item_hash = _hash_str(f"text\x00{role}\x00{text}")
+            self._item_index_table.log(
+                {"doc_hash": doc_hash, "index_in_msg_state": index_in_msg_state, "item_hash": item_hash}
             )
+            self._maybe_write("text", item_hash, self._text_table, {
+                "item_hash": item_hash,
+                "text": text,
+                "role": role,
+            })
             return
 
         if isinstance(msg, str):
-            self._text_table.log(
-                {
-                    "doc_hash": doc_hash,
-                    "index_in_msg_state": index_in_msg_state,
-                    "text": msg,
-                    "role": None,
-                }
+            item_hash = _hash_str(f"text\x00\x00{msg}")
+            self._item_index_table.log(
+                {"doc_hash": doc_hash, "index_in_msg_state": index_in_msg_state, "item_hash": item_hash}
             )
+            self._maybe_write("text", item_hash, self._text_table, {
+                "item_hash": item_hash,
+                "text": msg,
+                "role": None,
+            })
             return
 
         if is_image(msg):
             if self.input_cfg.save_images:
-                rel_path, img_format = self._store_image(msg)
+                rel_path, img_format, item_hash = self._store_image(msg)
             else:
+                # Still need a stable hash; derive it without saving the file.
+                buffered = BytesIO()
+                msg.save(buffered, format=msg.format or "PNG")
+                item_hash = _hash_bytes(buffered.getvalue())
                 rel_path, img_format = None, None
-            self._image_index_table.log(
-                {
-                    "doc_hash": doc_hash,
-                    "index_in_msg_state": index_in_msg_state,
-                    "image_path": rel_path,
-                    "image_format": img_format,
-                }
+
+            self._item_index_table.log(
+                {"doc_hash": doc_hash, "index_in_msg_state": index_in_msg_state, "item_hash": item_hash}
             )
+            self._maybe_write("image_index", item_hash, self._image_index_table, {
+                "item_hash": item_hash,
+                "image_path": rel_path,
+                "image_format": img_format,
+            })
             return
 
         if isinstance(msg, (FunctionCallOutput, MCPOutput)):
-
             name = None
             fcall_id = None
             content_text = None
@@ -354,19 +398,22 @@ class InputStorage:
                         content_text = str(content)
                         content_type = "unknown"
                 else:
-                    # cannot serialize
                     content_text = str(content)
                     content_type = "unknown"
-            self._function_call_output_table.log(
-                {
-                    "doc_hash": doc_hash,
-                    "index_in_msg_state": index_in_msg_state,
-                    "name": name,
-                    "fcall_id": fcall_id,
-                    "content_text": content_text,
-                    "content_type": content_type,
-                }
+
+            item_hash = _hash_str(
+                f"fco\x00{name}\x00{fcall_id}\x00{content_text}\x00{content_type}"
             )
+            self._item_index_table.log(
+                {"doc_hash": doc_hash, "index_in_msg_state": index_in_msg_state, "item_hash": item_hash}
+            )
+            self._maybe_write("function_call_output", item_hash, self._function_call_output_table, {
+                "item_hash": item_hash,
+                "name": name,
+                "fcall_id": fcall_id,
+                "content_text": content_text,
+                "content_type": content_type,
+            })
             return
 
         if isinstance(msg, FunctionCallRequest):
@@ -380,30 +427,31 @@ class InputStorage:
             ]
             calls_json = json.dumps(calls, separators=(",", ":"))
             call_id = to_serial_id(msg.call_id)
-            self._function_call_request_table.log(
-                {
-                    "doc_hash": doc_hash,
-                    "index_in_msg_state": index_in_msg_state,
-                    "call_id": call_id,
-                    "text_content": msg.text_content,
-                    "calls_json": calls_json,
-                }
+            item_hash = _hash_str(f"fcr\x00{call_id}\x00{msg.text_content}\x00{calls_json}")
+            self._item_index_table.log(
+                {"doc_hash": doc_hash, "index_in_msg_state": index_in_msg_state, "item_hash": item_hash}
             )
+            self._maybe_write("function_call_request", item_hash, self._function_call_request_table, {
+                "item_hash": item_hash,
+                "fcall_id": call_id,
+                "text_content": msg.text_content,
+                "calls_json": calls_json,
+            })
             return
 
         if isinstance(msg, LLMResponse):
             call_id = to_serial_id(msg.call_id) if msg.call_id is not None else None
-            self._llm_response_table.log(
-                {
-                    "doc_hash": doc_hash,
-                    "index_in_msg_state": index_in_msg_state,
-                    "call_id": call_id,
-                }
+            item_hash = _hash_str(f"llmr\x00{call_id}")
+            self._item_index_table.log(
+                {"doc_hash": doc_hash, "index_in_msg_state": index_in_msg_state, "item_hash": item_hash}
             )
+            self._maybe_write("llm_response", item_hash, self._llm_response_table, {
+                "item_hash": item_hash,
+                "call_id": call_id,
+            })
             return
 
         if msg is None or isinstance(msg, (int, float, bool, dict, list)):
-
             json_text = None
             if self.input_cfg.save_json:
                 json_text = json.dumps(msg, separators=(",", ":"))
@@ -412,39 +460,42 @@ class InputStorage:
                     and len(json_text) > self.input_cfg.json_char_limit
                 ):
                     json_text = None
-            self._json_table.log(
-                {
-                    "doc_hash": doc_hash,
-                    "index_in_msg_state": index_in_msg_state,
-                    "json_text": json_text,
-                }
+            item_hash = _hash_str(f"json\x00{json_text}")
+            self._item_index_table.log(
+                {"doc_hash": doc_hash, "index_in_msg_state": index_in_msg_state, "item_hash": item_hash}
             )
+            self._maybe_write("json", item_hash, self._json_table, {
+                "item_hash": item_hash,
+                "json_text": json_text,
+            })
             return
 
-
         if isinstance(msg, FileInput):
-            self._file_input_table.log(
-                {
-                    "doc_hash": doc_hash,
-                    "index_in_msg_state": index_in_msg_state,
-                    "filename": msg.filename,
-                    "mime_type": msg.mime_type,
-                    "file_url": msg.file_url,
-                    "file_content": msg.file_content if self.input_cfg.save_file_contents else None,
-                }
+            raw = (msg.file_content or b"") + (msg.file_url or "").encode()
+            item_hash = _hash_bytes(raw + (msg.filename or "").encode())
+            self._item_index_table.log(
+                {"doc_hash": doc_hash, "index_in_msg_state": index_in_msg_state, "item_hash": item_hash}
             )
+            self._maybe_write("file_input", item_hash, self._file_input_table, {
+                "item_hash": item_hash,
+                "filename": msg.filename,
+                "mime_type": msg.mime_type,
+                "file_url": msg.file_url,
+                "file_content": msg.file_content if self.input_cfg.save_file_contents else None,
+            })
             return
 
         content, msg_type, msg_extra = cast_document_to_bytes(msg)
-        self._binary_table.log(
-            {
-                "doc_hash": doc_hash,
-                "index_in_msg_state": index_in_msg_state,
-                "doc_type": msg_type,
-                "doc_extra": msg_extra,
-                "doc_value": content,
-            }
+        item_hash = _hash_bytes(content)
+        self._item_index_table.log(
+            {"doc_hash": doc_hash, "index_in_msg_state": index_in_msg_state, "item_hash": item_hash}
         )
+        self._maybe_write("binary", item_hash, self._binary_table, {
+            "item_hash": item_hash,
+            "doc_type": msg_type,
+            "doc_extra": msg_extra,
+            "doc_value": content,
+        })
 
     def store_input(
         self,
@@ -455,7 +506,6 @@ class InputStorage:
         salt: Optional[str] = None,
         request_kwargs: Optional[dict] = None,
     ) -> None:
-        # Extract expected fields from params
         instructions = params.get("instructions")
         msgs = params.get("strict_documents")
         llm = params.get("llm")
@@ -483,14 +533,18 @@ class InputStorage:
         self._log_request_config(call_id, instructions, request_config)
 
     def persist(self) -> None:
-        unique_keys = ["doc_hash", "index_in_msg_state"]
-        self._text_table.commit(mode="unique", on=unique_keys)
-        self._json_table.commit(mode="unique", on=unique_keys)
-        self._function_call_request_table.commit(mode="unique", on=unique_keys)
-        self._function_call_output_table.commit(mode="unique", on=unique_keys)
-        self._llm_response_table.commit(mode="unique", on=unique_keys)
-        self._binary_table.commit(mode="unique", on=unique_keys)
-        self._image_index_table.commit(mode="unique", on=unique_keys)
+        # Central index: unique per (doc_hash, index_in_msg_state) pair
+        self._item_index_table.commit(mode="unique", on=["doc_hash", "index_in_msg_state"])
+
+        # Content tables: unique per item_hash only
+        self._text_table.commit(mode="unique", on=["item_hash"])
+        self._json_table.commit(mode="unique", on=["item_hash"])
+        self._function_call_request_table.commit(mode="unique", on=["item_hash"])
+        self._function_call_output_table.commit(mode="unique", on=["item_hash"])
+        self._llm_response_table.commit(mode="unique", on=["item_hash"])
+        self._binary_table.commit(mode="unique", on=["item_hash"])
+        self._image_index_table.commit(mode="unique", on=["item_hash"])
+        self._file_input_table.commit(mode="unique", on=["item_hash"])
         self._msg_state_len_table.commit(mode="unique", on=["doc_hash"])
 
         if not self._config_log:
