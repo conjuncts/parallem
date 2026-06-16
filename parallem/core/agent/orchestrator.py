@@ -97,6 +97,9 @@ class AgentOrchestrator:
                 try:
                     with cm:
                         result = fn(agt, *fn_args, **fn_kwargs)
+                except NotAvailable as exc:
+                    promise.set_exception(exc)
+                    return promise
                 except Exception as exc:
                     promise.set_exception(exc)
                     return promise

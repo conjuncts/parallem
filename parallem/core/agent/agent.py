@@ -118,7 +118,11 @@ class AgentContext(Askable):
         if exc_type in (NotAvailable, PendingNotAvailable):
             # swallow NotAvailable and its subclasses (like PendingNotAvailable)
             return True
-        if exc_type is not None and self._error_mode != "raise":
+        if (
+            exc_type is not None
+            and self._error_mode != "raise"
+            and issubclass(exc_type, Exception) # exclude BaseException
+        ):
             return True
         if self._orch.strategy == "batch" and exc_type in (
             NotAvailable,

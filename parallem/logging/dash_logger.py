@@ -144,7 +144,7 @@ class DashboardLogger:
             yield self
         except BaseException as exc:
             self._pop_context(type(exc), exc, exc.__traceback__)
-            raise
+            raise exc
         else:
             self._pop_context(None, None, None)
 
