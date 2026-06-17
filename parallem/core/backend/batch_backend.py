@@ -4,7 +4,6 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import List, Literal, Optional, Union
 from parallem.core.backend import BaseBackend
-from parallem.core.datastore.input_storage import InputStorage
 from parallem.core.compress.pack_zip import compress_file_to_zip, persist_to_zip
 from parallem.core.datastore.sqlite import SQLiteDatastore
 from parallem.core.exception import PendingNotAvailable
@@ -22,7 +21,6 @@ from parallem.types import (
     CallIdentifier,
     CommonQueryParameters,
     CohortIdentifier,
-    InputStorageConfig,
     LLMIdentity,
     ParsedResponse,
 )
@@ -57,7 +55,6 @@ class BatchBackend(BaseBackend):
         fm: FileManager,
         dashlog: DashboardLogger = PrimitiveDashboardLogger(),
         *,
-        input_storage_config: InputStorageConfig = None,
         datastore_cls=None,
         session_id: int,
         confirm_batch_submission: bool = False,
@@ -70,7 +67,6 @@ class BatchBackend(BaseBackend):
             self._ds = SQLiteDatastore(fm)
         else:
             self._ds = datastore_cls(fm)
-        self._input_storage = InputStorage(fm, config=input_storage_config)
         self.dashlog = dashlog
         self._confirm_batch_submission = confirm_batch_submission
         if max_batch_size < 1:
@@ -89,9 +85,6 @@ class BatchBackend(BaseBackend):
 
     def _get_datastore(self):
         return self._ds
-
-    def _get_input_storage(self):
-        return self._input_storage
 
     def call_llm(
         self,
@@ -329,7 +322,6 @@ class BatchBackend(BaseBackend):
             self.dashlog._logger.info(
                 f"Skipped {self._pending_count} request(s) already in pending batches."
             )
-        self._input_storage.persist()
         self._ds.persist()
 
     def persist_to_zip(

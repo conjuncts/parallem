@@ -1158,7 +1158,7 @@ class SQLiteDatastore(BaseDatastore):
                     group[0]["item_value"],
                     group[0]["item_type"],
                     extra.get("item_extra"),
-                    retriever=self,
+                    datastore=self,
                 )
                 log.record(SetNonMsgItemOp(key=key, value=value))
                 continue
@@ -1171,7 +1171,7 @@ class SQLiteDatastore(BaseDatastore):
                         r["item_value"],
                         r["item_type"],
                         r["item_extra"],
-                        retriever=self,
+                        datastore=self,
                     )
                     items.append(item)
                 else:

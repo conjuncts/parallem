@@ -5,7 +5,6 @@ import atexit
 from typing import Optional, TYPE_CHECKING
 from parallem.core.backend import BaseBackend
 from parallem.core.throttler import Throttler
-from parallem.core.datastore.input_storage import InputStorage
 from parallem.core.calls import _call_matches
 from parallem.core.datastore.sqlite import SQLiteDatastore
 from parallem.core.response import PendingLLMResponse
@@ -17,7 +16,6 @@ from parallem.logging.dash_logger import (
 )
 from parallem.types import (
     CallIdentifier,
-    InputStorageConfig,
     LLMIdentity,
     ParsedResponse,
     CommonQueryParameters,
@@ -40,7 +38,6 @@ class AsyncBackend(BaseBackend):
         fm: FileManager,
         dashlog: DashboardLogger = PrimitiveDashboardLogger(),
         *,
-        input_storage_config: InputStorageConfig = None,
         datastore_cls=None,
         rewrite_cache: bool = False,
         max_concurrent: int = 20,
@@ -81,7 +78,6 @@ class AsyncBackend(BaseBackend):
         # Start the event loop in a separate thread
         self.datastore_cls = datastore_cls
         self._ds: Optional[SQLiteDatastore] = None
-        self._input_storage = InputStorage(fm, config=input_storage_config)
         self._start_event_loop()
 
         # Register cleanup to run on program exit
@@ -89,9 +85,6 @@ class AsyncBackend(BaseBackend):
 
     def _get_datastore(self):
         return self._ds
-
-    def _get_input_storage(self):
-        return self._input_storage
 
     def _start_event_loop(self):
         """Start the event loop in a separate thread"""
@@ -328,7 +321,6 @@ class AsyncBackend(BaseBackend):
             except Exception as e:
                 print(f"Warning: Failed to wait for pending tasks: {e}")
 
-        self._input_storage.persist()
         # Let datastore cleanup
         self._ds.persist()
 

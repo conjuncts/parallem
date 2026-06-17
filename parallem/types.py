@@ -604,17 +604,6 @@ class BaseRetriever(ABC):
         # NOTE: this is synchronous. AsyncBackend should handle async retrieval appropriately.
         return self.retrieve(call_id, metadata=metadata)
 
-    @abstractmethod
-    def populate_call_id(self, call_id: CallIdentifier, *, metadata=False) -> CallIdentifier:
-        """
-        Given a call_id with potentially missing fields (like doc_hash), populate those fields based on the backend's data.
-
-        :param call_id: The input CallIdentifier with some fields potentially missing.
-        :param metadata: Whether to include metadata in the populated call_id.
-        :returns: A fully populated CallIdentifier with all necessary fields filled in.
-        """
-
-
 @dataclass
 class InputStorageConfig:
     """Configuration for InputStorage."""

@@ -2,6 +2,7 @@ import logging
 from typing import TYPE_CHECKING, Any, List, Literal, Optional, Union
 
 from parallem.core.agent.orchestrator import AgentOrchestrator
+from parallem.core.datastore.input_storage import InputStorage
 from parallem.types import InputStorageConfig
 from parallem.core.file_manager import FileManager
 from parallem.logging.dash_logger import DashboardLogger
@@ -106,6 +107,7 @@ def resume_directory(
     # 3. Setup components
     fm = FileManager(directory)
     input_storage_config = save_input if isinstance(save_input, InputStorageConfig) else None
+    input_storage = InputStorage(fm, config=input_storage_config) if save_input else None
 
     logger.debug("Creating backend")
     if datastore == "sqlite":
@@ -117,7 +119,6 @@ def resume_directory(
         backend = AsyncBackend(
             fm,
             dashlog=dashlog,
-            input_storage_config=input_storage_config,
             datastore_cls=datastore_cls,
             rewrite_cache=rewrite_cache,
             max_concurrent=tweaks_dict["max_concurrent"],
@@ -129,7 +130,6 @@ def resume_directory(
         backend = SyncBackend(
             fm,
             dashlog=dashlog,
-            input_storage_config=input_storage_config,
             datastore_cls=datastore_cls,
             rewrite_cache=rewrite_cache,
             throttler=throttler,
@@ -140,7 +140,6 @@ def resume_directory(
         backend = BatchBackend(
             fm,
             dashlog=dashlog,
-            input_storage_config=input_storage_config,
             datastore_cls=datastore_cls,
             session_id=fm._get_session_counter(),
             confirm_batch_submission=tweaks_dict["batch_user_confirmation"],
@@ -165,6 +164,7 @@ def resume_directory(
         ask_params["llm"] = llm
     bm = AgentOrchestrator(
         file_manager=fm,
+        input_storage=input_storage,
         backend=backend,
         provider=provider_obj,
         logger=logger,

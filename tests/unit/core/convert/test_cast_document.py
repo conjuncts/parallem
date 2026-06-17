@@ -249,7 +249,7 @@ class TestCastBytesToDocument:
         retrieved.function_calls = []
         retriever.retrieve.return_value = retrieved
 
-        result = cast_bytes_to_document(byt, dtype, dextra, retriever=retriever)
+        result = cast_bytes_to_document(byt, dtype, dextra, datastore=retriever)
         assert isinstance(result, FunctionCallRequest)
         assert result.call_id == full_call_id
         assert result.text_content == "hydrated text"
@@ -279,7 +279,7 @@ class TestCastBytesToDocument:
         }
         retriever.populate_call_id.return_value = full_call_id
 
-        result = cast_bytes_to_document(byt, dtype, dextra, retriever=retriever)
+        result = cast_bytes_to_document(byt, dtype, dextra, datastore=retriever)
         assert isinstance(result, LLMResponse)
         assert result.call_id == full_call_id
         assert result._value is None

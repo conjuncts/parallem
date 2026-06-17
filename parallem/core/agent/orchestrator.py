@@ -9,6 +9,7 @@ from parallem.core.agent.agent import AgentContext
 from parallem.core.backend import BaseBackend
 from parallem.core.backend.batch_backend import BatchBackend
 from parallem.core.batch_namespace import BatchNamespace
+from parallem.core.datastore.input_storage import InputStorage
 from parallem.core.exception import NotAvailable, ParallemSignal, PendingNotAvailable
 from parallem.core.export_namespace import ExportNamespace
 from parallem.core.state.non_msg_state import NonMessageState
@@ -29,6 +30,7 @@ class AgentOrchestrator:
         backend: BaseBackend,
         provider: BaseProvider,
         *,
+        input_storage: InputStorage = None,
         logger: Logger,
         dashlog: DashboardLogger,
         ask_params: Optional[AskParameters] = None,
@@ -52,6 +54,9 @@ class AgentOrchestrator:
         self._backend = backend
         self._fm = file_manager
         self._provider = provider
+        if input_storage is None:
+            input_storage = InputStorage(self._fm)
+        self._input_storage = input_storage
         self._logger = logger
         self._batch = BatchNamespace(self)
         self._export_ns = ExportNamespace(self)
@@ -245,6 +250,8 @@ class AgentOrchestrator:
         if exc_value is None or isinstance(exc_value, ParallemSignal):
             self.finalize_tasks()
         self._backend.persist()
+        if self._input_storage is not None:
+            self._input_storage.persist()
         self._fm.persist()
         if isinstance(exc_value, ParallemSignal):
             # If the signal was emitted by run_agents, we suppress it to allow graceful exits.
@@ -316,6 +323,8 @@ class AgentOrchestrator:
         self.finalize_tasks()
         self._backend.persist()
         self._fm.persist()
+        if self._input_storage is not None:
+            self._input_storage.persist()
 
     def get_session_counter(self):
         """

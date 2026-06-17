@@ -299,7 +299,7 @@ class AgentContext(Askable):
 
         # 3. save inputs if needed (pass `params` mapping)
         if save_input:
-            self._orch._backend.store_input(
+            self._orch._input_storage.store_input(
                 call_id,
                 params=params,
                 hash_by=hash_by,

@@ -1,10 +1,9 @@
 import json
-from typing import Optional, Union
+from typing import TYPE_CHECKING, Optional, Union
 from io import BytesIO
 from parallem.core.exception import IntegrityError
 from parallem.core.response import PendingLLMResponse
 from parallem.types import (
-    BaseRetriever,
     DocumentType,
     LLMDocument,
     FunctionCallOutput,
@@ -14,6 +13,9 @@ from parallem.types import (
     undo_serial_id,
 )
 from parallem.utils.image import is_image
+
+if TYPE_CHECKING:
+    from parallem.core.datastore.base import BaseDatastore
 
 
 def cast_document_to_bytes(
@@ -57,18 +59,18 @@ def cast_bytes_to_document(
     doc_type: DocumentType,
     doc_extra: Optional[str],
     *,
-    retriever: Optional["BaseRetriever"] = None,
+    datastore: Optional["BaseDatastore"] = None,
 ) -> Union[LLMDocument, LLMResponse]:
     """
     Convert bytes back to a document, reversing cast_document_to_bytes.
 
-    For ``"function_call"`` and ``"llm_response"`` types, an additional retriever is required
+    For ``"function_call"`` and ``"llm_response"`` types, an additional datastore is required
     to hydrate the document with full information.
 
     :param doc_value: The bytes representing the document content.
     :param doc_type: The document type string.
     :param doc_extra: Additional metadata (role for text tuples, call_id for function_call_output).
-    :param retriever: The retriever to use for hydrating the document.
+    :param datastore: The datastore to use for hydrating the document.
     :return: The reconstructed document.
     :raises NotImplementedError: For unknown types.
     """
@@ -88,11 +90,11 @@ def cast_bytes_to_document(
         )
     elif doc_type == "function_call":
         short_call_id = undo_serial_id(doc_value.decode("utf-8"))
-        if retriever is None:
+        if datastore is None:
             raise ValueError("Retriever is required to hydrate FunctionCallRequest")
 
-        full_call_id = retriever.populate_call_id(short_call_id)
-        req = retriever.retrieve(full_call_id)
+        full_call_id = datastore.populate_call_id(short_call_id)
+        req = datastore.retrieve(full_call_id)
         if not req:
             raise IntegrityError(
                 f"Expected FunctionCallRequest for call_id {full_call_id}, got {type(req)}"
@@ -103,11 +105,11 @@ def cast_bytes_to_document(
 
     elif doc_type == "llm_response":
         short_call_id = undo_serial_id(doc_value.decode("utf-8"))
-        if retriever is None:
+        if datastore is None:
             raise ValueError("Retriever is required to hydrate LLMResponse")
 
-        full_call_id = retriever.populate_call_id(short_call_id)
-        return PendingLLMResponse(call_id=full_call_id, backend=retriever)
+        full_call_id = datastore.populate_call_id(short_call_id)
+        return PendingLLMResponse(call_id=full_call_id, backend=datastore)
     elif doc_type == "json":
         return json.loads(doc_value.decode("utf-8"))
     else:
