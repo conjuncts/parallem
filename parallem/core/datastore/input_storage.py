@@ -15,6 +15,7 @@ from parallem.types import (
     CallIdentifier,
     CommonQueryParameters,
     FileInput,
+    FunctionCall,
     LLMDocument,
     LLMResponse,
     FunctionCallOutput,
@@ -38,6 +39,21 @@ def _hash_bytes(data: bytes) -> str:
 
 def _hash_str(text: str) -> str:
     return _hash_bytes(text.encode("utf-8", errors="replace"))
+
+
+def _parse_fco_content(content_text: Optional[str], content_type: Optional[str]):
+    """Reverse the FunctionCallOutput content serialization done in _store_input_doc."""
+    if content_text is None:
+        return None
+    if content_type == "int":
+        return int(content_text)
+    if content_type == "float":
+        return float(content_text)
+    if content_type == "bool":
+        return content_text == "True"
+    if content_type == "json":
+        return json.loads(content_text)
+    return content_text
 
 
 class InputStorage:
@@ -531,6 +547,126 @@ class InputStorage:
             request_kwargs=request_kwargs,
         )
         self._log_request_config(call_id, instructions, request_config)
+
+    def retrieve_input(
+        self,
+        doc_hash: str,
+        index_in_msg_state: int,
+    ) -> Optional[Union[LLMDocument, LLMResponse]]:
+        """
+        Retrieve a stored input document by doc_hash and position.
+
+        :param doc_hash: The hash identifying the document batch.
+        :param index_in_msg_state: Position of the item in the message state.
+        :return: The reconstructed document, or None if not found.
+        """
+        index_path = self._item_index_table.parquet_fpath
+        if not index_path.exists():
+            return None
+
+        index_df = pl.read_parquet(index_path)
+        hits = index_df.filter(
+            (pl.col("doc_hash") == doc_hash)
+            & (pl.col("index_in_msg_state") == index_in_msg_state)
+        )
+        if hits.is_empty():
+            return None
+
+        item_hash = hits["item_hash"][0]
+
+        text_path = self._text_table.parquet_fpath
+        if text_path.exists():
+            df = pl.read_parquet(text_path)
+            rows = df.filter(pl.col("item_hash") == item_hash)
+            if not rows.is_empty():
+                text = rows["text"][0]
+                role = rows["role"][0]
+                if role is not None:
+                    return (role, text)
+                return text
+
+        json_path = self._json_table.parquet_fpath
+        if json_path.exists():
+            df = pl.read_parquet(json_path)
+            rows = df.filter(pl.col("item_hash") == item_hash)
+            if not rows.is_empty():
+                json_text = rows["json_text"][0]
+                if json_text is not None:
+                    return json.loads(json_text)
+                return None
+
+        fcr_path = self._function_call_request_table.parquet_fpath
+        if fcr_path.exists():
+            df = pl.read_parquet(fcr_path)
+            rows = df.filter(pl.col("item_hash") == item_hash)
+            if not rows.is_empty():
+                calls_data = json.loads(rows["calls_json"][0] or "[]")
+                calls = [
+                    FunctionCall(name=c["name"], fcall_id=c["fcall_id"], arguments=c["args"])
+                    for c in calls_data
+                ]
+                return FunctionCallRequest(
+                    text_content=rows["text_content"][0],
+                    calls=calls,
+                    call_id=None,
+                )
+
+        fco_path = self._function_call_output_table.parquet_fpath
+        if fco_path.exists():
+            df = pl.read_parquet(fco_path)
+            rows = df.filter(pl.col("item_hash") == item_hash)
+            if not rows.is_empty():
+                return FunctionCallOutput(
+                    name=rows["name"][0],
+                    fcall_id=rows["fcall_id"][0],
+                    content=_parse_fco_content(rows["content_text"][0], rows["content_type"][0]),
+                )
+
+        llmr_path = self._llm_response_table.parquet_fpath
+        if llmr_path.exists():
+            df = pl.read_parquet(llmr_path)
+            rows = df.filter(pl.col("item_hash") == item_hash)
+            if not rows.is_empty():
+                return LLMResponse(value="", call_id=None)
+
+        img_path = self._image_index_table.parquet_fpath
+        if img_path.exists():
+            df = pl.read_parquet(img_path)
+            rows = df.filter(pl.col("item_hash") == item_hash)
+            if not rows.is_empty():
+                image_path = rows["image_path"][0]
+                if image_path is not None:
+                    from PIL import Image as _PILImage
+                    full_path = self.path_inputs() / image_path
+                    if full_path.exists():
+                        return _PILImage.open(str(full_path))
+                return None
+
+        fi_path = self._file_input_table.parquet_fpath
+        if fi_path.exists():
+            df = pl.read_parquet(fi_path)
+            rows = df.filter(pl.col("item_hash") == item_hash)
+            if not rows.is_empty():
+                return FileInput(
+                    filename=rows["filename"][0],
+                    mime_type=rows["mime_type"][0],
+                    file_url=rows["file_url"][0],
+                    file_content=rows["file_content"][0],
+                )
+
+        bin_path = self._binary_table.parquet_fpath
+        if bin_path.exists():
+            df = pl.read_parquet(bin_path)
+            rows = df.filter(pl.col("item_hash") == item_hash)
+            if not rows.is_empty():
+                from parallem.core.convert.doc_to_bytes import cast_bytes_to_document
+                return cast_bytes_to_document(
+                    rows["doc_value"][0],
+                    rows["doc_type"][0],
+                    rows["doc_extra"][0],
+                )
+
+        return None
 
     def persist(self) -> None:
         # Central index: unique per (doc_hash, index_in_msg_state) pair
