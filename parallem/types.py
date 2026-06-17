@@ -500,6 +500,7 @@ class LLMResponse(AskItem):
         """
         Returns function calls to user-defined functions.
         """
+        _ = self.final_answer  # must resolve
         if self._pr and self._pr.function_calls:
             # cast and jsonify if needed
             return self._pr.function_calls

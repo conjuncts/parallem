@@ -1,4 +1,4 @@
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any, Generator
 from parallem.core.calls import _call_to_concise_dict
 from parallem.core.exception import NotAvailable
 from parallem.types import (
@@ -50,7 +50,7 @@ class PendingLLMResponse(LLMResponse):
         self._pr = None
         self._backend = None  # Will be set later
 
-    def __await__(self) -> "ReadyLLMResponse":
+    def __await__(self) -> Generator[Any, None, "ReadyLLMResponse"]:
         "Async obtain response value"
 
         async def _await_response():

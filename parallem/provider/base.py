@@ -1,3 +1,4 @@
+from collections.abc import Awaitable
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, List, Optional, Union
 
@@ -109,7 +110,7 @@ class AsyncProvider(BaseProvider):
         self,
         params: CommonQueryParameters,
         **kwargs,
-    ):
+    ) -> Awaitable[Any]:
         """
         Prepare an async coroutine for the backend to execute.
 
