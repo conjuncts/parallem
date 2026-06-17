@@ -537,16 +537,6 @@ class LLMResponse(AskItem):
         """
         return self.function_calls
 
-    @property
-    def output_text(self) -> str:
-        "Alias for final_answer - OpenAI compliant."
-        return self.final_answer
-
-    @property
-    def output_parsed(self) -> Optional[dict]:
-        "Alias for final_json - OpenAI compliant."
-        return self.final_json
-
 
 class HumanResponse(LLMResponse):
     """

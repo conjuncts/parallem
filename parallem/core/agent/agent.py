@@ -225,13 +225,10 @@ class AgentContext(Askable):
     def _get_cached_response(
         self,
         call_id,
-        hashed,
     ):
         """Helper method to check for and return a cached response, if it exists."""
         cached = None if self.ignore_cache else self._orch._backend.retrieve(call_id)
         if cached is not None:
-            self.update_hash_status(hashed, HashStatus.CACHED)
-
             # populate the old session_id. This helps make to_serial_id deterministic
             if cached.old_session_id is not None:
                 call_id["session_id"] = cached.old_session_id
@@ -311,8 +308,9 @@ class AgentContext(Askable):
             )
 
         # 4. use cache if available
-        cached = self._get_cached_response(call_id, hashed)
+        cached = self._get_cached_response(call_id)
         if cached is not None:
+            self._orch._dashlog.update_call(call_id, HashStatus.CACHED)
             return cached
 
         # 5. use API
@@ -601,18 +599,6 @@ class AgentContext(Askable):
             msg_state = hydrate_msg_state(msg_state, self._orch._backend)
             self._msg_state = msg_state
         return self._msg_state
-
-    def update_hash_status(self, hash_value: str, status: HashStatus):
-        """
-        Update the status of a hash in the logger
-
-        Args:
-            hash_value: The hash value to update
-            status: New status - one of 'C' (cached), '↗' (sent), '↘' (received), '✓' (stored)
-        """
-        # only track if asked
-        if self._orch._dashlog.display:
-            self._orch._dashlog.update_hash(hash_value, status)
 
     def memoize(self, salt=None) -> MemoizeContext:
         """

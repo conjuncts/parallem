@@ -1,9 +1,10 @@
+import gzip
+import json
 from typing import TYPE_CHECKING, Literal, Optional
-
+import polars as pl
 
 if TYPE_CHECKING:
     from parallem.core.agent.orchestrator import AgentOrchestrator
-    import polars as pl
 
 class ExportNamespace:
     """Namespace for export-related methods."""
@@ -45,3 +46,29 @@ class ExportNamespace:
         :returns: A dictionary mapping table names to Polars DataFrames.
         """
         return self._orch._backend._get_datastore().export_polars()
+
+    def metadata_to_polars(
+        self,
+        provider_type: Literal["openai"]
+    ) -> "pl.DataFrame":
+        """
+        Exports metadata for a given provider type as a Polars DataFrame.
+        """
+        loc = self._orch._fm.path_metadata_store() / f"{provider_type}-metadata.tsv.gz"
+        
+        collector = []
+        with gzip.open(loc, "rt", encoding="utf-8") as fh:
+            for line in fh:
+                line = line.strip()
+                resp_id, metadata_txt = line.split("\t", 1)
+                if not line:
+                    continue
+                collector.append(
+                    {
+                        "response_id": resp_id,
+                        **json.loads(metadata_txt),
+                    }
+                )
+
+        df = pl.json_normalize(collector)
+        return df
