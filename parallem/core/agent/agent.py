@@ -16,7 +16,7 @@ from typing import (
 )
 from typing_extensions import deprecated
 from parallem.core.ask import Askable
-from parallem.core.cast.fix_docs import cast_documents, reduce_to_list
+from parallem.core.convert.fix_docs import cast_documents, reduce_to_list
 from parallem.core.exception import NotAvailable, PendingNotAvailable
 from parallem.core.hash import build_hash_salt_terms, compute_hash
 from parallem.core.hydrate import hydrate_msg_state

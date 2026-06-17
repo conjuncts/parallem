@@ -1,6 +1,6 @@
 import parallem as pllm
 from fastmcp import Client
-from parallem.core.cast.convert_mcp import mcp_tool_to_tool_schema
+from parallem.core.convert.convert_mcp import mcp_tool_to_tool_schema
 
 mcp_client = Client("examples/mcp/math_server.py")
 

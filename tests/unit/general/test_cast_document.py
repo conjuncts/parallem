@@ -14,7 +14,7 @@ from PIL import Image
 from io import BytesIO
 from unittest.mock import Mock
 
-from parallem.core.cast.doc_to_str import (
+from parallem.core.convert.doc_to_bytes import (
     cast_bytes_to_document,
     cast_document_to_bytes,
 )

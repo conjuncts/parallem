@@ -6,8 +6,8 @@ import gzip
 import polars as pl
 from typing import Optional
 
-from parallem.core.cast.doc_to_str import cast_bytes_to_document, cast_document_to_bytes
-from parallem.core.cast.fix_tools import dump_function_calls, load_function_calls
+from parallem.core.convert.doc_to_bytes import cast_bytes_to_document, cast_document_to_bytes
+from parallem.core.convert.tools_to_json import dump_function_calls, load_function_calls
 
 from parallem.core.datastore.base import BaseDatastore
 from parallem.core.datastore.sql_migrate import (
@@ -18,7 +18,7 @@ from parallem.core.datastore.sql_migrate import (
     table_exists,
 )
 from parallem.core.datastore.sqlite_tables import BatchPendingTable, ErrorsTable, MemoizeOpsTable, MemoizeTable, MetadataTable, ResponsesTable
-from parallem.core.io.sqlite_to_parquet import sqlite_to_df
+from parallem.core.convert.sqlite_to_parquet import sqlite_to_df
 from parallem.core.compress.pack_metadata import compress_metadata_to_zip
 from parallem.core.compress.batch_pending_to_parquet import (
     transfer_batch_pending_to_parquet,

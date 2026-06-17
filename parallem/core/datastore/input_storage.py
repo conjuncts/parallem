@@ -8,7 +8,7 @@ from typing import TYPE_CHECKING, Callable, List, Optional, Union
 
 import polars as pl
 
-from parallem.core.cast.doc_to_str import cast_document_to_bytes
+from parallem.core.convert.doc_to_bytes import cast_document_to_bytes
 from parallem.core.compress.to_parquet import ParquetWriter, write_to_parquet
 from parallem.core.file_manager import FileManager
 from parallem.types import (

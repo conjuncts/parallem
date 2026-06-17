@@ -12,7 +12,7 @@ from typing import (
 )
 from typing_extensions import deprecated
 from parallem.core.ask import Askable
-from parallem.core.cast.fix_docs import reduce_to_list
+from parallem.core.convert.fix_docs import reduce_to_list
 from parallem.core.hash import compute_hash
 from parallem.core.memoize.operations import (
     AppendOp,
