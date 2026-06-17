@@ -19,17 +19,17 @@ class PendingLLMResponse(LLMResponse):
     def __init__(
         self,
         call_id: CallIdentifier,
-        backend: "BaseRetriever",
+        backer: "BaseRetriever",
     ):
         super().__init__(value=None, call_id=call_id)
-        self._backend = backend
+        self._backer = backer
 
     @property
     def final_answer(self) -> str:
         if self._value is not None:
             return self._value
 
-        pr = self._backend.retrieve(self.call_id)
+        pr = self._backer.retrieve(self.call_id)
         self._value = pr.text if pr else None
         self._pr = pr
         return self._value
@@ -48,7 +48,7 @@ class PendingLLMResponse(LLMResponse):
         self.call_id = state["call_id"]
         self._value = None
         self._pr = None
-        self._backend = None  # Will be set later
+        self._backer = None  # Will be set later
 
     def __await__(self) -> Generator[Any, None, "ReadyLLMResponse"]:
         "Async obtain response value"
@@ -61,11 +61,11 @@ class PendingLLMResponse(LLMResponse):
                     value=self._value,
                 )
 
-            backend = self._backend
-            if backend is None or self.call_id is None:
+            backer = self._backer
+            if backer is None or self.call_id is None:
                 return ReadyLLMResponse(call_id=self.call_id, value=self.final_answer)
 
-            pr = await backend.await_response(self.call_id)
+            pr = await backer.await_response(self.call_id)
             if pr is None:
                 self._value = None
                 self._pr = None

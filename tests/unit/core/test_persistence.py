@@ -296,7 +296,7 @@ class TestAgentOrchestratorIntegration:
         )
         backend.store(generic_call_id, pr)
 
-        pending_response = PendingLLMResponse(call_id=generic_call_id, backend=backend)
+        pending_response = PendingLLMResponse(call_id=generic_call_id, backer=backend)
         ready_response = ReadyLLMResponse(call_id=generic_call_id, value="test_value")
 
         pending_key = f"{test_userdata_key}-pending"
@@ -308,7 +308,7 @@ class TestAgentOrchestratorIntegration:
         loaded_ready = persistence_mock_backend_orch.userdata[ready_key]
 
         assert isinstance(loaded_pending, PendingLLMResponse)
-        assert loaded_pending._backend == backend
+        assert loaded_pending._backer == backend
         assert loaded_pending.final_answer == "backend_test_value"
 
         assert isinstance(loaded_ready, ReadyLLMResponse)

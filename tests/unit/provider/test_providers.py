@@ -266,7 +266,7 @@ class TestAsyncOpenAIProvider:
         # Should return PendingLLMResponse
         assert isinstance(result, PendingLLMResponse)
         assert result.call_id == generic_call_id
-        assert result._backend == mock_backend
+        assert result._backer == mock_backend
 
         # Resolve the pending response
         resolved_value = await mock_backend.resolve_call(generic_call_id)

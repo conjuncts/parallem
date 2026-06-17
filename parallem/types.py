@@ -578,7 +578,7 @@ class HumanResponse(LLMResponse):
 
 class BaseRetriever(ABC):
     """
-    Class where retrieve(call_id) and populate_call_id(call_id) is defined
+    Something that can resolve a PendingLLMResponse by turning a CallIdentifier into a value
     """
 
     @abstractmethod

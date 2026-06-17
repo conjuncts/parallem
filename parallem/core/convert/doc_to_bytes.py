@@ -109,7 +109,7 @@ def cast_bytes_to_document(
             raise ValueError("Retriever is required to hydrate LLMResponse")
 
         full_call_id = datastore.populate_call_id(short_call_id)
-        return PendingLLMResponse(call_id=full_call_id, backend=datastore)
+        return PendingLLMResponse(call_id=full_call_id, backer=datastore)
     elif doc_type == "json":
         return json.loads(doc_value.decode("utf-8"))
     else:

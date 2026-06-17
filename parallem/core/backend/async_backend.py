@@ -180,7 +180,7 @@ class AsyncBackend(BaseBackend):
 
         return PendingLLMResponse(
             call_id=call_id,
-            backend=self,
+            backer=self,
         )
 
     def shutdown(self):

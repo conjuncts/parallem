@@ -70,7 +70,7 @@ class TestPendingLLMResponse:
             ),
         )
 
-        response = PendingLLMResponse(call_id=generic_call_id, backend=mock_backend)
+        response = PendingLLMResponse(call_id=generic_call_id, backer=mock_backend)
 
         result = response.final_answer
 
@@ -89,7 +89,7 @@ class TestPendingLLMResponse:
             ),
         )
 
-        response = PendingLLMResponse(call_id=generic_call_id, backend=mock_backend)
+        response = PendingLLMResponse(call_id=generic_call_id, backer=mock_backend)
 
         # First call should hit backend
         result1 = response.final_answer
@@ -106,7 +106,7 @@ class TestPendingLLMResponse:
         """Test pending response serialization handling"""
         mock_backend = Mock()
 
-        response = PendingLLMResponse(call_id=generic_call_id, backend=mock_backend)
+        response = PendingLLMResponse(call_id=generic_call_id, backer=mock_backend)
 
         # Test __getstate__ removes backend
         state = response.__getstate__()
@@ -117,13 +117,13 @@ class TestPendingLLMResponse:
         new_response = PendingLLMResponse.__new__(PendingLLMResponse)
         new_response.__setstate__(state)
         assert new_response.call_id == _call_to_concise_dict(generic_call_id)
-        assert new_response._backend is None
+        assert new_response._backer is None
 
     def test_pending_response_backend_none_handling(self, generic_call_id):
         """Test behavior when backend is None (after deserialization)"""
         response = PendingLLMResponse(
             call_id=generic_call_id,
-            backend=None,  # Simulates post-deserialization state
+            backer=None,  # Simulates post-deserialization state
         )
 
         # Should handle None backend gracefully

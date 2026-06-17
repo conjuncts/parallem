@@ -2,7 +2,7 @@ from collections import UserDict
 from typing import TYPE_CHECKING, Optional
 from PIL import Image
 
-from parallem.core.hydrate import hydrate_llm_response
+from parallem.core.convert.populate import populate_llm_response
 from parallem.core.memoize.operations import SetNonMsgItemOp
 from parallem.types import FunctionCallOutput, FunctionCallRequest, LLMResponse
 
@@ -53,7 +53,7 @@ class NonMessageState(UserDict):
         item = self.data[key]
 
         # If the loaded data is an LLMResponse, inject the backend and hydrate
-        item = hydrate_llm_response(item, self._backend)
+        item = populate_llm_response(item, self._backend)
 
         return item
 
