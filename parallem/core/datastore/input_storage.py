@@ -84,6 +84,7 @@ class InputStorage:
                 "doc_hash": pl.Utf8,
                 "index_in_msg_state": pl.Int64,
                 "item_hash": pl.Utf8,
+                "item_type": pl.Utf8,
             },
         )
 
@@ -353,7 +354,7 @@ class InputStorage:
             role, text = msg
             item_hash = _hash_str(f"text\x00{role}\x00{text}")
             self._item_index_table.log(
-                {"doc_hash": doc_hash, "index_in_msg_state": index_in_msg_state, "item_hash": item_hash}
+                {"doc_hash": doc_hash, "index_in_msg_state": index_in_msg_state, "item_hash": item_hash, "item_type": "text"}
             )
             self._maybe_write("text", item_hash, self._text_table, {
                 "item_hash": item_hash,
@@ -365,7 +366,7 @@ class InputStorage:
         if isinstance(msg, str):
             item_hash = _hash_str(f"text\x00\x00{msg}")
             self._item_index_table.log(
-                {"doc_hash": doc_hash, "index_in_msg_state": index_in_msg_state, "item_hash": item_hash}
+                {"doc_hash": doc_hash, "index_in_msg_state": index_in_msg_state, "item_hash": item_hash, "item_type": "text"}
             )
             self._maybe_write("text", item_hash, self._text_table, {
                 "item_hash": item_hash,
@@ -385,7 +386,7 @@ class InputStorage:
                 rel_path, img_format = None, None
 
             self._item_index_table.log(
-                {"doc_hash": doc_hash, "index_in_msg_state": index_in_msg_state, "item_hash": item_hash}
+                {"doc_hash": doc_hash, "index_in_msg_state": index_in_msg_state, "item_hash": item_hash, "item_type": "image_index"}
             )
             self._maybe_write("image_index", item_hash, self._image_index_table, {
                 "item_hash": item_hash,
@@ -421,7 +422,7 @@ class InputStorage:
                 f"fco\x00{name}\x00{fcall_id}\x00{content_text}\x00{content_type}"
             )
             self._item_index_table.log(
-                {"doc_hash": doc_hash, "index_in_msg_state": index_in_msg_state, "item_hash": item_hash}
+                {"doc_hash": doc_hash, "index_in_msg_state": index_in_msg_state, "item_hash": item_hash, "item_type": "function_call_output"}
             )
             self._maybe_write("function_call_output", item_hash, self._function_call_output_table, {
                 "item_hash": item_hash,
@@ -445,7 +446,7 @@ class InputStorage:
             call_id = to_serial_id(msg.call_id)
             item_hash = _hash_str(f"fcr\x00{call_id}\x00{msg.text_content}\x00{calls_json}")
             self._item_index_table.log(
-                {"doc_hash": doc_hash, "index_in_msg_state": index_in_msg_state, "item_hash": item_hash}
+                {"doc_hash": doc_hash, "index_in_msg_state": index_in_msg_state, "item_hash": item_hash, "item_type": "function_call_request"}
             )
             self._maybe_write("function_call_request", item_hash, self._function_call_request_table, {
                 "item_hash": item_hash,
@@ -459,7 +460,7 @@ class InputStorage:
             call_id = to_serial_id(msg.call_id) if msg.call_id is not None else None
             item_hash = _hash_str(f"llmr\x00{call_id}")
             self._item_index_table.log(
-                {"doc_hash": doc_hash, "index_in_msg_state": index_in_msg_state, "item_hash": item_hash}
+                {"doc_hash": doc_hash, "index_in_msg_state": index_in_msg_state, "item_hash": item_hash, "item_type": "llm_response"}
             )
             self._maybe_write("llm_response", item_hash, self._llm_response_table, {
                 "item_hash": item_hash,
@@ -478,7 +479,7 @@ class InputStorage:
                     json_text = None
             item_hash = _hash_str(f"json\x00{json_text}")
             self._item_index_table.log(
-                {"doc_hash": doc_hash, "index_in_msg_state": index_in_msg_state, "item_hash": item_hash}
+                {"doc_hash": doc_hash, "index_in_msg_state": index_in_msg_state, "item_hash": item_hash, "item_type": "json"}
             )
             self._maybe_write("json", item_hash, self._json_table, {
                 "item_hash": item_hash,
@@ -490,7 +491,7 @@ class InputStorage:
             raw = (msg.file_content or b"") + (msg.file_url or "").encode()
             item_hash = _hash_bytes(raw + (msg.filename or "").encode())
             self._item_index_table.log(
-                {"doc_hash": doc_hash, "index_in_msg_state": index_in_msg_state, "item_hash": item_hash}
+                {"doc_hash": doc_hash, "index_in_msg_state": index_in_msg_state, "item_hash": item_hash, "item_type": "file_input"}
             )
             self._maybe_write("file_input", item_hash, self._file_input_table, {
                 "item_hash": item_hash,
@@ -504,7 +505,7 @@ class InputStorage:
         content, msg_type, msg_extra = cast_document_to_bytes(msg)
         item_hash = _hash_bytes(content)
         self._item_index_table.log(
-            {"doc_hash": doc_hash, "index_in_msg_state": index_in_msg_state, "item_hash": item_hash}
+            {"doc_hash": doc_hash, "index_in_msg_state": index_in_msg_state, "item_hash": item_hash, "item_type": "binary"}
         )
         self._maybe_write("binary", item_hash, self._binary_table, {
             "item_hash": item_hash,
@@ -560,45 +561,34 @@ class InputStorage:
         :param index_in_msg_state: Position of the item in the message state.
         :return: The reconstructed document, or None if not found.
         """
-        index_path = self._item_index_table.parquet_fpath
-        if not index_path.exists():
+
+        index_hits = self._item_index_table.get({
+            "doc_hash": doc_hash,
+            "index_in_msg_state": index_in_msg_state,
+        })
+        if index_hits.is_empty():
             return None
 
-        index_df = pl.read_parquet(index_path)
-        hits = index_df.filter(
-            (pl.col("doc_hash") == doc_hash)
-            & (pl.col("index_in_msg_state") == index_in_msg_state)
-        )
-        if hits.is_empty():
-            return None
+        item_hash = index_hits["item_hash"][0]
+        item_type = index_hits["item_type"][0]
 
-        item_hash = hits["item_hash"][0]
-
-        text_path = self._text_table.parquet_fpath
-        if text_path.exists():
-            df = pl.read_parquet(text_path)
-            rows = df.filter(pl.col("item_hash") == item_hash)
+        if item_type == "text":
+            rows = self._text_table.get({"item_hash": item_hash})
             if not rows.is_empty():
                 text = rows["text"][0]
                 role = rows["role"][0]
                 if role is not None:
                     return (role, text)
                 return text
-
-        json_path = self._json_table.parquet_fpath
-        if json_path.exists():
-            df = pl.read_parquet(json_path)
-            rows = df.filter(pl.col("item_hash") == item_hash)
+        elif item_type == "json":
+            rows = self._json_table.get({"item_hash": item_hash})
             if not rows.is_empty():
                 json_text = rows["json_text"][0]
                 if json_text is not None:
                     return json.loads(json_text)
                 return None
-
-        fcr_path = self._function_call_request_table.parquet_fpath
-        if fcr_path.exists():
-            df = pl.read_parquet(fcr_path)
-            rows = df.filter(pl.col("item_hash") == item_hash)
+        elif item_type == "function_call_request":
+            rows = self._function_call_request_table.get({"item_hash": item_hash})
             if not rows.is_empty():
                 calls_data = json.loads(rows["calls_json"][0] or "[]")
                 calls = [
@@ -610,29 +600,20 @@ class InputStorage:
                     calls=calls,
                     call_id=None,
                 )
-
-        fco_path = self._function_call_output_table.parquet_fpath
-        if fco_path.exists():
-            df = pl.read_parquet(fco_path)
-            rows = df.filter(pl.col("item_hash") == item_hash)
+        elif item_type == "function_call_output":
+            rows = self._function_call_output_table.get({"item_hash": item_hash})
             if not rows.is_empty():
                 return FunctionCallOutput(
                     name=rows["name"][0],
                     fcall_id=rows["fcall_id"][0],
                     content=_parse_fco_content(rows["content_text"][0], rows["content_type"][0]),
                 )
-
-        llmr_path = self._llm_response_table.parquet_fpath
-        if llmr_path.exists():
-            df = pl.read_parquet(llmr_path)
-            rows = df.filter(pl.col("item_hash") == item_hash)
+        elif item_type == "llm_response":
+            rows = self._llm_response_table.get({"item_hash": item_hash})
             if not rows.is_empty():
                 return LLMResponse(value="", call_id=None)
-
-        img_path = self._image_index_table.parquet_fpath
-        if img_path.exists():
-            df = pl.read_parquet(img_path)
-            rows = df.filter(pl.col("item_hash") == item_hash)
+        elif item_type == "image_index":
+            rows = self._image_index_table.get({"item_hash": item_hash})
             if not rows.is_empty():
                 image_path = rows["image_path"][0]
                 if image_path is not None:
@@ -641,11 +622,8 @@ class InputStorage:
                     if full_path.exists():
                         return _PILImage.open(str(full_path))
                 return None
-
-        fi_path = self._file_input_table.parquet_fpath
-        if fi_path.exists():
-            df = pl.read_parquet(fi_path)
-            rows = df.filter(pl.col("item_hash") == item_hash)
+        elif item_type == "file_input":
+            rows = self._file_input_table.get({"item_hash": item_hash})
             if not rows.is_empty():
                 return FileInput(
                     filename=rows["filename"][0],
@@ -653,18 +631,14 @@ class InputStorage:
                     file_url=rows["file_url"][0],
                     file_content=rows["file_content"][0],
                 )
-
-        bin_path = self._binary_table.parquet_fpath
-        if bin_path.exists():
-            df = pl.read_parquet(bin_path)
-            rows = df.filter(pl.col("item_hash") == item_hash)
+        elif item_type == "binary":
+            rows = self._binary_table.get({"item_hash": item_hash})
             if not rows.is_empty():
-                from parallem.core.convert.doc_to_bytes import cast_bytes_to_document
-                return cast_bytes_to_document(
+                return cast_document_to_bytes(
                     rows["doc_value"][0],
                     rows["doc_type"][0],
                     rows["doc_extra"][0],
-                )
+                )[0]
 
         return None
 

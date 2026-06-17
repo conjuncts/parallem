@@ -73,6 +73,8 @@ class ParquetWriter:
         self._log = []
         self.schema = schema
 
+        self._cached_df = None
+
     def write(
         self,
         data: Union[dict, list, pl.DataFrame],
@@ -92,6 +94,7 @@ class ParquetWriter:
         on: list[str] = None,
         receipt_col: Union[str, list[str]] = None,
     ):
+        self._cached_df = None
         if self._log:
             ret = write_to_parquet(
                 self.parquet_fpath,
@@ -105,9 +108,29 @@ class ParquetWriter:
             return ret
         return None
 
-    def get(self, item: dict):
-        """Retrieve items. Ignores any uncommitted items."""
-        df = pl.read_parquet(self.parquet_fpath)
+    def get(self, item: dict, *, consider_uncommitted=False) -> pl.DataFrame:
+        """Retrieve items."""
+
+
+        if self._cached_df is not None:
+            # use cache
+            df = self._cached_df
+        else:
+            if self.parquet_fpath.exists():
+                # read from parquet
+                df = pl.read_parquet(self.parquet_fpath)
+                self._cached_df = df
+            else:
+                # start with empty df
+                df = pl.DataFrame([], schema=self.schema)
+
+        if consider_uncommitted and self._log:
+            uncommitted = pl.DataFrame(self._log, schema=self.schema)
+            df = pl.concat(
+                [pl.read_parquet(self.parquet_fpath), uncommitted],
+                how="diagonal_relaxed"
+            )
+
         query_df = pl.DataFrame([item])
         result_df = df.join(query_df, on=list(item.keys()), how="semi", nulls_equal=True)
         return result_df
