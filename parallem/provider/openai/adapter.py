@@ -23,6 +23,11 @@ from parallem.utils._quick_pydantic import is_pydantic_model
 from parallem.utils.image import get_type_and_b64, is_image
 
 if TYPE_CHECKING:
+    from openai.types.responses.response_input_item_param import (
+        ResponseInputItemParam,
+        FunctionCallOutput as NativeFunctionCallOutput,
+    )
+    from openai.types.responses.easy_input_message_param import EasyInputMessageParam
     from openai.types.responses.response_input_param import Message
     from openai.types.responses.response import Response
     from openai.types.responses.response_function_tool_call_output_item import (
@@ -36,13 +41,13 @@ if TYPE_CHECKING:
 
 def _fix_docs_for_openai(
     documents: List[LLMDocument],
-) -> "List[Message]":
+) -> "List[ResponseInputItemParam]":
     """Ensure documents are in the correct format for OpenAI API"""
 
-    formatted_docs = []
+    formatted_docs: List["ResponseInputItemParam"] = []
     for doc in documents:
         if isinstance(doc, str):
-            msg: "Message" = {
+            msg: "EasyInputMessageParam" = {
                 "role": "user",
                 "content": doc,
             }
@@ -69,7 +74,7 @@ def _fix_docs_for_openai(
             if isinstance(doc, MCPOutput):
                 fc_content = [_fix_mcp_block(x) for x in fc_content]
 
-            msg: "ResponseFunctionToolCallOutputItem" = {
+            msg: "NativeFunctionCallOutput" = {
                 "type": "function_call_output",
                 "call_id": doc.fcall_id,
                 "output": fc_content,
@@ -89,14 +94,14 @@ def _fix_docs_for_openai(
             formatted_docs.append(msg)
         elif isinstance(doc, FileInput):
             if doc.file_url:
-                content: "ResponseInputFile" = {
+                input_file: "ResponseInputFile" = {
                     "type": "input_file",
                     "file_url": doc.file_url,
                     **doc.kwargs
                 }
             elif doc.file_content:
                 b64 = base64.b64encode(doc.file_content).decode("utf-8")
-                content: "ResponseInputFile" = {
+                input_file: "ResponseInputFile" = {
                     "type": "input_file",
                     "filename": doc.filename,
                     "file_data": f"data:{doc.mime_type};base64,{b64}",
@@ -104,7 +109,7 @@ def _fix_docs_for_openai(
                 }
             formatted_docs.append({
                 "role": "user",
-                "content": [content],
+                "content": [input_file],
             })
         elif is_image(doc):
             img_type, img_b64 = get_type_and_b64(
@@ -173,7 +178,7 @@ class OpenAIAdapter(BaseAdapter):
     def fix_docs(
         self,
         documents: List[LLMDocument],
-    ) -> "List[Message]":
+    ) -> "List[ResponseInputItemParam]":
         return _fix_docs_for_openai(documents)
 
     def fix_tools(

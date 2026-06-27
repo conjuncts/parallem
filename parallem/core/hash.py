@@ -207,7 +207,7 @@ def compute_hash(
                 for item in content:
                     hasher.update(str(item).encode("utf-8"))
         elif isinstance(doc, FileInput):
-            hasher.update(b"file_input")
+            hasher.update(b"input_file")
             _updateh(hasher, doc.filename)
             _updateh(hasher, doc.mime_type)
             _updateh(hasher, doc.file_url)
