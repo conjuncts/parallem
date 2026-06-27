@@ -29,7 +29,7 @@ def populate_ready_llm_response(
     """
     # Implement hydration logic here
     if response._value is None:
-        parsed_response = backer.retrieve(response.call_id)
+        parsed_response = backer.retrieve(response.fcall_id)
         if parsed_response is None:
             raise IntegrityError("Cached value is no longer available")
         response._value = parsed_response.text

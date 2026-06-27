@@ -179,24 +179,8 @@ def compute_hash(
             img_type, img_b64 = get_type_and_b64(doc)
             hasher.update(img_type.encode("utf-8"))
             hasher.update(img_b64.encode("utf-8"))
-        elif isinstance(doc, FunctionCallRequest):
-            hasher.update(b"function_call")
-            _updateh(hasher, doc.text_content)
-            for call in doc.calls:
-                # hasher.update(str(call).encode("utf-8"))
-                _updateh(hasher, call.name)
-                _updateh(hasher, call.arg_str)
-                _updateh(hasher, call.fcall_id)
-        elif isinstance(doc, FunctionCallOutput):
-            hasher.update(b"function_call_output")
-            _updateh(hasher, doc.name)
-            _updateh(hasher, str(doc.content))
-            _updateh(hasher, doc.fcall_id)
-        elif isinstance(doc, MCPOutput):
-            hasher.update(b"mcp_output")
-            _updateh(hasher, doc.name)
-            _updateh(hasher, str(doc.content))
-            _updateh(hasher, doc.call_id)
+        elif isinstance(doc, (FunctionCallRequest, FunctionCallOutput, MCPOutput, FileInput)):
+            doc.calculate_hash(hasher)
         elif isinstance(doc, tuple) and len(doc) == 2:
             # Handle Tuple[Literal["user", "assistant", "system", "developer"], str]
             role, content = doc
@@ -206,13 +190,6 @@ def compute_hash(
             else:
                 for item in content:
                     hasher.update(str(item).encode("utf-8"))
-        elif isinstance(doc, FileInput):
-            hasher.update(b"input_file")
-            _updateh(hasher, doc.filename)
-            _updateh(hasher, doc.mime_type)
-            _updateh(hasher, doc.file_url)
-            if doc.file_content:
-                hasher.update(doc.file_content)
         elif isinstance(doc, dict):
             # best effort deterministic dict hash
             dict_str = json.dumps(_normalize_for_hash(doc), sort_keys=True, separators=(",", ":"))

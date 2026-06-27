@@ -50,7 +50,7 @@ class TestGeminiDocumentFormatting:
         docs = [
             MCPOutput(
                 name="my_mcp_tool",
-                call_id="call_123",
+                fcall_id="call_123",
                 content=[_FakeTextBlock()],
             )
         ]

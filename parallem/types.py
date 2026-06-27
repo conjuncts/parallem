@@ -20,6 +20,7 @@ from PIL import Image
 from parallem.utils.hardcoded import guess_provider_and_name
 
 if TYPE_CHECKING:
+    from hashlib import _Hash
     try:
         from mcp.types import ContentBlock
     except ImportError:
@@ -171,6 +172,10 @@ class FunctionCall:
         return self.__repr__()
 
 
+def _hash_if_present(hasher, val: Optional[str]):
+    if val is not None:
+        hasher.update(val.encode("utf-8"))
+
 class AskItem(ABC):
     """An item (a document, LLMResponse, etc.) which can be passed to ask_llm().
     
@@ -200,6 +205,12 @@ class FileInput(AskItem):
         if self.file_content is None and self.file_url is None:
             raise ValueError("FileInput must have either file_content or file_url.")
 
+    def calculate_hash(self, hasher: "_Hash") -> str:
+        hasher.update(b"input_file")
+        _hash_if_present(hasher, self.filename)
+        _hash_if_present(hasher, self.mime_type)
+        _hash_if_present(hasher, self.file_url)
+        _hash_if_present(hasher, self.file_content)
 
 @dataclass(slots=True)
 class FunctionCallRequest(AskItem):
@@ -222,6 +233,13 @@ class FunctionCallRequest(AskItem):
     def __str__(self):
         return self.__repr__()
 
+    def calculate_hash(self, hasher: "_Hash") -> str:
+        hasher.update(b"function_call")
+        _hash_if_present(hasher, self.text_content)
+        for call in self.calls:
+            _hash_if_present(hasher, call.name)
+            _hash_if_present(hasher, call.arg_str)
+            _hash_if_present(hasher, call.fcall_id)
 
 @dataclass(slots=True)
 class FunctionCallOutput(AskItem):
@@ -239,11 +257,16 @@ class FunctionCallOutput(AskItem):
     """The name of the function call this output corresponds to."""
 
     def __repr__(self):
-        return f"FunctionCallOutput(name={self.name}, call_id={(self.fcall_id or '')[:8]}, content={str(self.content)[:20]}...)"
+        return f"FunctionCallOutput(name={self.name}, fcall_id={(self.fcall_id or '')[:8]}, content={str(self.content)[:20]}...)"
 
     def __str__(self):
         return self.__repr__()
 
+    def calculate_hash(self, hasher: "_Hash") -> str:
+        hasher.update(b"function_call_output")
+        _hash_if_present(hasher, self.name)
+        _hash_if_present(hasher, str(self.content))
+        _hash_if_present(hasher, self.fcall_id)
 
 @dataclass(slots=True)
 class MCPOutput(AskItem):
@@ -251,7 +274,7 @@ class MCPOutput(AskItem):
 
     type: Literal["mcp_output"] = field(init=False, default="mcp_output")
 
-    call_id: str
+    fcall_id: str
     """The ID of the function call this output corresponds to."""
 
     name: str
@@ -261,8 +284,13 @@ class MCPOutput(AskItem):
     """Content blocks from the MCP function call."""
 
     def __repr__(self):
-        return f"MCPOutput(name={self.name}, call_id={(self.call_id or '')[:8]}, content={len(self.content)} blocks)"
+        return f"MCPOutput(name={self.name}, fcall_id={(self.fcall_id or '')[:8]}, content={len(self.content)} blocks)"
 
+    def calculate_hash(self, hasher: "_Hash") -> str:
+        hasher.update(b"mcp_output")
+        _hash_if_present(hasher, self.name)
+        _hash_if_present(hasher, str(self.content))
+        _hash_if_present(hasher, self.fcall_id)
 
 ServerToolType = Literal["web_search", "code_interpreter", "mcp"]
 

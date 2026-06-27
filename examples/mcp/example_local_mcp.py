@@ -23,7 +23,7 @@ async def my_agent(agt: pllm.AgentContext, mcp_client: Client, question: str):
             conv.append(
                 pllm.MCPOutput(
                     name=fc.name,
-                    call_id=fc.fcall_id,
+                    fcall_id=fc.fcall_id,
                     content=out.content,
                 )
             )
