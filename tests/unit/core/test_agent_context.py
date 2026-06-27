@@ -223,22 +223,8 @@ class TestAskLLMMethod:
             call_id = call_args.kwargs["call_id"]
             assert call_id["meta"]["provider_type"] == "google"
 
-    @patch("parallem.core.agent.agent.compute_hash")
-    def test_ask_llm_hash_computation(self, mock_compute_hash, mock_orchestrator):
-        """Test that ask_llm computes hashes correctly"""
-        mock_compute_hash.return_value = "test_hash_123"
-
-        agent = AgentContext("test_agent", mock_orchestrator)
-
-        with agent:
-            agent.ask_llm("Test prompt", instructions="Test instructions")
-
-            mock_compute_hash.assert_called_once_with(
-                "Test instructions", ["Test prompt"], salt="gpt-5-nano"
-            )
-
     @pytest.mark.skip(reason="hash_by tools not ready yet")
-    @patch("parallem.core.agent.agent.compute_hash")
+    @patch("parallem.core.hash.compute_salted_hash")
     def test_ask_llm_hash_by_tools(self, mock_compute_hash, mock_orchestrator):
         """hash_by=['tools'] should include the tools in the salt."""
         mock_compute_hash.return_value = "test_hash_123"

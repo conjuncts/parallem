@@ -8,7 +8,7 @@ configurations.
 from pydantic import BaseModel
 import pytest
 
-from parallem.core.agent.agent import AgentContext
+from parallem.core.hash import compute_salted_hash
 from parallem.types import LLMIdentity
 from parallem.tools.server import WebSearchTool
 
@@ -31,12 +31,10 @@ class TestHashByToolNames:
     def test_hash_by_tool_names_with_tools(self, params):
         """Test that tool names are included in the hash."""
         params["tools"] = [{"name": "tool1"}, {"name": "tool2"}]
-        hash_result, terms = AgentContext._compute_hash(
-            None,
+        hash_result, terms = compute_salted_hash(
             params=params,
             salt=None,
             hash_by=["tool_names"],
-            provider_type="openai",
         )
 
         assert hash_result == "23cdd9802923d8b6ec7a27aee3f4e49231ea1b7e5d202a78d82cb40678a60457"
@@ -45,12 +43,10 @@ class TestHashByToolNames:
 
     def test_hash_by_tool_names_without_tools(self, params):
         """Test that no tool names are included when tools are None."""
-        hash_result, terms = AgentContext._compute_hash(
-            None,
+        hash_result, terms = compute_salted_hash(
             params=params,
             salt=None,
             hash_by=["tool_names"],
-            provider_type="openai",
         )
 
         assert hash_result == "4c61214b1872355498ce8424867b2bf2faa0956843423a36f0fe99063e7abff6"
@@ -60,12 +56,10 @@ class TestHashByToolNames:
         """Test that different tool name order produces different hash."""
         params["tools"] = [{"name": "tool2"}, {"name": "tool1"}]
 
-        hash_result, terms = AgentContext._compute_hash(
-            None,
+        hash_result, terms = compute_salted_hash(
             params=params,
             salt=None,
             hash_by=["tool_names"],
-            provider_type="openai",
         )
 
         assert hash_result == "33787a33a4029e1ee5edd1ff3ae0f962408b3ffc2ebeb3b4d35dae68848a27ba"
@@ -74,12 +68,10 @@ class TestHashByToolNames:
 
     def test_ask_llm_hash_by_tool_names(self, params):
         params["tools"] = [WebSearchTool()]
-        hash4, terms = AgentContext._compute_hash(
-            None,
+        hash4, terms = compute_salted_hash(
             params=params,
             salt=None,
             hash_by=["tool_names"],
-            provider_type="test_provider",
         )
         assert hash4 == "0d8c15ee81c4303b97fc1ae90691700484cc50f7c0e041e776cb801ac4774f29"
         assert len(terms) == 1
@@ -98,12 +90,10 @@ class TestHashByStructuredOutput:
 
         params["structured_output"] = OutputSchema
 
-        hash_result, terms = AgentContext._compute_hash(
-            None,
+        hash_result, terms = compute_salted_hash(
             params=params,
             salt=None,
             hash_by=["structured_output"],
-            provider_type="openai",
         )
 
         assert hash_result == "96aa46e695fb9591eaf12f0f94edf3ae0de2f907961bb02fb0ec696791390e94"
@@ -119,12 +109,10 @@ class TestHashByStructuredOutput:
             description: str
 
         params["structured_output"] = OutputSchema
-        hash_result, terms = AgentContext._compute_hash(
-            None,
+        hash_result, terms = compute_salted_hash(
             params=params,
             salt=None,
             hash_by=["structured_output"],
-            provider_type="openai",
         )
 
         assert hash_result == "528f5bc76a79b04f3bd97f28ffa73a6c43a2a6c7556b4a751451920f468c72af"
@@ -133,12 +121,10 @@ class TestHashByStructuredOutput:
 
     def test_hash_by_structured_output_without_schema(self, params):
         """Test that no schema is included when structured_output is None."""
-        hash_result, terms = AgentContext._compute_hash(
-            None,
+        hash_result, terms = compute_salted_hash(
             params=params,
             salt=None,
             hash_by=["structured_output"],
-            provider_type="openai",
         )
 
         assert hash_result == "4c61214b1872355498ce8424867b2bf2faa0956843423a36f0fe99063e7abff6"
@@ -150,12 +136,10 @@ class TestHashByKwargs:
 
     def test_hash_by_kwargs_with_values(self, params):
         """Test that kwargs are included in the hash."""
-        hash_result, terms = AgentContext._compute_hash(
-            None,
+        hash_result, terms = compute_salted_hash(
             params=params,
             salt=None,
             hash_by=["kwargs"],
-            provider_type="openai",
             kwargs={"temperature": 0.7, "max_tokens": 100},
         )
 
@@ -166,12 +150,10 @@ class TestHashByKwargs:
 
     def test_hash_by_kwargs_without_values(self, params):
         """Test that no kwargs are included when kwargs is None."""
-        hash_result, terms = AgentContext._compute_hash(
-            None,
+        hash_result, terms = compute_salted_hash(
             params=params,
             salt=None,
             hash_by=["kwargs"],
-            provider_type="openai",
             kwargs=None,
         )
 
@@ -180,12 +162,10 @@ class TestHashByKwargs:
 
     def test_hash_by_kwargs_different_values(self, params):
         """Test that different kwargs produce different hashes."""
-        hash_result, terms = AgentContext._compute_hash(
-            None,
+        hash_result, terms = compute_salted_hash(
             params=params,
             salt=None,
             hash_by=["kwargs"],
-            provider_type="openai",
             kwargs={"temperature": 0.5, "max_tokens": 200},
         )
 
@@ -207,12 +187,10 @@ class TestHashByAll:
 
         params["structured_output"] = OutputSchema
         params["tools"] = [{"name": "tool1"}, {"name": "tool2"}]
-        hash_result, terms = AgentContext._compute_hash(
-            None,
+        hash_result, terms = compute_salted_hash(
             params=params,
             salt=None,
             hash_by=["all"],
-            provider_type="openai",
             kwargs={"temperature": 0.7},
         )
 
@@ -232,12 +210,10 @@ class TestHashByCombinations:
         params["tools"] = [{"name": "search"}]
 
         # Test with multiple options
-        hash_result, terms = AgentContext._compute_hash(
-            None,
+        hash_result, terms = compute_salted_hash(
             params=params,
             salt=None,
             hash_by=["tool_names", "kwargs"],
-            provider_type="openai",
             kwargs={"temperature": 0.8},
         )
 
@@ -249,20 +225,16 @@ class TestHashByCombinations:
         """Test that hash_by=['tools'] and hash_by=['tool_names'] differ."""
         params["tools"] = [{"name": "tool1", "description": "Tool 1"}]
 
-        hash_tools, _ = AgentContext._compute_hash(
-            None,
+        hash_tools, _ = compute_salted_hash(
             params=params,
             salt=None,
             hash_by=["tools"],
-            provider_type="openai",
         )
 
-        hash_tool_names, _ = AgentContext._compute_hash(
-            None,
+        hash_tool_names, _ = compute_salted_hash(
             params=params,
             salt=None,
             hash_by=["tool_names"],
-            provider_type="openai",
         )
 
         # Adding description to tool changes the full tools hash
@@ -282,38 +254,30 @@ class TestExistingHashByTools:
             "structured_output": None,
             "tools": [{"name": "tool1"}, {"name": "tool2"}],
         }
-        hash1, _ = AgentContext._compute_hash(
-            None,
+        hash1, _ = compute_salted_hash(
             params=params,
             salt=None,
             hash_by=["tools"],
-            provider_type="test_provider",
         )
         assert hash1 == "ffd6b7504c0ae7215320b8131a4b33a2e08630148ab50cd1a15503f4bae84ad9"
         params["tools"] = None
-        hash2, _ = AgentContext._compute_hash(
-            None,
+        hash2, _ = compute_salted_hash(
             params=params,
             salt=None,
             hash_by=["tools"],
-            provider_type="test_provider",
         )
         assert hash2 == "31644a7cb90c010b62f2566223cad9c06ecc6fe238fa65ac309b2bec2d71805e"
         params["tools"] = [{"name": "tool2"}, {"name": "tool1"}]
-        hash3, _ = AgentContext._compute_hash(
-            None,
+        hash3, _ = compute_salted_hash(
             params=params,
             salt=None,
             hash_by=["tools"],
-            provider_type="test_provider",
         )
         assert hash3 == "0634d882f06f350e9ab77272ce7d10119369a2acfd1dcb09042aead448a38d6e"
         params["tools"] = [WebSearchTool()]
-        hash4, _ = AgentContext._compute_hash(
-            None,
+        hash4, _ = compute_salted_hash(
             params=params,
             salt=None,
             hash_by=["tools"],
-            provider_type="test_provider",
         )
         assert hash4 == "3038c81daa35cbd3aef8949d6cc3196754a6957c342f8a08748d54cf5c259534"

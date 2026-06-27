@@ -3,9 +3,9 @@ import json
 from typing import Any, List, Optional, Union
 
 from PIL import Image
-import warnings
 
 from parallem.types import (
+    CommonQueryParameters,
     FileInput,
     FunctionCallOutput,
     FunctionCallRequest,
@@ -203,7 +203,6 @@ def compute_hash(
     documents: List[LLMDocument],
     *,
     salt: Optional[str] = None,
-    _legacy_salt: Optional[List[str]] = None,
 ) -> str:
     """
     Compute a hash for the given instructions and documents.
@@ -212,20 +211,8 @@ def compute_hash(
     :param documents: The documents to hash.
     :param salt: An optional salt string. Applied via a second SHA-256 pass over the
         base hash, so it cannot collide with document content.
-    :param _legacy_salt: Deprecated. For migration only. Reproduces the old
-        (collision-prone) behaviour where salt terms were appended directly to the
-        document list. Pass the same list that was formerly concatenated onto the
-        documents argument to recover legacy hashes.
     :returns: A SHA-256 hash representing the combined content, in hexadecimal format.
     """
-    if _legacy_salt is not None:
-        warnings.warn(
-            "_legacy_salt is deprecated and exists only for migration purposes. "
-            "Switch to the `salt` parameter to avoid hash collisions.",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-        return compute_hash(instructions, list(documents) + _legacy_salt)
     hasher = hashlib.sha256()
     if instructions:
         hasher.update(instructions.encode("utf-8"))
@@ -241,3 +228,33 @@ def compute_hash(
         return salted_hasher.hexdigest()
     else:
         return base_hash
+
+
+def compute_salted_hash(
+    params: CommonQueryParameters,
+    *,
+    salt,
+    hash_by,
+    kwargs=None,
+):
+    """Compute the input hash (doc_hash) for a list of documents."""
+    # Compute salt
+    salt_terms = build_hash_salt_terms(
+        salt=salt,
+        hash_by=hash_by,
+        llm=params["llm"],
+        tools=params["tools"],
+        structured_output=params["structured_output"],
+        kwargs=kwargs,
+    )
+
+    # Use a null-byte separator so individual terms cannot be confused with one
+    # another, and pass as the `salt` parameter (applied via re-hash) so that
+    # salt content can never collide with document content.
+    combined_salt = "\x00".join(salt_terms) if salt_terms else None
+    hashed = compute_hash(
+        params["instructions"],
+        params["strict_documents"],
+        salt=combined_salt
+    )
+    return hashed, salt_terms

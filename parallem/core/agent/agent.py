@@ -13,7 +13,7 @@ from parallem.core.ask import Askable, _raise_exception
 from parallem.core.convert._asking import convert_options, convert_tools
 from parallem.core.convert.fix_docs import cast_documents, reduce_to_list
 from parallem.core.exception import NotAvailable, PendingNotAvailable
-from parallem.core.hash import build_hash_salt_terms, compute_hash
+from parallem.core.hash import compute_hash, compute_salted_hash
 from parallem.core.convert.populate import populate_msg_state
 from parallem.core.memoize.memoize_context import MemoizeContext
 from parallem.core.state.msg_state import MessageState
@@ -109,36 +109,6 @@ class AgentContext(Askable):
             return True
         return False
 
-    def _compute_hash(
-        self,
-        params: CommonQueryParameters,
-        *,
-        salt,
-        hash_by,
-        provider_type,
-        kwargs=None,
-    ):
-        """Compute the input hash (doc_hash) for a list of documents."""
-        # Compute salt
-        salt_terms = build_hash_salt_terms(
-            salt=salt,
-            hash_by=hash_by,
-            llm=params["llm"],
-            provider_type=provider_type,
-            tools=params["tools"],
-            structured_output=params["structured_output"],
-            kwargs=kwargs,
-        )
-
-        # Use a null-byte separator so individual terms cannot be confused with one
-        # another, and pass as the `salt` parameter (applied via re-hash) so that
-        # salt content can never collide with document content.
-        combined_salt = "\x00".join(salt_terms) if salt_terms else None
-        hashed = compute_hash(
-            params["instructions"], params["strict_documents"], salt=combined_salt
-        )
-        return hashed, salt_terms
-
     def _get_cached_response(
         self,
         call_id,
@@ -201,11 +171,10 @@ class AgentContext(Askable):
             "tools": tools,
         }
         # 2. compute hash for inputs
-        hashed, salt_terms = self._compute_hash(
+        hashed, salt_terms = compute_salted_hash(
             params,
             salt=salt,
             hash_by=hash_by,
-            provider_type=provider_type,
             kwargs=kwargs,
         )
 
@@ -421,6 +390,9 @@ class AgentContext(Askable):
 
 
 class SubagentController:
+    """
+    Handles the creation of subagents for an agent.
+    """
     def __init__(self, parent: "AgentContext"):
         self.parent = parent
         self.existing_subagents = 0
