@@ -5,17 +5,13 @@ from typing import (
     TYPE_CHECKING,
     Callable,
     Dict,
-    Iterator,
     List,
     Literal,
     Optional,
-    Sequence,
     Union,
-    get_args,
-    get_origin,
 )
 from typing_extensions import deprecated
-from parallem.core.ask import Askable
+from parallem.core.ask import Askable, _raise_exception
 from parallem.core.convert.fix_docs import cast_documents, reduce_to_list
 from parallem.core.exception import NotAvailable, PendingNotAvailable
 from parallem.core.hash import build_hash_salt_terms, compute_hash
@@ -26,7 +22,7 @@ from parallem.core.response import (
     ReadyLLMResponse,
 )
 from parallem.logging.dash_logger import HashStatus
-from parallem.tools.auto_schema import to_tool_schema
+from parallem.tools.auto_schema import _is_agent_context_annotation, to_tool_schema
 from parallem.types import (
     AskParameters,
     CallIdentifier,
@@ -49,24 +45,6 @@ if TYPE_CHECKING:
     from pydantic import BaseModel
 
 
-def _is_agent_context_annotation(annotation) -> bool:
-    if annotation is inspect.Parameter.empty:
-        return False
-
-    if isinstance(annotation, str):
-        cleaned = annotation.replace(" ", "")
-        return cleaned == "AgentContext" or cleaned.endswith(".AgentContext")
-
-    if hasattr(annotation, "__forward_arg__"):
-        return _is_agent_context_annotation(annotation.__forward_arg__)
-
-    origin = get_origin(annotation)
-    if origin is not None:
-        return any(_is_agent_context_annotation(arg) for arg in get_args(annotation))
-
-    return getattr(annotation, "__name__", None) == "AgentContext"
-
-
 class AgentContext(Askable):
     """Context manager for one "agent", which in parallem is one single autonomous process.
 
@@ -84,9 +62,11 @@ class AgentContext(Askable):
         ask_params: Optional[AskParameters] = None,
         ignore_cache: bool = False,
         error_mode: Literal["ignore", "emit", "raise"] = "raise",
+        subagent_controller: Optional["SubagentController"] = None,
     ):
         self.agent_name = agent_name
         self._orch = orch
+        self._subagent_controller = subagent_controller or SubagentController(self)
 
         self.ask_params = ask_params or {}
         if self.ask_params:
@@ -345,9 +325,8 @@ class AgentContext(Askable):
         response: LLMResponse,
         functions: Dict[str, Callable] = None,
         *,
-        subagent_names: Optional[Sequence[str]] = None,
-        if_func_not_exist: Union[str, Exception, None] = None,
-        convert_to_str=True,
+        default: Optional[Callable] = _raise_exception,
+        convert_to_str: bool = True,
         cache: bool = False,
         salt: Optional[str] = None,
         **kwargs,
@@ -383,8 +362,6 @@ class AgentContext(Askable):
                     cache_call_id["seq_id"] = cached.old_seq_id
                 return self._deserialize_function_call_outputs(cached.text)
 
-        subagent_name_iter = iter(subagent_names) if subagent_names is not None else None
-
         # Check if response has function calls. If so, delegate to user-defined functions.
         fcs = response.function_calls
         fc_outs = []
@@ -392,25 +369,19 @@ class AgentContext(Askable):
             callme = functions.get(fc.name)
             if callme is None:
                 # Function not found
-                if if_func_not_exist is ValueError:
-                    raise ValueError(f"LLM asked for {fc.name}, but it was not provided.")
-                if isinstance(if_func_not_exist, Exception):
-                    raise if_func_not_exist
-                elif if_func_not_exist is None:
+                if default is None:
                     continue
                 else:
-                    fc_outs.append(if_func_not_exist)
+                    fc_outs.append(default())
                     continue
 
             call_args = dict(fc.args)
-            call_args = self._inject_subagent_context(
-                callme,
-                call_args,
-                subagent_name_iter,
-            )
-
-            # Execute the function
-            result = callme(**call_args)
+            if self._subagent_controller.requires_subagent(callme):
+                # If a subagent was requested, then create AgentContext for it
+                result = self._subagent_controller.run_subagent(fc.name, callme, call_args)
+            else:
+                # Otherwise, execute the function directly
+                result = callme(**call_args)
             if convert_to_str and not isinstance(result, str):
                 result = str(result)
             fc_outs.append(FunctionCallOutput(content=result, name=fc.name, fcall_id=fc.fcall_id))
@@ -470,47 +441,6 @@ class AgentContext(Askable):
                 )
             )
         return outputs
-
-    def _inject_subagent_context(
-        self,
-        callme: Callable,
-        call_args: dict,
-        subagent_name_iter: Optional[Iterator[str]],
-    ) -> dict:
-        """Allows subagents to be passed into ask_functions as if they were functions."""
-        injected_param_names = []
-        signature = inspect.signature(callme)
-        for param_name, param in signature.parameters.items():
-            if _is_agent_context_annotation(param.annotation):
-                injected_param_names.append(param_name)
-
-        if not injected_param_names:
-            return call_args
-
-        if subagent_name_iter is None:
-            raise ValueError(
-                "Function call requires AgentContext injection. "
-                "Pass subagent_names to ask_functions()."
-            )
-
-        try:
-            subagent_name = next(subagent_name_iter)
-        except StopIteration as exc:
-            raise ValueError(
-                "Not enough subagent_names provided for AgentContext injection."
-            ) from exc
-
-        injected_agent = AgentContext(
-            str(subagent_name),
-            self._orch,
-            ask_params=self.ask_params,
-            ignore_cache=self.ignore_cache,
-            error_mode=self._error_mode,
-        )
-        for param_name in injected_param_names:
-            call_args[param_name] = injected_agent
-
-        return call_args
 
     def ask_human(
         self,
@@ -624,3 +554,65 @@ class AgentContext(Askable):
         :returns: List of resolved string values corresponding to each response.
         """
         return [resp.final_answer for resp in responses]
+
+
+class SubagentController:
+    def __init__(self, parent: "AgentContext"):
+        self.parent = parent
+        self.existing_subagents = 0
+
+    def generate_subagent_name(self, fc_name: str, func: Callable, call_args: dict):
+        """
+        Default behavior: name subagents sequentially as
+        {parent_agent_name}/{fc_name}_0 etc.
+        """
+        result = self.parent.agent_name + f"/{fc_name}_{self.existing_subagents}"
+        self.existing_subagents += 1
+        return result
+
+    def run_subagent(self, fc_name: str, func: Callable, call_args: dict):
+        """
+        Create and run a subagent.
+        An AgentContext is automatically created.
+        """
+    
+        # Create subagent name and context
+        subagent_name = self.generate_subagent_name(fc_name, func, call_args)
+        subagent_context = AgentContext(
+            str(subagent_name),
+            self.parent._orch,
+            ask_params=self.parent.ask_params,
+            ignore_cache=self.parent.ignore_cache,
+            error_mode=self.parent._error_mode,
+        )
+
+        # Inject into call_args
+        signature = inspect.signature(func)
+        for param_name, param in signature.parameters.items():
+            if _is_agent_context_annotation(param.annotation):
+                call_args[param_name] = subagent_context
+                break
+        else:
+            raise ValueError(
+                f"Function {func.__name__} requires AgentContext injection, "
+                "but no parameter is annotated with AgentContext."
+            )
+
+        with subagent_context:
+            # Execute the subagent function
+            result = func(**call_args)
+        return result
+
+    def requires_subagent(
+        self,
+        callme: Callable,
+    ):
+        """Check if a function requires an AgentContext parameter."""
+        signature = inspect.signature(callme)
+        needed_agent_contexts = []
+        for _param_name, param in signature.parameters.items():
+            if _is_agent_context_annotation(param.annotation):
+                needed_agent_contexts.append(param.name)
+        if len(needed_agent_contexts) == 1:
+            return True
+        return None

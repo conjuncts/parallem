@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import TYPE_CHECKING, Callable, Dict, List, Optional, Sequence, Union
+from typing import TYPE_CHECKING, Callable, Dict, List, Optional, Union
 
 from parallem.types import (
     FunctionCallOutput,
@@ -14,6 +14,18 @@ from parallem.types import (
 if TYPE_CHECKING:
     from parallem.core.state.msg_state import MessageState
     from pydantic import BaseModel
+
+
+def _raise_exception(*args, **kwargs):
+    """
+    A default function can be provided to ask_functions, which is executed if the LLM requests
+    a function that is not provided. The default behavior raises an exception.
+    """
+    raise ValueError(
+        "LLM asked for a function that was not provided. "
+        "Provide a default function via ask_functions(default=lambda x: ...) "
+        "or set default=None to ignore."
+    )
 
 
 class Askable(ABC):
@@ -71,8 +83,7 @@ class Askable(ABC):
         response: Optional[LLMResponse] = None,
         functions: Dict[str, Callable] = None,
         *,
-        subagent_names: Optional[Sequence[str]] = None,
-        if_func_not_exist: Union[str, Exception, None] = None,
+        default: Optional[Callable] = _raise_exception,
         convert_to_str=True,
         cache: bool = False,
         salt: Optional[str] = None,
@@ -85,12 +96,10 @@ class Askable(ABC):
 
         :param functions: Available functions to the model. Mapping from function name to callable.
         :param kwargs: Any additional functions will be added to "functions".
-        :param if_func_not_exist: What to do if a function is not found.
-            If an Exception is passed, it will be raised.
-            If a string is passed, it will be added to the conversation as an error message
-            but allowed to continue.
+        :param default: What to do if a function is not found.
+            If Callable, it will be called with the function name and arguments.
             If None, it will be silently ignored.
-            Default: None.
+            Default: an exception will be raised.
         :param convert_to_str: Most APIs (OpenAI, Google, Anthropic) expect function arguments to be strings.
             If True, this method will convert non-string arguments to strings.
         :param cache: If True, cache and reuse function outputs for matching responses.

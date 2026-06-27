@@ -1,6 +1,5 @@
 from unittest.mock import Mock
 
-import pytest
 
 import parallem as pllm
 from parallem.core.agent.agent import AgentContext
@@ -41,42 +40,8 @@ class TestAskFunctionsAgentContextInjection:
         outputs = agent.ask_functions(
             response,
             needs_ctx=needs_ctx,
-            subagent_names=["worker_alpha", "worker_beta"],
         )
 
-        assert outputs[0].content == "ok:worker_alpha:7"
-        assert outputs[1].content == "ok:worker_beta:9"
-        assert captured == [(7, "worker_alpha"), (9, "worker_beta")]
-
-    def test_raises_when_injection_required_without_subagent_names(self, mock_orchestrator):
-        agent = AgentContext("root", mock_orchestrator)
-        response = LLMResponse("", call_id={"doc_hash": "h"})
-        response._pr = Mock(
-            function_calls=[FunctionCall("needs_ctx", {"value": 7}, fcall_id="cid-1")]
-        )
-
-        def needs_ctx(value: int, ctx: pllm.AgentContext):
-            return value
-
-        with pytest.raises(ValueError, match="requires AgentContext injection"):
-            agent.ask_functions(response, needs_ctx=needs_ctx)
-
-    def test_raises_when_not_enough_subagent_names(self, mock_orchestrator):
-        agent = AgentContext("root", mock_orchestrator)
-        response = LLMResponse("", call_id={"doc_hash": "h"})
-        response._pr = Mock(
-            function_calls=[
-                FunctionCall("needs_ctx", {"value": 1}, fcall_id="cid-1"),
-                FunctionCall("needs_ctx", {"value": 2}, fcall_id="cid-2"),
-            ]
-        )
-
-        def needs_ctx(value: int, ctx: pllm.AgentContext):
-            return value
-
-        with pytest.raises(ValueError, match="Not enough subagent_names"):
-            agent.ask_functions(
-                response,
-                needs_ctx=needs_ctx,
-                subagent_names=["only-one"],
-            )
+        assert outputs[0].content == "ok:root/needs_ctx_0:7"
+        assert outputs[1].content == "ok:root/needs_ctx_1:9"
+        assert captured == [(7, "root/needs_ctx_0"), (9, "root/needs_ctx_1")]

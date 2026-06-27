@@ -7,11 +7,10 @@ from typing import (
     Iterable,
     List,
     Optional,
-    Sequence,
     Union,
 )
 from typing_extensions import deprecated
-from parallem.core.ask import Askable
+from parallem.core.ask import Askable, _raise_exception
 from parallem.core.convert.fix_docs import reduce_to_list
 from parallem.core.hash import compute_hash
 from parallem.core.memoize.operations import (
@@ -336,9 +335,8 @@ class MessageState(UserList[Union[LLMDocument, LLMResponse]], Askable):
         response: Optional[LLMResponse] = None,
         functions: Dict[str, Callable] = None,
         *,
-        subagent_names: Optional[Sequence[str]] = None,
-        if_func_not_exist: Union[str, Exception] = None,
-        convert_to_str=True,
+        default: Optional[Callable] = _raise_exception,
+        convert_to_str: bool = True,
         cache: bool = False,
         salt: Optional[str] = None,
         **kwargs,
@@ -357,8 +355,7 @@ class MessageState(UserList[Union[LLMDocument, LLMResponse]], Askable):
         fc_outs = self._true_agent.ask_functions(
             last_msg,
             functions=functions,
-            subagent_names=subagent_names,
-            if_func_not_exist=if_func_not_exist,
+            default=default,
             convert_to_str=convert_to_str,
             cache=cache,
             salt=salt,
