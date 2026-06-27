@@ -3,7 +3,7 @@ from io import BytesIO
 from typing import TYPE_CHECKING, Literal, TypedDict, Union
 
 from parallem.core.exception import ProviderCompatibilityError
-from parallem.types import FileInput, FunctionCall, FunctionCallOutput, FunctionCallRequest, LLMDocument, MCPOutput
+from parallem.types import FileInput, FunctionCall, FunctionCallOutput, FunctionCallRequest, LLMDocument, MCPOutput, MultipartDocument
 from parallem.utils.image import get_type_and_b64, is_image
 
 if TYPE_CHECKING:
@@ -86,6 +86,20 @@ def to_chat_completion(
             "role": "user",
             "content": [to_chat_completion_part(doc)],
         }
+    elif isinstance(doc, MultipartDocument):
+        content_parts = []
+        for part in doc.parts:
+            converted = to_chat_completion_part(part)
+            if isinstance(converted, dict) and converted.get("type") == "unsupported":
+                return {
+                    "role": "unsupported",
+                    "reason": "cannot_convert_to_part",
+                }
+            content_parts.append(converted)
+        return {
+            "role": "user",
+            "content": content_parts,
+        }
     elif isinstance(doc, FunctionCallRequest):
         msg: "ChatCompletionAssistantMessageParam" = {
             "role": "assistant",
@@ -138,51 +152,52 @@ def from_chat_completion(
         return mime_type, base64.b64decode(b64)
 
     def _from_content_parts(parts: list) -> LLMDocument:
-        if len(parts) != 1:
-            raise ProviderCompatibilityError(
-                "Cannot convert multipart user message into a single LLMDocument"
-            )
+        converted_parts = []
+        for part in parts:
+            if isinstance(part, str):
+                converted_parts.append(part)
+            elif isinstance(part, dict):
+                if part.get("type") == "text":
+                    converted_parts.append(part.get("text", ""))
+                elif part.get("type") == "image_url":
+                    image_url = part.get("image_url", {}).get("url")
+                    if not isinstance(image_url, str):
+                        raise ProviderCompatibilityError("image_url part is missing a URL")
+                    _mime_type, raw = _decode_data_url(image_url)
+                    from PIL import Image
+                    converted_parts.append(Image.open(BytesIO(raw)))
+                elif part.get("type") == "file" or "file" in part or "filename" in part:
+                    file_part = part.get("file") if part.get("type") == "file" else part
+                    if isinstance(file_part, dict) and isinstance(file_part.get("filename"), str):
+                        filename = file_part["filename"]
+                        file_data = file_part.get("file_data")
+                        file_url = file_part.get("file_url")
 
-        part = parts[0]
-        if isinstance(part, str):
-            return part
+                        if isinstance(file_data, str):
+                            mime_type, raw = _decode_data_url(file_data)
+                            converted_parts.append(FileInput(
+                                mime_type=mime_type,
+                                filename=filename,
+                                file_content=raw,
+                            ))
+                        elif isinstance(file_url, str):
+                            converted_parts.append(FileInput(
+                                mime_type="application/octet-stream",
+                                filename=filename,
+                                file_url=file_url,
+                            ))
+                        else:
+                            raise ProviderCompatibilityError(f"Unsupported file part: {part}")
+                    else:
+                        raise ProviderCompatibilityError(f"Unsupported file part structure: {part}")
+                else:
+                    raise ProviderCompatibilityError(f"Unsupported user content part: {part}")
+            else:
+                raise ProviderCompatibilityError(f"Unsupported user content part type: {type(part)}")
 
-        if not isinstance(part, dict):
-            raise ProviderCompatibilityError(f"Unsupported user content part type: {type(part)}")
-
-        if part.get("type") == "text":
-            return part.get("text", "")
-
-        if part.get("type") == "image_url":
-            image_url = part.get("image_url", {}).get("url")
-            if not isinstance(image_url, str):
-                raise ProviderCompatibilityError("image_url part is missing a URL")
-            _mime_type, raw = _decode_data_url(image_url)
-            from PIL import Image
-
-            return Image.open(BytesIO(raw))
-
-        file_part = part.get("file") if part.get("type") == "file" else part
-        if isinstance(file_part, dict) and isinstance(file_part.get("filename"), str):
-            filename = file_part["filename"]
-            file_data = file_part.get("file_data")
-            file_url = file_part.get("file_url")
-
-            if isinstance(file_data, str):
-                mime_type, raw = _decode_data_url(file_data)
-                return FileInput(
-                    mime_type=mime_type,
-                    filename=filename,
-                    file_content=raw,
-                )
-            if isinstance(file_url, str):
-                return FileInput(
-                    mime_type="application/octet-stream",
-                    filename=filename,
-                    file_url=file_url,
-                )
-
-        raise ProviderCompatibilityError(f"Unsupported user content part: {part}")
+        if len(converted_parts) == 1:
+            return converted_parts[0]
+        return MultipartDocument(parts=converted_parts)
 
     if msg["role"] == "user":
         content = msg.get("content")

@@ -21,6 +21,7 @@ from parallem.types import (
     FunctionCallOutput,
     FunctionCallRequest,
     MCPOutput,
+    MultipartDocument,
     to_serial_id,
     LLMIdentity,
     HashByOption,
@@ -75,6 +76,7 @@ class InputStorage:
             "binary": set(),
             "image_index": set(),
             "file_input": set(),
+            "multipart_document": set(),
         }
 
         # Central index: maps (doc_hash, index_in_msg_state) -> item_hash
@@ -165,6 +167,14 @@ class InputStorage:
             },
         )
 
+        self._multipart_document_table = ParquetWriter(
+            self.path_inputs_multipart_document_table(),
+            schema={
+                "item_hash": pl.Utf8,
+                "parts_json": pl.Utf8,
+            },
+        )
+
         self._msg_state_len_table = ParquetWriter(
             self.path_inputs_msg_state_len_table(),
             schema={
@@ -210,6 +220,9 @@ class InputStorage:
 
     def path_inputs_image_index_table(self) -> Path:
         return self.path_inputs_multimedia() / "images.parquet"
+
+    def path_inputs_multipart_document_table(self) -> Path:
+        return self.path_inputs_multimedia() / "multipart_document.parquet"
 
     def path_inputs_msg_state_len_table(self) -> Path:
         return self.path_inputs_multimedia() / "msg_state_len.parquet"
@@ -342,56 +355,101 @@ class InputStorage:
     # Core storage logic
     # ------------------------------------------------------------------
 
+    def _store_part(self, part: LLMDocument) -> tuple[str, str]:
+        if isinstance(part, tuple):
+            role, text = part
+            item_hash = _hash_str(f"text\x00{role}\x00{text}")
+            self._maybe_write("text", item_hash, self._text_table, {
+                "item_hash": item_hash,
+                "text": text,
+                "role": role,
+            })
+            return item_hash, "text"
+
+        if isinstance(part, str):
+            item_hash = _hash_str(f"text\x00\x00{part}")
+            self._maybe_write("text", item_hash, self._text_table, {
+                "item_hash": item_hash,
+                "text": part,
+                "role": None,
+            })
+            return item_hash, "text"
+
+        if is_image(part):
+            if self.input_cfg.save_images:
+                rel_path, img_format, item_hash = self._store_image(part)
+            else:
+                # Still need a stable hash; derive it without saving the file.
+                buffered = BytesIO()
+                part.save(buffered, format=part.format or "PNG")
+                item_hash = _hash_bytes(buffered.getvalue())
+                rel_path, img_format = None, None
+
+            self._maybe_write("image_index", item_hash, self._image_index_table, {
+                "item_hash": item_hash,
+                "image_path": rel_path,
+                "image_format": img_format,
+            })
+            return item_hash, "image_index"
+
+        if part is None or isinstance(part, (int, float, bool, dict, list)):
+            json_text = None
+            if self.input_cfg.save_json:
+                json_text = json.dumps(part, separators=(",", ":"))
+                if (
+                    self.input_cfg.json_char_limit is not None
+                    and len(json_text) > self.input_cfg.json_char_limit
+                ):
+                    json_text = None
+            item_hash = _hash_str(f"json\x00{json_text}")
+            self._maybe_write("json", item_hash, self._json_table, {
+                "item_hash": item_hash,
+                "json_text": json_text,
+            })
+            return item_hash, "json"
+
+        if isinstance(part, FileInput):
+            raw = (part.file_content or b"") + (part.file_url or "").encode()
+            item_hash = _hash_bytes(raw + (part.filename or "").encode())
+            self._maybe_write("file_input", item_hash, self._file_input_table, {
+                "item_hash": item_hash,
+                "filename": part.filename,
+                "mime_type": part.mime_type,
+                "file_url": part.file_url,
+                "file_content": part.file_content if self.input_cfg.save_file_contents else None,
+            })
+            return item_hash, "file_input"
+
+        content, msg_type, msg_extra = cast_document_to_bytes(part)
+        item_hash = _hash_bytes(content)
+        self._maybe_write("binary", item_hash, self._binary_table, {
+            "item_hash": item_hash,
+            "doc_type": msg_type,
+            "doc_extra": msg_extra,
+            "doc_value": content,
+        })
+        return item_hash, "binary"
+
     def _store_input_doc(
         self,
         doc_hash: str,
         index_in_msg_state: int,
         msg: Union[LLMDocument, LLMResponse],
     ) -> None:
-        item_hash: str
+        if isinstance(msg, MultipartDocument):
+            parts_info = []
+            for part in msg.parts:
+                part_hash, part_type = self._store_part(part)
+                parts_info.append({"item_hash": part_hash, "item_type": part_type})
 
-        if isinstance(msg, tuple):
-            role, text = msg
-            item_hash = _hash_str(f"text\x00{role}\x00{text}")
+            parts_json = json.dumps(parts_info, separators=(",", ":"))
+            item_hash = _hash_str(f"multipart\x00{parts_json}")
             self._item_index_table.log(
-                {"doc_hash": doc_hash, "index_in_msg_state": index_in_msg_state, "item_hash": item_hash, "item_type": "text"}
+                {"doc_hash": doc_hash, "index_in_msg_state": index_in_msg_state, "item_hash": item_hash, "item_type": "multipart_document"}
             )
-            self._maybe_write("text", item_hash, self._text_table, {
+            self._maybe_write("multipart_document", item_hash, self._multipart_document_table, {
                 "item_hash": item_hash,
-                "text": text,
-                "role": role,
-            })
-            return
-
-        if isinstance(msg, str):
-            item_hash = _hash_str(f"text\x00\x00{msg}")
-            self._item_index_table.log(
-                {"doc_hash": doc_hash, "index_in_msg_state": index_in_msg_state, "item_hash": item_hash, "item_type": "text"}
-            )
-            self._maybe_write("text", item_hash, self._text_table, {
-                "item_hash": item_hash,
-                "text": msg,
-                "role": None,
-            })
-            return
-
-        if is_image(msg):
-            if self.input_cfg.save_images:
-                rel_path, img_format, item_hash = self._store_image(msg)
-            else:
-                # Still need a stable hash; derive it without saving the file.
-                buffered = BytesIO()
-                msg.save(buffered, format=msg.format or "PNG")
-                item_hash = _hash_bytes(buffered.getvalue())
-                rel_path, img_format = None, None
-
-            self._item_index_table.log(
-                {"doc_hash": doc_hash, "index_in_msg_state": index_in_msg_state, "item_hash": item_hash, "item_type": "image_index"}
-            )
-            self._maybe_write("image_index", item_hash, self._image_index_table, {
-                "item_hash": item_hash,
-                "image_path": rel_path,
-                "image_format": img_format,
+                "parts_json": parts_json,
             })
             return
 
@@ -468,51 +526,10 @@ class InputStorage:
             })
             return
 
-        if msg is None or isinstance(msg, (int, float, bool, dict, list)):
-            json_text = None
-            if self.input_cfg.save_json:
-                json_text = json.dumps(msg, separators=(",", ":"))
-                if (
-                    self.input_cfg.json_char_limit is not None
-                    and len(json_text) > self.input_cfg.json_char_limit
-                ):
-                    json_text = None
-            item_hash = _hash_str(f"json\x00{json_text}")
-            self._item_index_table.log(
-                {"doc_hash": doc_hash, "index_in_msg_state": index_in_msg_state, "item_hash": item_hash, "item_type": "json"}
-            )
-            self._maybe_write("json", item_hash, self._json_table, {
-                "item_hash": item_hash,
-                "json_text": json_text,
-            })
-            return
-
-        if isinstance(msg, FileInput):
-            raw = (msg.file_content or b"") + (msg.file_url or "").encode()
-            item_hash = _hash_bytes(raw + (msg.filename or "").encode())
-            self._item_index_table.log(
-                {"doc_hash": doc_hash, "index_in_msg_state": index_in_msg_state, "item_hash": item_hash, "item_type": "file_input"}
-            )
-            self._maybe_write("file_input", item_hash, self._file_input_table, {
-                "item_hash": item_hash,
-                "filename": msg.filename,
-                "mime_type": msg.mime_type,
-                "file_url": msg.file_url,
-                "file_content": msg.file_content if self.input_cfg.save_file_contents else None,
-            })
-            return
-
-        content, msg_type, msg_extra = cast_document_to_bytes(msg)
-        item_hash = _hash_bytes(content)
+        item_hash, item_type = self._store_part(msg)
         self._item_index_table.log(
-            {"doc_hash": doc_hash, "index_in_msg_state": index_in_msg_state, "item_hash": item_hash, "item_type": "binary"}
+            {"doc_hash": doc_hash, "index_in_msg_state": index_in_msg_state, "item_hash": item_hash, "item_type": item_type}
         )
-        self._maybe_write("binary", item_hash, self._binary_table, {
-            "item_hash": item_hash,
-            "doc_type": msg_type,
-            "doc_extra": msg_extra,
-            "doc_value": content,
-        })
 
     def store_input(
         self,
@@ -572,21 +589,9 @@ class InputStorage:
         item_hash = index_hits["item_hash"][0]
         item_type = index_hits["item_type"][0]
 
-        if item_type == "text":
-            rows = self._text_table.get({"item_hash": item_hash})
-            if not rows.is_empty():
-                text = rows["text"][0]
-                role = rows["role"][0]
-                if role is not None:
-                    return (role, text)
-                return text
-        elif item_type == "json":
-            rows = self._json_table.get({"item_hash": item_hash})
-            if not rows.is_empty():
-                json_text = rows["json_text"][0]
-                if json_text is not None:
-                    return json.loads(json_text)
-                return None
+        part = self._retrieve_part_by_hash(item_hash, item_type)
+        if part is not None:
+            return part
         elif item_type == "function_call_request":
             rows = self._function_call_request_table.get({"item_hash": item_hash})
             if not rows.is_empty():
@@ -612,6 +617,38 @@ class InputStorage:
             rows = self._llm_response_table.get({"item_hash": item_hash})
             if not rows.is_empty():
                 return LLMResponse(value="", call_id=None)
+        elif item_type == "multipart_document":
+            rows = self._multipart_document_table.get({"item_hash": item_hash})
+            if not rows.is_empty():
+                parts_info = json.loads(rows["parts_json"][0] or "[]")
+                parts = []
+                for p_info in parts_info:
+                    part_item_hash = p_info["item_hash"]
+                    part_item_type = p_info["item_type"]
+                    part_doc = self._retrieve_part_by_hash(part_item_hash, part_item_type)
+                    if part_doc is not None:
+                        parts.append(part_doc)
+                return MultipartDocument(parts=parts)
+
+        return None
+
+
+    def _retrieve_part_by_hash(self, item_hash: str, item_type: str) -> Optional[LLMDocument]:
+        if item_type == "text":
+            rows = self._text_table.get({"item_hash": item_hash})
+            if not rows.is_empty():
+                text = rows["text"][0]
+                role = rows["role"][0]
+                if role is not None:
+                    return (role, text)
+                return text
+        elif item_type == "json":
+            rows = self._json_table.get({"item_hash": item_hash})
+            if not rows.is_empty():
+                json_text = rows["json_text"][0]
+                if json_text is not None:
+                    return json.loads(json_text)
+                return None
         elif item_type == "image_index":
             rows = self._image_index_table.get({"item_hash": item_hash})
             if not rows.is_empty():
@@ -639,8 +676,8 @@ class InputStorage:
                     rows["doc_type"][0],
                     rows["doc_extra"][0],
                 )[0]
-
         return None
+
 
     def persist(self) -> None:
         # Central index: unique per (doc_hash, index_in_msg_state) pair
@@ -655,6 +692,7 @@ class InputStorage:
         self._binary_table.commit(mode="unique", on=["item_hash"])
         self._image_index_table.commit(mode="unique", on=["item_hash"])
         self._file_input_table.commit(mode="unique", on=["item_hash"])
+        self._multipart_document_table.commit(mode="unique", on=["item_hash"])
         self._msg_state_len_table.commit(mode="unique", on=["doc_hash"])
 
         if not self._config_log:

@@ -1,10 +1,9 @@
-from typing import TYPE_CHECKING, List, Optional
+from typing import TYPE_CHECKING, Optional
 from parallem.provider.base import BaseProvider
 from parallem.types import (
     BaseRetriever,
     CallIdentifier,
     CommonQueryParameters,
-    HashByOption,
     LLMResponse,
     ParsedResponse,
 )

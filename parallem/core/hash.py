@@ -13,6 +13,7 @@ from parallem.types import (
     LLMDocument,
     LLMIdentity,
     MCPOutput,
+    MultipartDocument,
     ServerTool,
 )
 from parallem.utils.image import get_type_and_b64
@@ -179,7 +180,13 @@ def compute_hash(
             img_type, img_b64 = get_type_and_b64(doc)
             hasher.update(img_type.encode("utf-8"))
             hasher.update(img_b64.encode("utf-8"))
-        elif isinstance(doc, (FunctionCallRequest, FunctionCallOutput, MCPOutput, FileInput)):
+        elif isinstance(doc, (
+            FunctionCallRequest,
+            FunctionCallOutput,
+            MCPOutput,
+            FileInput,
+            MultipartDocument)
+        ):
             doc.calculate_hash(hasher)
         elif isinstance(doc, tuple) and len(doc) == 2:
             # Handle Tuple[Literal["user", "assistant", "system", "developer"], str]

@@ -18,6 +18,7 @@ import json
 from PIL import Image
 
 from parallem.utils.hardcoded import guess_provider_and_name
+from parallem.utils.image import get_type_and_b64, is_image
 
 if TYPE_CHECKING:
     from hashlib import _Hash
@@ -292,6 +293,51 @@ class FileInput(AskItem):
         _hash_if_present(hasher, self.file_url)
         _hash_if_present(hasher, self.file_content)
 
+@dataclass(slots=True)
+class MultipartDocument(AskItem):
+    """A document containing multiple parts (e.g. text and/or images)."""
+
+    type: Literal["multipart"] = field(init=False, default="multipart")
+
+    parts: List["LLMDocument"]
+    """List of documents/parts."""
+
+    def __post_init__(self):
+        if not self.parts:
+            raise ValueError("MultipartDocument must have at least one part.")
+
+    def __repr__(self):
+        return f"MultipartDocument(parts={self.parts})"
+
+    def __str__(self):
+        return self.__repr__()
+
+    def calculate_hash(self, hasher: "_Hash") -> None:
+        hasher.update(b"multipart_document")
+        for part in self.parts:
+            if isinstance(part, str):
+                hasher.update(part.encode("utf-8"))
+            elif is_image(part):
+                img_type, img_b64 = get_type_and_b64(part)
+                hasher.update(img_type.encode("utf-8"))
+                hasher.update(img_b64.encode("utf-8"))
+            elif isinstance(part, AskItem):
+                part.calculate_hash(hasher)
+            elif isinstance(part, tuple) and len(part) == 2:
+                role, content = part
+                hasher.update(role.encode("utf-8"))
+                if isinstance(content, str):
+                    hasher.update(content.encode("utf-8"))
+                else:
+                    for item in content:
+                        hasher.update(str(item).encode("utf-8"))
+            elif isinstance(part, dict):
+                from parallem.core.hash import _normalize_for_hash
+                dict_str = json.dumps(_normalize_for_hash(part), sort_keys=True, separators=(",", ":"))
+                hasher.update(dict_str.encode("utf-8"))
+            else:
+                hasher.update(str(part).encode("utf-8"))
+
 ServerToolType = Literal["web_search", "code_interpreter", "mcp"]
 
 
@@ -315,6 +361,7 @@ LLMDocument = Union[
     FunctionCallOutput,
     MCPOutput,
     FileInput,
+    "MultipartDocument",
 ]
 """
 Type alias for documents that can be either text or images.
