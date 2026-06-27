@@ -12,6 +12,7 @@ from typing import (
 )
 from typing_extensions import deprecated
 from parallem.core.ask import Askable, _raise_exception
+from parallem.core.convert._asking import convert_options, convert_tools
 from parallem.core.convert.fix_docs import cast_documents, reduce_to_list
 from parallem.core.exception import NotAvailable, PendingNotAvailable
 from parallem.core.hash import build_hash_salt_terms, compute_hash
@@ -116,62 +117,6 @@ class AgentContext(Askable):
     def print(self, *args, **kwargs):
         print(*args, **kwargs)
 
-    def _coerce_tools(
-        self,
-        tools: Optional[list[Union[dict, ServerTool, Callable]]],
-    ):
-        """
-        Coerce tools into a consistent format: list of function call dicts or ServerTools
-        Turns Callable into dict using pllm.to_tool_schema
-        """
-        # coerce callable tools to dict format with name and parameters
-        if tools is not None:
-            coerced_tools = []
-
-            # if not sequence
-            if not isinstance(tools, (list, tuple)):
-                tools = [tools]
-            for tool in tools:
-                if isinstance(tool, (dict, ServerTool)):
-                    coerced_tools.append(tool)
-                elif callable(tool):
-                    coerced_tools.extend(to_tool_schema(tool))
-                else:
-                    raise ValueError(f"Tool {tool} is not a dict, ServerTool, or callable.")
-            return coerced_tools
-        return tools
-
-    def _coerce_options(
-        self,
-        llm,
-        structured_output,
-        kwargs,
-    ):
-        """Helper method to ensure LLM options have the right type, coercing fields as needed."""
-        # Handle legacy text_format alias
-        legacy_text_format = kwargs.pop("text_format", None)
-        if structured_output is not None and legacy_text_format is not None:
-            raise ValueError(
-                "Cannot specify both structured_output and text_format. "
-                "text_format is a legacy alias for structured_output."
-            )
-        if structured_output is None:
-            structured_output = legacy_text_format
-
-        if llm is None:
-            llm = self._orch._provider.get_default_llm_identity()
-        elif isinstance(llm, str):
-            best_provider_type = self._orch._provider.provider_type
-            if best_provider_type in {"multi"}:
-                best_provider_type = None
-            llm = LLMIdentity(llm, provider_type=best_provider_type)
-
-        provider_type = self._orch._provider.provider_type
-        if provider_type is None:
-            provider_type = llm.provider_type
-
-        return llm, provider_type, structured_output
-
     def _compute_hash(
         self,
         params: CommonQueryParameters,
@@ -240,8 +185,14 @@ class AgentContext(Askable):
         # 1. assign sequential ID, input checks
         seq_id = self._orch.next_seq_id(self.agent_name)
 
-        llm, provider_type, structured_output = self._coerce_options(llm, structured_output, kwargs)
-        tools = self._coerce_tools(tools)
+        llm, provider_type, structured_output = convert_options(
+            llm,
+            structured_output,
+            kwargs,
+            provider=self._orch._provider,
+        )
+
+        tools = convert_tools(tools)
 
         if isinstance(documents, MessageState):
             documents = list(documents)
@@ -327,8 +278,6 @@ class AgentContext(Askable):
         *,
         default: Optional[Callable] = _raise_exception,
         convert_to_str: bool = True,
-        cache: bool = False,
-        salt: Optional[str] = None,
         **kwargs,
     ) -> List[FunctionCallOutput]:
         if functions is None:
@@ -338,29 +287,6 @@ class AgentContext(Askable):
             raise ValueError(
                 "No functions provided to ask_functions. Provide functions as a dict or as kwargs."
             )
-
-        cache_call_id = None
-        if cache:
-            if response.call_id is None:
-                raise ValueError("ask_functions(cache=True) requires response.call_id to be set")
-
-            cache_call_id = {
-                "agent_name": self.agent_name,
-                "doc_hash": response.call_id["doc_hash"],
-                "seq_id": self._orch.next_seq_id(self.agent_name),
-                "session_id": self._orch.get_session_counter(),
-                "meta": response.call_id.get("meta"),
-            }
-            if salt is not None:
-                cache_call_id["doc_hash"] = compute_hash(cache_call_id["doc_hash"], [], salt=salt)
-
-            datastore = self._orch._backend._get_datastore()
-            cached = None if self.ignore_cache else datastore.retrieve(cache_call_id, origin_type=_FUNCTION_CALL_ORIGIN_TYPE)
-            if cached is not None:
-                if cached.old_session_id is not None:
-                    cache_call_id["session_id"] = cached.old_session_id
-                    cache_call_id["seq_id"] = cached.old_seq_id
-                return self._deserialize_function_call_outputs(cached.text)
 
         # Check if response has function calls. If so, delegate to user-defined functions.
         fcs = response.function_calls
@@ -386,18 +312,6 @@ class AgentContext(Askable):
                 result = str(result)
             fc_outs.append(FunctionCallOutput(content=result, name=fc.name, fcall_id=fc.fcall_id))
 
-        if cache and not self.ignore_cache and cache_call_id is not None:
-            datastore = self._orch._backend._get_datastore()
-            datastore.store(
-                cache_call_id,
-                ParsedResponse(
-                    text=self._serialize_function_call_outputs(fc_outs),
-                    response_id=None,
-                    metadata=None,
-                    function_calls=None,
-                ),
-                origin_type=_FUNCTION_CALL_ORIGIN_TYPE,
-            )
         return fc_outs
 
     def _serialize_function_call_outputs(self, outputs: List[FunctionCallOutput]) -> str:

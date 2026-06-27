@@ -337,8 +337,6 @@ class MessageState(UserList[Union[LLMDocument, LLMResponse]], Askable):
         *,
         default: Optional[Callable] = _raise_exception,
         convert_to_str: bool = True,
-        cache: bool = False,
-        salt: Optional[str] = None,
         **kwargs,
     ) -> List[FunctionCallOutput]:
         if response is None:
@@ -357,8 +355,6 @@ class MessageState(UserList[Union[LLMDocument, LLMResponse]], Askable):
             functions=functions,
             default=default,
             convert_to_str=convert_to_str,
-            cache=cache,
-            salt=salt,
             **kwargs,
         )
         self.extend(fc_outs)

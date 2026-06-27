@@ -85,8 +85,6 @@ class Askable(ABC):
         *,
         default: Optional[Callable] = _raise_exception,
         convert_to_str=True,
-        cache: bool = False,
-        salt: Optional[str] = None,
         **kwargs,
     ) -> List[FunctionCallOutput]:
         """
