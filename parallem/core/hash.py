@@ -22,7 +22,7 @@ from parallem.utils.image import get_type_and_b64
 __all__ = ["build_hash_salt_terms", "compute_hash", "serialize_tools_for_hash"]
 
 
-def _updateh(hasher, val: Optional[str]):
+def _hash_if_present(hasher, val: Optional[str]):
     if val is not None:
         hasher.update(val.encode("utf-8"))
 
@@ -142,6 +142,62 @@ def build_hash_salt_terms(
     return salt_terms
 
 
+def compute_document_hash(
+    hasher: "hashlib._Hash",
+    doc: LLMDocument,
+):
+    # TODO: major risk of hash collisions because
+    # update(a), update(b) is the same as update(a + b).
+    if isinstance(doc, str):
+        hasher.update(doc.encode("utf-8"))
+    elif isinstance(doc, Image.Image):
+        img_type, img_b64 = get_type_and_b64(doc)
+        hasher.update(img_type.encode("utf-8"))
+        hasher.update(img_b64.encode("utf-8"))
+    elif isinstance(doc, FunctionCallRequest):
+        hasher.update(b"function_call")
+        _hash_if_present(hasher, doc.text_content)
+        for call in doc.calls:
+            _hash_if_present(hasher, call.name)
+            _hash_if_present(hasher, call.arg_str)
+            _hash_if_present(hasher, call.fcall_id)
+    elif isinstance(doc, FunctionCallOutput):
+        hasher.update(b"function_call_output")
+        _hash_if_present(hasher, doc.name)
+        _hash_if_present(hasher, str(doc.content))
+        _hash_if_present(hasher, doc.fcall_id)
+    elif isinstance(doc, MCPOutput):
+        hasher.update(b"mcp_output")
+        _hash_if_present(hasher, doc.name)
+        _hash_if_present(hasher, str(doc.content))
+        _hash_if_present(hasher, doc.fcall_id)
+    elif isinstance(doc, FileInput):
+        hasher.update(b"input_file")
+        _hash_if_present(hasher, doc.filename)
+        _hash_if_present(hasher, doc.mime_type)
+        _hash_if_present(hasher, doc.file_url)
+        _hash_if_present(hasher, doc.file_content)
+    elif isinstance(doc, MultipartDocument):
+        hasher.update(b"multipart_document")
+        for part in doc.parts:
+            compute_document_hash(hasher, part)
+    elif isinstance(doc, tuple) and len(doc) == 2:
+        # Handle Tuple[Literal["user", "assistant", "system", "developer"], str]
+        role, content = doc
+        hasher.update(role.encode("utf-8"))
+        if isinstance(content, str):
+            hasher.update(content.encode("utf-8"))
+        else:
+            for item in content:
+                hasher.update(str(item).encode("utf-8"))
+    elif isinstance(doc, dict):
+        # best effort deterministic dict hash
+        dict_str = json.dumps(_normalize_for_hash(doc), sort_keys=True, separators=(",", ":"))
+        hasher.update(dict_str.encode("utf-8"))
+    else:
+        raise ValueError(f"Unsupported document type: {type(doc)}")
+    
+
 def compute_hash(
     instructions: Optional[str],
     documents: List[LLMDocument],
@@ -174,35 +230,7 @@ def compute_hash(
     if instructions:
         hasher.update(instructions.encode("utf-8"))
     for doc in documents:
-        if isinstance(doc, str):
-            hasher.update(doc.encode("utf-8"))
-        elif isinstance(doc, Image.Image):
-            img_type, img_b64 = get_type_and_b64(doc)
-            hasher.update(img_type.encode("utf-8"))
-            hasher.update(img_b64.encode("utf-8"))
-        elif isinstance(doc, (
-            FunctionCallRequest,
-            FunctionCallOutput,
-            MCPOutput,
-            FileInput,
-            MultipartDocument)
-        ):
-            doc.calculate_hash(hasher)
-        elif isinstance(doc, tuple) and len(doc) == 2:
-            # Handle Tuple[Literal["user", "assistant", "system", "developer"], str]
-            role, content = doc
-            hasher.update(role.encode("utf-8"))
-            if isinstance(content, str):
-                hasher.update(content.encode("utf-8"))
-            else:
-                for item in content:
-                    hasher.update(str(item).encode("utf-8"))
-        elif isinstance(doc, dict):
-            # best effort deterministic dict hash
-            dict_str = json.dumps(_normalize_for_hash(doc), sort_keys=True, separators=(",", ":"))
-            hasher.update(dict_str.encode("utf-8"))
-        else:
-            raise ValueError(f"Unsupported document type: {type(doc)}")
+        compute_document_hash(hasher, doc)
 
     base_hash = hasher.hexdigest()
     if salt is not None:

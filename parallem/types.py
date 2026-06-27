@@ -18,10 +18,8 @@ import json
 from PIL import Image
 
 from parallem.utils.hardcoded import guess_provider_and_name
-from parallem.utils.image import get_type_and_b64, is_image
 
 if TYPE_CHECKING:
-    from hashlib import _Hash
     try:
         from mcp.types import ContentBlock
     except ImportError:
@@ -212,13 +210,6 @@ class FunctionCallRequest(AskItem):
     def __str__(self):
         return self.__repr__()
 
-    def calculate_hash(self, hasher: "_Hash") -> str:
-        hasher.update(b"function_call")
-        _hash_if_present(hasher, self.text_content)
-        for call in self.calls:
-            _hash_if_present(hasher, call.name)
-            _hash_if_present(hasher, call.arg_str)
-            _hash_if_present(hasher, call.fcall_id)
 
 @dataclass(slots=True)
 class FunctionCallOutput(AskItem):
@@ -241,11 +232,6 @@ class FunctionCallOutput(AskItem):
     def __str__(self):
         return self.__repr__()
 
-    def calculate_hash(self, hasher: "_Hash") -> str:
-        hasher.update(b"function_call_output")
-        _hash_if_present(hasher, self.name)
-        _hash_if_present(hasher, str(self.content))
-        _hash_if_present(hasher, self.fcall_id)
 
 @dataclass(slots=True)
 class MCPOutput(AskItem):
@@ -265,12 +251,6 @@ class MCPOutput(AskItem):
     def __repr__(self):
         return f"MCPOutput(name={self.name}, fcall_id={(self.fcall_id or '')[:8]}, content={len(self.content)} blocks)"
 
-    def calculate_hash(self, hasher: "_Hash") -> str:
-        hasher.update(b"mcp_output")
-        _hash_if_present(hasher, self.name)
-        _hash_if_present(hasher, str(self.content))
-        _hash_if_present(hasher, self.fcall_id)
-
 
 @dataclass(slots=True)
 class FileInput(AskItem):
@@ -286,12 +266,6 @@ class FileInput(AskItem):
         if self.file_content is None and self.file_url is None:
             raise ValueError("FileInput must have either file_content or file_url.")
 
-    def calculate_hash(self, hasher: "_Hash") -> str:
-        hasher.update(b"input_file")
-        _hash_if_present(hasher, self.filename)
-        _hash_if_present(hasher, self.mime_type)
-        _hash_if_present(hasher, self.file_url)
-        _hash_if_present(hasher, self.file_content)
 
 @dataclass(slots=True)
 class MultipartDocument(AskItem):
@@ -311,32 +285,6 @@ class MultipartDocument(AskItem):
 
     def __str__(self):
         return self.__repr__()
-
-    def calculate_hash(self, hasher: "_Hash") -> None:
-        hasher.update(b"multipart_document")
-        for part in self.parts:
-            if isinstance(part, str):
-                hasher.update(part.encode("utf-8"))
-            elif is_image(part):
-                img_type, img_b64 = get_type_and_b64(part)
-                hasher.update(img_type.encode("utf-8"))
-                hasher.update(img_b64.encode("utf-8"))
-            elif isinstance(part, AskItem):
-                part.calculate_hash(hasher)
-            elif isinstance(part, tuple) and len(part) == 2:
-                role, content = part
-                hasher.update(role.encode("utf-8"))
-                if isinstance(content, str):
-                    hasher.update(content.encode("utf-8"))
-                else:
-                    for item in content:
-                        hasher.update(str(item).encode("utf-8"))
-            elif isinstance(part, dict):
-                from parallem.core.hash import _normalize_for_hash
-                dict_str = json.dumps(_normalize_for_hash(part), sort_keys=True, separators=(",", ":"))
-                hasher.update(dict_str.encode("utf-8"))
-            else:
-                hasher.update(str(part).encode("utf-8"))
 
 ServerToolType = Literal["web_search", "code_interpreter", "mcp"]
 
