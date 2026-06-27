@@ -1,7 +1,6 @@
 import contextlib
 from logging import Logger
 import sys
-from typing_extensions import deprecated
 import shutil
 import threading
 from collections import OrderedDict
@@ -320,10 +319,6 @@ class DashboardLogger:
                     self._get_stdout().write("\r\033[K")
                     self._get_stdout().flush()
                 self._console_written = False
-
-    @deprecated("Use builtin print() directly.")
-    def print(self, *args, **kwargs):
-        print(*args, **kwargs)
 
     def finalize_line(self):
         """

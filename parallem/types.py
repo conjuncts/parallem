@@ -12,7 +12,6 @@ from typing import (
     Union,
     Tuple,
 )
-from typing_extensions import deprecated
 import json
 
 from PIL import Image
@@ -545,21 +544,6 @@ class LLMResponse(AskItem):
             return self
 
         return _sync_await_response().__await__()
-
-    @deprecated("Use final_answer property instead.")
-    def resolve(self) -> str:
-        return self.final_answer
-
-    @deprecated("Use final_json property instead.")
-    def resolve_json(self) -> Optional[dict]:
-        return self.final_json
-
-    @deprecated("Use function_calls property instead.")
-    def resolve_function_calls(self) -> list[FunctionCall]:
-        """
-        Resolves response, then returns function calls to user-defined functions.
-        """
-        return self.function_calls
 
 
 class HumanResponse(LLMResponse):

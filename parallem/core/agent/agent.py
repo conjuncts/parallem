@@ -1,5 +1,4 @@
 import inspect
-import json
 from functools import partial
 from typing import (
     TYPE_CHECKING,
@@ -10,7 +9,6 @@ from typing import (
     Optional,
     Union,
 )
-from typing_extensions import deprecated
 from parallem.core.ask import Askable, _raise_exception
 from parallem.core.convert._asking import convert_options, convert_tools
 from parallem.core.convert.fix_docs import cast_documents, reduce_to_list
@@ -23,7 +21,7 @@ from parallem.core.response import (
     ReadyLLMResponse,
 )
 from parallem.logging.dash_logger import HashStatus
-from parallem.tools.auto_schema import _is_agent_context_annotation, to_tool_schema
+from parallem.tools.auto_schema import _is_agent_context_annotation
 from parallem.types import (
     AskParameters,
     CallIdentifier,
@@ -39,8 +37,6 @@ from parallem.types import (
 )
 
 
-
-_FUNCTION_CALL_ORIGIN_TYPE = 2
 if TYPE_CHECKING:
     from parallem.core.agent.orchestrator import AgentOrchestrator
     from pydantic import BaseModel
@@ -112,10 +108,6 @@ class AgentContext(Askable):
             # swallow NotAvailable errors only in batch mode
             return True
         return False
-
-    @deprecated("Use builtin print() directly.")
-    def print(self, *args, **kwargs):
-        print(*args, **kwargs)
 
     def _compute_hash(
         self,
@@ -313,48 +305,6 @@ class AgentContext(Askable):
             fc_outs.append(FunctionCallOutput(content=result, name=fc.name, fcall_id=fc.fcall_id))
 
         return fc_outs
-
-    def _serialize_function_call_outputs(self, outputs: List[FunctionCallOutput]) -> str:
-        payload = [
-            {
-                "name": output.name,
-                "call_id": output.fcall_id,  # NB: this is *function* call id (str)
-                "content": output.content,
-            }
-            for output in outputs
-        ]
-        try:
-            return json.dumps(payload, separators=(",", ":"))
-        except TypeError as exc:
-            raise ValueError(
-                "ask_functions(cache=True) requires JSON-serializable outputs. "
-                "Set convert_to_str=True or disable caching."
-            ) from exc
-
-    def _deserialize_function_call_outputs(self, payload: str) -> List[FunctionCallOutput]:
-        if not payload:
-            return []
-
-        try:
-            raw_outputs = json.loads(payload)
-        except json.JSONDecodeError as exc:
-            raise ValueError("Cached ask_functions payload is malformed.") from exc
-
-        if not isinstance(raw_outputs, list):
-            raise ValueError("Cached ask_functions payload must be a list.")
-
-        outputs = []
-        for item in raw_outputs:
-            if not isinstance(item, dict):
-                raise ValueError("Cached ask_functions payload item must be a mapping.")
-            outputs.append(
-                FunctionCallOutput(
-                    content=item.get("content"),
-                    name=item.get("name", ""),
-                    fcall_id=item.get("call_id", ""),
-                )
-            )
-        return outputs
 
     def ask_human(
         self,
