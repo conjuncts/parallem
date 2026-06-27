@@ -190,28 +190,6 @@ class AskItem(ABC):
     type: str
     """Discriminator for the item kind."""
 
-
-@dataclass(slots=True)
-class FileInput(AskItem):
-    mime_type: str
-    filename: str
-    file_content: Optional[bytes] = None
-    file_url: Optional[str] = None
-
-    kwargs: dict = field(default_factory=dict)
-    "Extra custom args"
-
-    def __post_init__(self):
-        if self.file_content is None and self.file_url is None:
-            raise ValueError("FileInput must have either file_content or file_url.")
-
-    def calculate_hash(self, hasher: "_Hash") -> str:
-        hasher.update(b"input_file")
-        _hash_if_present(hasher, self.filename)
-        _hash_if_present(hasher, self.mime_type)
-        _hash_if_present(hasher, self.file_url)
-        _hash_if_present(hasher, self.file_content)
-
 @dataclass(slots=True)
 class FunctionCallRequest(AskItem):
     """Represents the LLM requesting function/tool call(s)"""
@@ -292,6 +270,28 @@ class MCPOutput(AskItem):
         _hash_if_present(hasher, str(self.content))
         _hash_if_present(hasher, self.fcall_id)
 
+
+@dataclass(slots=True)
+class FileInput(AskItem):
+    mime_type: str
+    filename: str
+    file_content: Optional[bytes] = None
+    file_url: Optional[str] = None
+
+    kwargs: dict = field(default_factory=dict)
+    "Extra custom args"
+
+    def __post_init__(self):
+        if self.file_content is None and self.file_url is None:
+            raise ValueError("FileInput must have either file_content or file_url.")
+
+    def calculate_hash(self, hasher: "_Hash") -> str:
+        hasher.update(b"input_file")
+        _hash_if_present(hasher, self.filename)
+        _hash_if_present(hasher, self.mime_type)
+        _hash_if_present(hasher, self.file_url)
+        _hash_if_present(hasher, self.file_content)
+
 ServerToolType = Literal["web_search", "code_interpreter", "mcp"]
 
 
@@ -311,10 +311,10 @@ LLMDocument = Union[
     str,
     Image.Image,
     Tuple[Literal["user", "assistant", "system", "developer"], str],
-    FileInput,
     FunctionCallRequest,
     FunctionCallOutput,
     MCPOutput,
+    FileInput,
 ]
 """
 Type alias for documents that can be either text or images.
