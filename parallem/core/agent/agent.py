@@ -297,7 +297,13 @@ class AgentContext(Askable):
             },
         }
 
-        # 3. save inputs if needed (pass `params` mapping)
+        # 3. use cache if available
+        cached = self._get_cached_response(call_id)
+        if cached is not None:
+            self._orch._dashlog.update_call(call_id, HashStatus.CACHED)
+            return cached
+
+        # 4. save inputs if needed (pass `params` mapping)
         if save_input:
             self._orch._input_storage.store_input(
                 call_id,
@@ -306,12 +312,6 @@ class AgentContext(Askable):
                 salt=salt,
                 request_kwargs=kwargs,
             )
-
-        # 4. use cache if available
-        cached = self._get_cached_response(call_id)
-        if cached is not None:
-            self._orch._dashlog.update_call(call_id, HashStatus.CACHED)
-            return cached
 
         # 5. use API
         if not self._orch._provider.is_compatible(provider_type):
