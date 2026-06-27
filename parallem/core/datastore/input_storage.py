@@ -657,7 +657,9 @@ class InputStorage:
                     from PIL import Image as _PILImage
                     full_path = self.path_inputs() / image_path
                     if full_path.exists():
-                        return _PILImage.open(str(full_path))
+                        with _PILImage.open(str(full_path)) as img:
+                            img.load()
+                            return img
                 return None
         elif item_type == "file_input":
             rows = self._file_input_table.get({"item_hash": item_hash})
