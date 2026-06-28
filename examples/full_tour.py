@@ -81,21 +81,24 @@ if __name__ == "__main__":
     with pllm.resume_directory(
         ".pllm/example/batch",
         provider="google",
-        strategy="sync",
+        strategy="batch",
         dashboard=True,
         llm="gemini-2.5-flash",
-        tweaks={"error_mode": "emit"},
+        # tweaks={"error_mode": "emit"},
         store_input=True,
+        ask_params={
+            "salt": 3,
+        }
     ) as orch:
         with orch.agent() as agt:
             print("1. " + power_of_3_agent(agt))
-        with orch.agent() as agt:
-            print("2. " + web_search_agent(agt))
-        with orch.agent() as agt:
-            print("3. " + structured_output_agent(agt))
-        with orch.agent() as agt:
-            print("4. " + image_input_agent(agt))
-        with orch.agent() as agt:
-            print("5. " + function_calling_agent(agt))
-        with orch.agent() as agt:
-            print("7. " + file_input_agent(agt))
+        # with orch.agent() as agt:
+        #     print("2. " + web_search_agent(agt))
+        # with orch.agent() as agt:
+        #     print("3. " + structured_output_agent(agt))
+        # with orch.agent() as agt:
+        #     print("4. " + image_input_agent(agt))
+        # with orch.agent() as agt:
+        #     print("5. " + function_calling_agent(agt))
+        # with orch.agent() as agt:
+        #     print("7. " + file_input_agent(agt))

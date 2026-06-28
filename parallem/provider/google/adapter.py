@@ -1,3 +1,5 @@
+import base64
+
 from pydantic import BaseModel
 
 from parallem.provider.base import BaseAdapter
@@ -9,15 +11,16 @@ from parallem.types import (
     FunctionCallRequest,
     LLMDocument,
     MCPOutput,
+    MultipartDocument,
     ParsedResponse,
     ServerTool,
 )
 
 from collections.abc import Mapping
-from typing import TYPE_CHECKING, List, Union
+from typing import TYPE_CHECKING, List, Literal, Union, overload
 
 from parallem.utils._quick_pydantic import is_pydantic_model
-from parallem.utils.image import get_type_and_b64, is_image
+from parallem.utils.image import get_type_and_b64, is_image, is_image_url
 from parallem.utils.manip import maybe_snake_to_camel
 
 
@@ -26,11 +29,101 @@ if TYPE_CHECKING:
     from mcp.types import ContentBlock
     from pydantic import BaseModel
 
+def _fix_part_for_google(
+    part: LLMDocument,
+    *,
+    strict: bool = True
+) -> "types.PartDict":
+    """Ensure a single part is in the correct format for Gemini API
+    
+    :param strict:
+        If True, always return a types.PartDict.
+        If False, allow returning string (which the SDK accepts)
+    """
+    if isinstance(part, str):
+        if not strict:
+            return part
+        return {"text": part}
+    elif is_image(part):
+        img_type, img_b64 = get_type_and_b64(
+            part,
+            allowed=[
+                "image/png",
+                "image/jpeg",
+                "image/webp",
+                "image/heic",
+                "image/heif",
+            ],
+        )
+        return {
+            "inline_data": {
+                "mime_type": img_type,
+                "data": img_b64,
+            }
+        }
+    elif is_image_url(part):
+        return {
+            "file_data": {
+                "mime_type": part.mime_type,
+                "file_uri": str(part),
+            }
+        }
+    elif isinstance(part, FileInput):
+        # https://ai.google.dev/gemini-api/docs/file-input-methods
+        # Seems to be a discrepency between SDK and documentation.
+        # for example, documentation recommends "type": "document"
+        if part.file_content:
+            return {
+                "inline_data": {
+                    "mime_type": part.mime_type,
+                    "data": base64.b64encode(part.file_content).decode("utf-8"),
+                    # display_name not supported in Gemini API
+                }
+            }
+        elif part.file_url:
+            return {
+                "file_data": {
+                    "mime_type": part.mime_type,
+                    "file_uri": part.file_url,
+                }
+            }
+        else:
+            raise ValueError("Could not handle FileInput for Google Gemini")
+    elif isinstance(part, dict):
+        # If it's already a proper content dict, keep it
+        return part
+    else:
+        raise ValueError(f"Unsupported part type for Google Gemini: {type(part)}")
+
+
+@overload
+def _fix_docs_for_google(
+    documents: list[LLMDocument],
+    strict: Literal[True] = True,
+) -> list["types.ContentDict"]:
+    ...
+
+@overload
+def _fix_docs_for_google(
+    documents: list[LLMDocument],
+    strict: Literal[False],
+) -> list["types.ContentDict | types.PartDict"]:
+    ...
 
 def _fix_docs_for_google(
-    documents: List[LLMDocument],
-) -> List["types.ContentDict"]:
-    """Ensure documents are in the correct format for Gemini API"""
+    documents: list[LLMDocument],
+    strict: bool = True,
+) -> list[Union["types.ContentDict", "types.PartDict"]]:
+    ...
+    """
+    Ensure documents are in the correct format for Gemini API.
+
+    Note that the API allows a mixture of content and parts (types.ContentListUnionDict)
+    :param documents: List of LLMDocument (str, tuple, dict, FileInput, FunctionCallRequest, FunctionCallOutput)
+    :param strict: If True, always return types.ContentDict. 
+        If False, allow returning types.PartDict or str, to more faithfully match
+        the Gemini Python SDK.
+    """
 
     # For Gemini, we can pass strings directly or convert to proper format
     # The SDK will handle the conversion automatically
@@ -41,12 +134,14 @@ def _fix_docs_for_google(
     formatted_docs: list[Union[str, "types.ContentDict"]] = []
     for doc in documents:
         if isinstance(doc, str):
-            formatted_docs.append(
-                {
+            part = _fix_part_for_google(doc, strict=strict)
+            if strict:
+                formatted_docs.append({
                     "role": "user",
-                    "parts": [{"text": doc}],
-                }
-            )
+                    "parts": [part]
+                })
+            else:
+                formatted_docs.append(part)
         elif isinstance(doc, (FunctionCallOutput, MCPOutput)):
             # https://ai.google.dev/gemini-api/docs/function-calling?example=meeting
             if isinstance(doc, MCPOutput):
@@ -108,23 +203,21 @@ def _fix_docs_for_google(
                     "parts": [{"text": content}],
                 }
             )
-        elif isinstance(doc, FileInput):
-            if doc.file_content:
-                msg: "types.PartDict" = {
-                    "inline_data": {
-                        "mime_type": doc.mime_type,
-                        "data": doc.file_content,
-                        # display_name not supported in Gemini API
+        elif (
+            isinstance(doc, FileInput)
+            or is_image(doc)
+            or is_image_url(doc)
+        ):
+            msg: "types.PartDict" = _fix_part_for_google(doc, strict=strict)
+            if strict:
+                formatted_docs.append(
+                    {
+                        "role": "user",
+                        "parts": [msg],
                     }
-                }
-            elif doc.file_url:
-                msg: "types.PartDict" = {
-                    "file_data": {
-                        "mime_type": doc.mime_type,
-                        "file_uri": doc.file_url,
-                    }
-                }
-            formatted_docs.append(msg)
+                )
+            else:
+                formatted_docs.append(msg)
         elif isinstance(doc, dict):
             # If it's already a proper content dict, keep it
             # needs to be Union[types.ContentDict, types.PartUnionDict]
@@ -132,31 +225,11 @@ def _fix_docs_for_google(
             # = [types.ContentDict, types.FileDict, types.PartDict]
             # doc: Union["types.PartDict", "types.FileDict", "types.ContentDict"] = doc  # type hint for clarity
             formatted_docs.append(doc)
-        elif is_image(doc):
-            # https://ai.google.dev/gemini-api/docs/image-understanding
-            img_type, img_b64 = get_type_and_b64(
-                doc,
-                allowed=[
-                    "image/png",
-                    "image/jpeg",
-                    "image/webp",
-                    "image/heic",
-                    "image/heif",
-                ],
-            )
-            formatted_docs.append(
-                {
-                    "role": "user",
-                    "parts": [
-                        {
-                            "inline_data": {
-                                "mime_type": img_type,
-                                "data": img_b64,
-                            }
-                        }
-                    ],
-                }
-            )
+        elif isinstance(doc, MultipartDocument):
+            formatted_docs.append({
+                "role": doc.role,
+                "parts": [_fix_part_for_google(part, strict=strict) for part in doc.parts],
+            })
         else:
             raise ValueError(f"Unsupported document type: {type(doc)}")
 
