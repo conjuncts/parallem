@@ -189,13 +189,13 @@ def _convert_to_bedrock_response(raw_response: dict) -> ParsedResponse:
 
 
 class BedrockLegacyAdapter(BaseAdapter):
-    def fix_docs(
+    def prepare_docs(
         self,
         documents: List[LLMDocument],
     ):
         return _fix_docs_for_bedrock(documents)
 
-    def prepare_request(self, params, **kwargs):
+    def prepare_batch_request(self, params, **kwargs):
         return _prepare_bedrock_body(params, kwargs)
 
     def convert_response(self, raw_response):

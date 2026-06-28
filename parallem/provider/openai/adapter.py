@@ -167,7 +167,7 @@ def _fix_mcp_block(content_block: "ContentBlock") -> "ResponseFunctionToolCallOu
 class OpenAIAdapter(BaseAdapter):
     """Parses OpenAI API responses into a common format for downstream processing."""
 
-    def fix_config(
+    def prepare_sdk_request(
         self,
         params: CommonQueryParameters,
         **kwargs,
@@ -176,30 +176,30 @@ class OpenAIAdapter(BaseAdapter):
             "OpenAIAdapter does not implement fix_config; use prepare_request instead."
         )
 
-    def fix_docs(
+    def prepare_docs(
         self,
         documents: List[LLMDocument],
     ) -> "List[ResponseInputItemParam]":
         return _fix_docs_for_openai(documents)
 
-    def fix_tools(
+    def prepare_tools(
         self,
         tools: List[Union[dict, ServerTool]],
     ):
         """Make tools ready for API calls."""
         return map_server_tools(tools)
 
-    def prepare_request(
+    def prepare_batch_request(
         self,
         params: CommonQueryParameters,
         **kwargs,
     ) -> tuple:
         """Prepare OpenAI API request parameters from common query parameters."""
         instructions = params["instructions"]
-        fixed_documents = self.fix_docs(params["strict_documents"])
+        fixed_documents = self.prepare_docs(params["strict_documents"])
         llm = params["llm"]
         structured_output = params.get("structured_output")
-        tools = self.fix_tools(params.get("tools"))
+        tools = self.prepare_tools(params.get("tools"))
 
         if structured_output is not None:
             if "text" not in kwargs:

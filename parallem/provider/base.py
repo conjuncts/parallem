@@ -19,7 +19,7 @@ from parallem.types import (
 class BaseAdapter:
     """Helps adapt API inputs."""
 
-    def fix_config(
+    def prepare_sdk_request(
         self,
         params: CommonQueryParameters,
         **kwargs,
@@ -27,21 +27,21 @@ class BaseAdapter:
         """Make config ready for API calls. Also fixes documents and tools."""
         raise NotImplementedError
 
-    def fix_docs(
+    def prepare_docs(
         self,
         documents: List[LLMDocument],
     ):
         """Make documents ready for API calls."""
         raise NotImplementedError
 
-    def fix_tools(
+    def prepare_tools(
         self,
         tools: List[Union[dict, ServerTool]],
     ):
         """Make tools ready for API calls."""
         raise NotImplementedError
 
-    def prepare_request(
+    def prepare_batch_request(
         self,
         params: CommonQueryParameters,
         **kwargs,

@@ -251,8 +251,8 @@ class AgentContext(Askable):
         fcs = response.function_calls
         fc_outs = []
         for fc in fcs:
-            callme = functions.get(fc.name)
-            if callme is None:
+            func = functions.get(fc.name)
+            if func is None:
                 # Function not found
                 if default is None:
                     continue
@@ -261,12 +261,12 @@ class AgentContext(Askable):
                     continue
 
             call_args = dict(fc.args)
-            if self._subagent_controller.requires_subagent(callme):
+            if self._subagent_controller.requires_subagent(func):
                 # If a subagent was requested, then create AgentContext for it
-                result = self._subagent_controller.run_subagent(fc.name, callme, call_args)
+                result = self._subagent_controller.run_subagent(fc.name, func, call_args)
             else:
                 # Otherwise, execute the function directly
-                result = callme(**call_args)
+                result = func(**call_args)
             if convert_to_str and not isinstance(result, str):
                 result = str(result)
             fc_outs.append(FunctionCallOutput(content=result, name=fc.name, fcall_id=fc.fcall_id))
@@ -439,10 +439,10 @@ class SubagentController:
 
     def requires_subagent(
         self,
-        callme: Callable,
+        func: Callable,
     ):
         """Check if a function requires an AgentContext parameter."""
-        signature = inspect.signature(callme)
+        signature = inspect.signature(func)
         needed_agent_contexts = []
         for _param_name, param in signature.parameters.items():
             if _is_agent_context_annotation(param.annotation):

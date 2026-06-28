@@ -172,21 +172,21 @@ def _prepare_response_format(structured_output: object) -> dict:
 
 
 class OpenAIChatAdapter(BaseAdapter):
-    def fix_config(
+    def prepare_sdk_request(
         self,
         params: CommonQueryParameters,
         **kwargs,
     ):
         raise NotImplementedError
 
-    def fix_docs(
+    def prepare_docs(
         self,
         documents: List[LLMDocument],
         instructions: Optional[str] = None,
     ) -> "List[ChatCompletionMessageParam]":
         return _fix_docs_for_openai_chat(documents, instructions)
 
-    def fix_tools(
+    def prepare_tools(
         self,
         tools: List[Union[dict, ServerTool]],
     ):
@@ -199,17 +199,17 @@ class OpenAIChatAdapter(BaseAdapter):
     ) -> dict:
         return _prepare_response_format(structured_output)
 
-    def prepare_request(
+    def prepare_batch_request(
         self,
         params: CommonQueryParameters,
         **kwargs,
     ) -> dict:
         """Prepare OpenAI API request parameters from common query parameters."""
         instructions = params["instructions"]
-        fixed_documents = self.fix_docs(params["strict_documents"], instructions)
+        fixed_documents = self.prepare_docs(params["strict_documents"], instructions)
         llm = params["llm"]
         structured_output = params.get("structured_output")
-        tools = self.fix_tools(params.get("tools"))
+        tools = self.prepare_tools(params.get("tools"))
 
         if structured_output is not None:
             if "response_format" in kwargs:

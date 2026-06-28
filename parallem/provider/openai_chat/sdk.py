@@ -70,10 +70,10 @@ class SyncOpenAIChatProvider(SyncProvider, OpenAIChatProvider):
     ):
         """Prepare a synchronous callable for OpenAI chat completions API."""
         instructions = params["instructions"]
-        fixed_documents = self.adapter.fix_docs(params["strict_documents"], instructions)
+        fixed_documents = self.adapter.prepare_docs(params["strict_documents"], instructions)
         llm = params["llm"]
         structured_output = params.get("structured_output")
-        tools = self.adapter.fix_tools(params.get("tools"))
+        tools = self.adapter.prepare_tools(params.get("tools"))
 
         if structured_output is not None:
             if "response_format" in kwargs:
@@ -100,10 +100,10 @@ class AsyncOpenAIChatProvider(AsyncProvider, OpenAIChatProvider):
     ):
         """Prepare an async coroutine for OpenAI chat completions API."""
         instructions = params["instructions"]
-        fixed_documents = self.adapter.fix_docs(params["strict_documents"], instructions)
+        fixed_documents = self.adapter.prepare_docs(params["strict_documents"], instructions)
         llm = params["llm"]
         structured_output = params.get("structured_output")
-        tools = self.adapter.fix_tools(params.get("tools"))
+        tools = self.adapter.prepare_tools(params.get("tools"))
 
         if structured_output is not None:
             if "response_format" in kwargs:
@@ -132,7 +132,7 @@ class BatchOpenAIChatProvider(OpenAIBatchMixin, BatchProvider, OpenAIChatProvide
         **kwargs,
     ) -> dict:
         """Prepare batch call data for OpenAI chat completions."""
-        body = self.adapter.prepare_request(params, **kwargs)
+        body = self.adapter.prepare_batch_request(params, **kwargs)
         return {
             "custom_id": custom_id,
             "method": "POST",

@@ -62,7 +62,7 @@ class SyncGoogleProvider(SyncProvider, GoogleProvider):
         **kwargs,
     ):
         """Prepare a synchronous callable for Gemini API"""
-        model_name, contents, config = self.adapter.fix_config(params, **kwargs)
+        model_name, contents, config = self.adapter.prepare_sdk_request(params, **kwargs)
         return self.client.models.generate_content(
             model=model_name,
             contents=contents,
@@ -81,7 +81,7 @@ class AsyncGoogleProvider(AsyncProvider, GoogleProvider):
         **kwargs,
     ):
         """Prepare an async coroutine for Gemini API"""
-        model_name, contents, config = self.adapter.fix_config(params, **kwargs)
+        model_name, contents, config = self.adapter.prepare_sdk_request(params, **kwargs)
 
         coro = self.client.aio.models.generate_content(
             model=model_name,
@@ -104,7 +104,7 @@ class BatchGoogleProvider(BatchProvider, GoogleProvider):
         **kwargs,
     ) -> dict:
         """Convert CommonQueryParameters to Gemini batch request format"""
-        body = self.adapter.prepare_request(params, **kwargs)
+        body = self.adapter.prepare_batch_request(params, **kwargs)
         request = {
             "key": custom_id,
             "request": body,

@@ -26,7 +26,7 @@ def _params(*, structured_output=None):
 
 
 def _prepare_anthropic_config(params, **kwargs):
-    return AnthropicAdapter().fix_config(params, **kwargs)
+    return AnthropicAdapter().prepare_sdk_request(params, **kwargs)
 
 
 def test_prepare_anthropic_config_with_pydantic_structured_output(monkeypatch):

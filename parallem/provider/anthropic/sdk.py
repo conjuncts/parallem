@@ -67,7 +67,7 @@ class SyncAnthropicProvider(SyncProvider, AnthropicProvider):
         **kwargs,
     ):
         """Prepare a synchronous callable for Anthropic API"""
-        model_name, messages, config = self.adapter.fix_config(params, **kwargs)
+        model_name, messages, config = self.adapter.prepare_sdk_request(params, **kwargs)
         max_tokens = config.pop("max_tokens", 4096)
         # If betas are requested and the client exposes the beta namespace,
         # use the beta messages.create endpoint.
@@ -98,7 +98,7 @@ class AsyncAnthropicProvider(AsyncProvider, AnthropicProvider):
         **kwargs,
     ):
         """Prepare a async coroutine for Anthropic API"""
-        model_name, messages, config = self.adapter.fix_config(params, **kwargs)
+        model_name, messages, config = self.adapter.prepare_sdk_request(params, **kwargs)
         max_tokens = config.pop("max_tokens", 1024)
 
         if config.get("betas"):
@@ -131,7 +131,7 @@ class BatchAnthropicProvider(BatchProvider, AnthropicProvider):
         **kwargs,
     ) -> dict:
         """Convert CommonQueryParameters to Anthropic Message Batch format."""
-        request_params = self.adapter.prepare_request(params, **kwargs)
+        request_params = self.adapter.prepare_batch_request(params, **kwargs)
 
         return {
             "custom_id": custom_id,

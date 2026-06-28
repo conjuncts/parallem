@@ -69,7 +69,7 @@ class BedrockAdapter(BaseAdapter):
                 self._adapters[_key] = BedrockAnthropicAdapter()
         return self._adapters[_key]
 
-    def fix_config(
+    def prepare_sdk_request(
         self,
         params: CommonQueryParameters,
         **kwargs: dict,
@@ -79,7 +79,7 @@ class BedrockAdapter(BaseAdapter):
         adapter = self._get_adapter_for(llm)
         return adapter.fix_config(params, **kwargs)
 
-    def fix_docs(
+    def prepare_docs(
         self,
         documents: List[LLMDocument],
         *,
@@ -89,7 +89,7 @@ class BedrockAdapter(BaseAdapter):
         adapter = self._get_adapter_for(llm)
         return adapter.fix_docs(documents)
 
-    def fix_tools(
+    def prepare_tools(
         self,
         tools: List[Union[dict, ServerTool]],
         llm: LLMIdentity = None,
@@ -99,7 +99,7 @@ class BedrockAdapter(BaseAdapter):
         adapter = self._get_adapter_for(llm)
         return adapter.fix_tools(tools)
 
-    def prepare_request(
+    def prepare_batch_request(
         self,
         params: CommonQueryParameters,
         **kwargs,

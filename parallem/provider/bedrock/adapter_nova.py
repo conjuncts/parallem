@@ -383,19 +383,19 @@ def _convert_to_nova_response(raw_response: dict) -> ParsedResponse:
 
 
 class BedrockNovaAdapter(BaseAdapter):
-    def fix_docs(
+    def prepare_docs(
         self,
         documents: List[LLMDocument],
     ):
         return _fix_docs_for_nova(documents)
 
-    def fix_tools(
+    def prepare_tools(
         self,
         tools: List[Union[dict, ServerTool]],
     ) -> list[dict]:
         return _prepare_tool_schema(tools)
 
-    def prepare_request(self, params, **kwargs):
+    def prepare_batch_request(self, params, **kwargs):
         return _prepare_nova_body(params, kwargs)
 
     def convert_response(self, raw_response):

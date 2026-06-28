@@ -92,7 +92,7 @@ class SyncBedrockProvider(SyncProvider, BedrockProvider):
         """
         llm = params["llm"]
         model_kwargs = kwargs.copy()
-        body = self.adapter.prepare_request(params, **model_kwargs)
+        body = self.adapter.prepare_batch_request(params, **model_kwargs)
         # TODO: settle on a good pattern for passing invoke options.
         # nova_invoke_options, bedrock_invoke_options
         invoke_options = {}

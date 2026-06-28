@@ -411,7 +411,7 @@ def _capitalize_function_decl(items: dict) -> None:
 
 
 class GoogleAdapter(BaseAdapter):
-    def fix_config(
+    def prepare_sdk_request(
         self,
         params: CommonQueryParameters,
         **kwargs,
@@ -421,7 +421,7 @@ class GoogleAdapter(BaseAdapter):
         structured_output = params.get("structured_output")
         tools = params.get("tools")
 
-        contents = self.fix_docs(params["strict_documents"])
+        contents = self.prepare_docs(params["strict_documents"])
 
         config: "types.GenerateContentConfigDict" = kwargs.copy()
         if instructions:
@@ -432,33 +432,33 @@ class GoogleAdapter(BaseAdapter):
             config["response_schema"] = structured_output
 
         if tools:
-            config["tools"] = self.fix_tools(tools)
+            config["tools"] = self.prepare_tools(tools)
 
         model_name = llm.model_name if llm else "gemini-2.5-flash"
 
         return model_name, contents, config
 
-    def fix_docs(
+    def prepare_docs(
         self,
         documents: List[LLMDocument],
     ):
         """Make documents ready for API calls."""
         return _fix_docs_for_google(documents)
 
-    def fix_tools(
+    def prepare_tools(
         self,
         tools: List[Union[dict, ServerTool]],
     ):
         """Make tools ready for API calls."""
         return _prepare_tool_schema(tools)
 
-    def prepare_request(
+    def prepare_batch_request(
         self,
         params: CommonQueryParameters,
         **kwargs,
     ) -> dict:
         """Prepare full request payload."""
-        model_name, fixed_documents, config = self.fix_config(params, **kwargs)
+        model_name, fixed_documents, config = self.prepare_sdk_request(params, **kwargs)
 
         # some differences between python SDK and JSON.
 

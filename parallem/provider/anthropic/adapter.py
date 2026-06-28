@@ -307,19 +307,19 @@ def _prepare_tool_schema(
 
 
 class AnthropicAdapter(BaseAdapter):
-    def fix_docs(
+    def prepare_docs(
         self,
         documents: List[LLMDocument],
     ):
         return _fix_docs_for_anthropic(documents)
 
-    def fix_tools(
+    def prepare_tools(
         self,
         tools: List[Union[dict, ServerTool]],
     ) -> tuple[list[dict], list[dict]]:
         return _prepare_tool_schema(tools)
 
-    def fix_config(
+    def prepare_sdk_request(
         self,
         params: CommonQueryParameters,
         **kwargs,
@@ -332,9 +332,9 @@ class AnthropicAdapter(BaseAdapter):
 
         mcp_servers: list[dict] = []
         if tools:
-            tools, mcp_servers = self.fix_tools(tools)
+            tools, mcp_servers = self.prepare_tools(tools)
 
-        messages = self.fix_docs(params["strict_documents"])
+        messages = self.prepare_docs(params["strict_documents"])
 
         config = kwargs.copy()
         if instructions:
@@ -359,13 +359,13 @@ class AnthropicAdapter(BaseAdapter):
             config["tools"] = tools
         return model_name, messages, config
 
-    def prepare_request(
+    def prepare_batch_request(
         self,
         params: CommonQueryParameters,
         **kwargs,
     ) -> dict:
         """Prepare full request payload for Anthropic API calls"""
-        model_name, messages, config = self.fix_config(params, **kwargs)
+        model_name, messages, config = self.prepare_sdk_request(params, **kwargs)
 
         request_params = {
             "model": model_name,

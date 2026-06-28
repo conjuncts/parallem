@@ -58,10 +58,10 @@ class SyncOpenAIProvider(SyncProvider, OpenAIProvider):
     ):
         """Prepare a synchronous callable for OpenAI API"""
         instructions = params["instructions"]
-        fixed_documents = self.adapter.fix_docs(params["strict_documents"])
+        fixed_documents = self.adapter.prepare_docs(params["strict_documents"])
         llm = params["llm"]
         structured_output = params.get("structured_output")
-        tools = self.adapter.fix_tools(params.get("tools"))
+        tools = self.adapter.prepare_tools(params.get("tools"))
 
         if structured_output is not None:
             return self.client.responses.parse(
@@ -94,10 +94,10 @@ class AsyncOpenAIProvider(AsyncProvider, OpenAIProvider):
     ):
         """Prepare an async coroutine for OpenAI API"""
         instructions = params["instructions"]
-        fixed_documents = self.adapter.fix_docs(params["strict_documents"])
+        fixed_documents = self.adapter.prepare_docs(params["strict_documents"])
         llm = params["llm"]
         structured_output = params.get("structured_output")
-        tools = self.adapter.fix_tools(params.get("tools"))
+        tools = self.adapter.prepare_tools(params.get("tools"))
 
         if structured_output is not None:
             coro = self.client.responses.parse(
@@ -134,7 +134,7 @@ class BatchOpenAIProvider(OpenAIBatchMixin, BatchProvider, OpenAIProvider):
         **kwargs,
     ) -> dict:
         """Prepare batch call data for OpenAI"""
-        body = self.adapter.prepare_request(params, **kwargs)
+        body = self.adapter.prepare_batch_request(params, **kwargs)
         return {
             "custom_id": custom_id,
             "method": "POST",
