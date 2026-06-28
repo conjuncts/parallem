@@ -4,8 +4,9 @@ from io import BytesIO
 import hashlib
 import json
 from pathlib import Path
-from typing import TYPE_CHECKING, Callable, List, Optional, Union
+from typing import TYPE_CHECKING, Callable, Dict, List, Optional, Union
 
+from PIL import Image
 import polars as pl
 
 from parallem.core.convert.doc_to_bytes import cast_document_to_bytes
@@ -188,8 +189,22 @@ class InputStorage:
             },
         )
 
+        self.item_tables = {
+            # "item_index": self._item_index_table,
+            "text": self._text_table,
+            "json": self._json_table,
+            "function_call_request": self._function_call_request_table,
+            "function_call_output": self._function_call_output_table,
+            "llm_response": self._llm_response_table,
+            "binary": self._binary_table,
+            "image_index": self._image_index_table,
+            "file_input": self._file_input_table,
+            "multipart_document": self._multipart_document_table,
+            # "msg_state_len": self._msg_state_len_table,
+        }
+
     # ------------------------------------------------------------------
-    # Path helpers (unchanged)
+    # Path helpers
     # ------------------------------------------------------------------
 
     def path_inputs(self) -> Path:
@@ -350,11 +365,17 @@ class InputStorage:
             "kwargs": request_kwargs,
         }
 
-    def _maybe_write(self, table_name: str, item_hash: str, writer: ParquetWriter, row: dict) -> None:
+    def _maybe_write(self, table_name: str, item_hash: str, row: dict) -> None:
         """Write to a content table only if this item_hash hasn't been seen yet."""
+        writer = self.item_tables.get(table_name)
+        if writer is None:
+            return
         if item_hash not in self._seen_item_hashes[table_name]:
             self._seen_item_hashes[table_name].add(item_hash)
-            writer.log(row)
+            writer.log({
+                "item_hash": item_hash,
+                **row
+            })
 
     # ------------------------------------------------------------------
     # Core storage logic
@@ -364,8 +385,7 @@ class InputStorage:
         if isinstance(part, tuple):
             role, text = part
             item_hash = _hash_str(f"text\x00{role}\x00{text}")
-            self._maybe_write("text", item_hash, self._text_table, {
-                "item_hash": item_hash,
+            self._maybe_write("text", item_hash, {
                 "text": text,
                 "role": role,
             })
@@ -373,8 +393,7 @@ class InputStorage:
 
         if isinstance(part, str):
             item_hash = _hash_str(f"text\x00\x00{part}")
-            self._maybe_write("text", item_hash, self._text_table, {
-                "item_hash": item_hash,
+            self._maybe_write("text", item_hash, {
                 "text": part,
                 "role": None,
             })
@@ -390,8 +409,7 @@ class InputStorage:
                 item_hash = _hash_bytes(buffered.getvalue())
                 rel_path, img_format = None, None
 
-            self._maybe_write("image_index", item_hash, self._image_index_table, {
-                "item_hash": item_hash,
+            self._maybe_write("image_index", item_hash, {
                 "image_path": rel_path,
                 "image_format": img_format,
             })
@@ -407,8 +425,7 @@ class InputStorage:
                 ):
                     json_text = None
             item_hash = _hash_str(f"json\x00{json_text}")
-            self._maybe_write("json", item_hash, self._json_table, {
-                "item_hash": item_hash,
+            self._maybe_write("json", item_hash, {
                 "json_text": json_text,
             })
             return item_hash, "json"
@@ -416,8 +433,7 @@ class InputStorage:
         if isinstance(part, FileInput):
             raw = (part.file_content or b"") + (part.file_url or "").encode()
             item_hash = _hash_bytes(raw + (part.filename or "").encode())
-            self._maybe_write("file_input", item_hash, self._file_input_table, {
-                "item_hash": item_hash,
+            self._maybe_write("file_input", item_hash, {
                 "filename": part.filename,
                 "mime_type": part.mime_type,
                 "file_url": part.file_url,
@@ -427,8 +443,7 @@ class InputStorage:
 
         content, msg_type, msg_extra = cast_document_to_bytes(part)
         item_hash = _hash_bytes(content)
-        self._maybe_write("binary", item_hash, self._binary_table, {
-            "item_hash": item_hash,
+        self._maybe_write("binary", item_hash, {
             "doc_type": msg_type,
             "doc_extra": msg_extra,
             "doc_value": content,
@@ -455,8 +470,7 @@ class InputStorage:
                 "item_hash": item_hash,
                 "item_type": "multipart_document"
             })
-            self._maybe_write("multipart_document", item_hash, self._multipart_document_table, {
-                "item_hash": item_hash,
+            self._maybe_write("multipart_document", item_hash, {
                 "parts_info": parts_info,
             })
             return
@@ -490,8 +504,7 @@ class InputStorage:
             self._item_index_table.log(
                 {"doc_hash": doc_hash, "index_in_msg_state": index_in_msg_state, "item_hash": item_hash, "item_type": "function_call_output"}
             )
-            self._maybe_write("function_call_output", item_hash, self._function_call_output_table, {
-                "item_hash": item_hash,
+            self._maybe_write("function_call_output", item_hash, {
                 "name": name,
                 "fcall_id": fcall_id,
                 "content_text": content_text,
@@ -514,8 +527,7 @@ class InputStorage:
             self._item_index_table.log(
                 {"doc_hash": doc_hash, "index_in_msg_state": index_in_msg_state, "item_hash": item_hash, "item_type": "function_call_request"}
             )
-            self._maybe_write("function_call_request", item_hash, self._function_call_request_table, {
-                "item_hash": item_hash,
+            self._maybe_write("function_call_request", item_hash, {
                 "fcall_id": call_id,
                 "text_content": msg.text_content,
                 "calls_json": calls_json,
@@ -528,8 +540,7 @@ class InputStorage:
             self._item_index_table.log(
                 {"doc_hash": doc_hash, "index_in_msg_state": index_in_msg_state, "item_hash": item_hash, "item_type": "llm_response"}
             )
-            self._maybe_write("llm_response", item_hash, self._llm_response_table, {
-                "item_hash": item_hash,
+            self._maybe_write("llm_response", item_hash, {
                 "call_id": call_id,
             })
             return
@@ -597,95 +608,87 @@ class InputStorage:
         item_hash = index_hits["item_hash"][0]
         item_type = index_hits["item_type"][0]
 
+        if item_type not in self.item_tables:
+            return None
         part = self._retrieve_part_by_hash(item_hash, item_type)
         if part is not None:
             return part
-        elif item_type == "function_call_request":
-            rows = self._function_call_request_table.get({"item_hash": item_hash})
-            if not rows.is_empty():
-                calls_data = json.loads(rows["calls_json"][0] or "[]")
-                calls = [
-                    FunctionCall(name=c["name"], fcall_id=c["fcall_id"], arguments=c["args"])
-                    for c in calls_data
-                ]
-                return FunctionCallRequest(
-                    text_content=rows["text_content"][0],
-                    calls=calls,
-                    call_id=None,
-                )
+
+        rows = self.item_tables[item_type].get({"item_hash": item_hash})
+        if rows.is_empty():
+            return None
+        record = rows.row(0, named=True)
+        if item_type == "function_call_request":
+            calls_data = json.loads(record["calls_json"] or "[]")
+            calls = [
+                FunctionCall(name=c["name"], fcall_id=c["fcall_id"], arguments=c["args"])
+                for c in calls_data
+            ]
+            return FunctionCallRequest(
+                text_content=record["text_content"],
+                calls=calls,
+                call_id=None,
+            )
         elif item_type == "function_call_output":
-            rows = self._function_call_output_table.get({"item_hash": item_hash})
-            if not rows.is_empty():
-                return FunctionCallOutput(
-                    name=rows["name"][0],
-                    fcall_id=rows["fcall_id"][0],
-                    content=_parse_fco_content(rows["content_text"][0], rows["content_type"][0]),
-                )
+            return FunctionCallOutput(
+                name=record["name"],
+                fcall_id=record["fcall_id"],
+                content=_parse_fco_content(record["content_text"], record["content_type"]),
+            )
         elif item_type == "llm_response":
-            rows = self._llm_response_table.get({"item_hash": item_hash})
-            if not rows.is_empty():
-                return LLMResponse(value="", call_id=None)
+            return LLMResponse(value="", call_id=None)
         elif item_type == "multipart_document":
-            rows = self._multipart_document_table.get({"item_hash": item_hash})
-            if not rows.is_empty():
-                parts_info = rows["parts_info"][0].to_list()
-                parts = []
-                for p_info in parts_info:
-                    part_item_hash = p_info["item_hash"]
-                    part_item_type = p_info["item_type"]
-                    part_doc = self._retrieve_part_by_hash(part_item_hash, part_item_type)
-                    if part_doc is not None:
-                        parts.append(part_doc)
-                return MultipartDocument(parts=parts)
+            parts_info: List[Dict[str, str]] = record["parts_info"]
+            parts = []
+            for p_info in parts_info:
+                part_item_hash = p_info["item_hash"]
+                part_item_type = p_info["item_type"]
+                part_doc = self._retrieve_part_by_hash(part_item_hash, part_item_type)
+                if part_doc is not None:
+                    parts.append(part_doc)
+            return MultipartDocument(parts=parts)
 
         return None
 
 
     def _retrieve_part_by_hash(self, item_hash: str, item_type: str) -> Optional[LLMDocument]:
+        if item_type not in {"text", "json", "image_index", "file_input", "binary"}:
+            return None
+        rows = self.item_tables[item_type].get({"item_hash": item_hash})
+        if rows.is_empty():
+            return None
+        record = rows.row(0, named=True)
         if item_type == "text":
-            rows = self._text_table.get({"item_hash": item_hash})
-            if not rows.is_empty():
-                text = rows["text"][0]
-                role = rows["role"][0]
-                if role is not None:
-                    return (role, text)
-                return text
+            text = record["text"]
+            role = record["role"]
+            if role is not None:
+                return (role, text)
+            return text
         elif item_type == "json":
-            rows = self._json_table.get({"item_hash": item_hash})
-            if not rows.is_empty():
-                json_text = rows["json_text"][0]
-                if json_text is not None:
-                    return json.loads(json_text)
-                return None
+            json_text = record["json_text"]
+            if json_text is not None:
+                return json.loads(json_text)
         elif item_type == "image_index":
-            rows = self._image_index_table.get({"item_hash": item_hash})
-            if not rows.is_empty():
-                image_path = rows["image_path"][0]
-                if image_path is not None:
-                    from PIL import Image as _PILImage
-                    full_path = self.path_inputs() / image_path
-                    if full_path.exists():
-                        with _PILImage.open(str(full_path)) as img:
-                            img.load()
-                            return img
-                return None
+            image_path = record["image_path"]
+            if image_path is not None:
+                full_path = self.path_inputs() / image_path
+                if full_path.exists():
+                    with Image.open(str(full_path)) as img:
+                        img.load()
+                        return img
         elif item_type == "file_input":
-            rows = self._file_input_table.get({"item_hash": item_hash})
-            if not rows.is_empty():
-                return FileInput(
-                    filename=rows["filename"][0],
-                    mime_type=rows["mime_type"][0],
-                    file_url=rows["file_url"][0],
-                    file_content=rows["file_content"][0],
-                )
+            return FileInput(
+                filename=record["filename"],
+                mime_type=record["mime_type"],
+                file_url=record["file_url"],
+                file_content=record["file_content"],
+            )
         elif item_type == "binary":
-            rows = self._binary_table.get({"item_hash": item_hash})
-            if not rows.is_empty():
-                return cast_document_to_bytes(
-                    rows["doc_value"][0],
-                    rows["doc_type"][0],
-                    rows["doc_extra"][0],
-                )[0]
+            return cast_document_to_bytes(
+                record["doc_value"],
+                record["doc_type"],
+                record["doc_extra"],
+            )[0]
         return None
 
 
@@ -694,15 +697,9 @@ class InputStorage:
         self._item_index_table.commit(mode="unique", on=["doc_hash", "index_in_msg_state"])
 
         # Content tables: unique per item_hash only
-        self._text_table.commit(mode="unique", on=["item_hash"])
-        self._json_table.commit(mode="unique", on=["item_hash"])
-        self._function_call_request_table.commit(mode="unique", on=["item_hash"])
-        self._function_call_output_table.commit(mode="unique", on=["item_hash"])
-        self._llm_response_table.commit(mode="unique", on=["item_hash"])
-        self._binary_table.commit(mode="unique", on=["item_hash"])
-        self._image_index_table.commit(mode="unique", on=["item_hash"])
-        self._file_input_table.commit(mode="unique", on=["item_hash"])
-        self._multipart_document_table.commit(mode="unique", on=["item_hash"])
+        for _, writer in self.item_tables.items():
+            writer.commit(mode="unique", on=["item_hash"])
+
         self._msg_state_len_table.commit(mode="unique", on=["doc_hash"])
 
         if not self._config_log:
