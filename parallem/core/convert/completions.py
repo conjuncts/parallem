@@ -151,7 +151,7 @@ def from_chat_completion(
         mime_type = header.removeprefix("data:")
         return mime_type, base64.b64decode(b64)
 
-    def _from_content_parts(parts: list) -> LLMDocument:
+    def _from_content_parts(parts: list, role: str = "user") -> LLMDocument:
         converted_parts = []
         for part in parts:
             if isinstance(part, str):
@@ -197,17 +197,17 @@ def from_chat_completion(
 
         if len(converted_parts) == 1:
             return converted_parts[0]
-        return MultipartDocument(parts=converted_parts)
+        return MultipartDocument(parts=converted_parts, role=role)
 
-    if msg["role"] == "user":
+    role = msg.get("role")
+    if role == "user":
         content = msg.get("content")
         if isinstance(content, str):
             return content
         if isinstance(content, list):
-            return _from_content_parts(content)
+            return _from_content_parts(content, role=role)
         raise ProviderCompatibilityError(f"Unsupported user message content: {content}")
-
-    if msg["role"] == "assistant":
+    elif role == "assistant":
         calls = []
         if "tool_calls" in msg and msg["tool_calls"]:
             for call in msg["tool_calls"]:
@@ -223,11 +223,11 @@ def from_chat_completion(
             calls=calls,
             call_id=None,
         )
-    if msg["role"] == "tool":
+    elif role == "tool":
         return FunctionCallOutput(
             content=msg.get("content"),
             fcall_id=msg["tool_call_id"],
             name="",
         )
 
-    raise ProviderCompatibilityError(f"Unsupported chat completion role: {msg['role']}")
+    raise ProviderCompatibilityError(f"Unsupported chat completion role: {role}")

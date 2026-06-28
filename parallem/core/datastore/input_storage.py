@@ -171,7 +171,12 @@ class InputStorage:
             self.path_inputs_multipart_document_table(),
             schema={
                 "item_hash": pl.Utf8,
-                "parts_json": pl.Utf8,
+                "role": pl.Utf8,
+                "parts_info": pl.List(pl.Struct({
+                    "item_hash": pl.Utf8,
+                    "item_type": pl.Utf8,
+                })),
+                # "parts_json": pl.Utf8,
             },
         )
 
@@ -444,12 +449,15 @@ class InputStorage:
 
             parts_json = json.dumps(parts_info, separators=(",", ":"))
             item_hash = _hash_str(f"multipart\x00{parts_json}")
-            self._item_index_table.log(
-                {"doc_hash": doc_hash, "index_in_msg_state": index_in_msg_state, "item_hash": item_hash, "item_type": "multipart_document"}
-            )
+            self._item_index_table.log({
+                "doc_hash": doc_hash,
+                "index_in_msg_state": index_in_msg_state,
+                "item_hash": item_hash,
+                "item_type": "multipart_document"
+            })
             self._maybe_write("multipart_document", item_hash, self._multipart_document_table, {
                 "item_hash": item_hash,
-                "parts_json": parts_json,
+                "parts_info": parts_info,
             })
             return
 
@@ -620,7 +628,7 @@ class InputStorage:
         elif item_type == "multipart_document":
             rows = self._multipart_document_table.get({"item_hash": item_hash})
             if not rows.is_empty():
-                parts_info = json.loads(rows["parts_json"][0] or "[]")
+                parts_info = rows["parts_info"][0].to_list()
                 parts = []
                 for p_info in parts_info:
                     part_item_hash = p_info["item_hash"]

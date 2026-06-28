@@ -4,6 +4,7 @@ from pathlib import Path
 from typing import (
     TYPE_CHECKING,
     Any,
+    Dict,
     List,
     Literal,
     TypeAlias,
@@ -275,12 +276,14 @@ class MultipartDocument(AskItem):
     parts: List["LLMDocument"]
     """List of documents/parts."""
 
+    role: Literal["user", "assistant", "system", "developer"] = "user"
+
     def __post_init__(self):
         if not self.parts:
             raise ValueError("MultipartDocument must have at least one part.")
 
     def __repr__(self):
-        return f"MultipartDocument(parts={self.parts})"
+        return f"MultipartDocument(parts={self.parts}, role={self.role})"
 
     def __str__(self):
         return self.__repr__()
