@@ -176,7 +176,8 @@ def compute_document_hash(
         _hash_if_present(hasher, doc.filename)
         _hash_if_present(hasher, doc.mime_type)
         _hash_if_present(hasher, doc.file_url)
-        _hash_if_present(hasher, doc.file_content)
+        if doc.file_content is not None:
+            hasher.update(doc.file_content)
     elif isinstance(doc, MultipartDocument):
         hasher.update(b"multipart_document")
         for part in doc.parts:

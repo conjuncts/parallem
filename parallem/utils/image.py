@@ -1,12 +1,15 @@
 import base64
 from io import BytesIO
+from typing import TypeGuard, Union
 from PIL import Image
 
+from parallem.types import ImageURL
 
-def is_image(obj):
+
+
+def is_image(obj) -> TypeGuard[Image.Image]:
     """Check if the object is a PIL Image."""
     return isinstance(obj, Image.Image)
-
 
 def _get_image_type(obj: Image.Image):
     """Get preferred file type for this PIL Image"""
@@ -41,3 +44,18 @@ def get_type_and_b64(obj: Image.Image, *, allowed=None):
         # obj = obj.convert("RGB")  # Convert to RGB if needed
         return convert_to, _image_to_b64(obj, convert_to.removeprefix("image/"))
     return image_type, _image_to_b64(obj, image_type.removeprefix("image/"))
+
+
+def is_image_url(obj: ImageURL) -> TypeGuard[ImageURL]:
+    return isinstance(obj, ImageURL)
+
+
+def to_image_url_str(obj: Union[Image.Image, str, "ImageURL"], *, allowed_mimetypes=None) -> str:
+    """Convert an object to an image_url string"""
+    if isinstance(obj, ImageURL):
+        return obj.image_url
+    elif isinstance(obj, str):
+        return obj
+    elif is_image(obj):
+        image_type, b64_str = get_type_and_b64(obj, allowed=allowed_mimetypes)
+        return f"data:{image_type};base64,{b64_str}"

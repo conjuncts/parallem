@@ -20,7 +20,7 @@ from parallem.types import (
     ServerTool,
 )
 from parallem.utils._quick_pydantic import is_pydantic_model
-from parallem.utils.image import get_type_and_b64, is_image
+from parallem.utils.image import is_image, is_image_url, to_image_url_str
 
 if TYPE_CHECKING:
     from openai.types.responses.response_input_item_param import (
@@ -111,9 +111,10 @@ def _fix_docs_for_openai(
                 "role": "user",
                 "content": [input_file],
             })
-        elif is_image(doc):
-            img_type, img_b64 = get_type_and_b64(
-                doc, allowed=["image/jpeg", "image/png", "image/gif", "image/webp"]
+        elif is_image(doc) or is_image_url(doc):
+
+            as_image_url = to_image_url_str(
+                doc, allowed_mimetypes=["image/jpeg", "image/png", "image/gif", "image/webp"]
             )
             formatted_docs.append(
                 {
@@ -121,7 +122,7 @@ def _fix_docs_for_openai(
                     "content": [
                         {
                             "type": "input_image",
-                            "image_url": f"data:{img_type};base64,{img_b64}",
+                            "image_url": as_image_url
                         },
                     ],
                 }

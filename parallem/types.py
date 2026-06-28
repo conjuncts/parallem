@@ -141,11 +141,10 @@ class FunctionCall:
         """
         Initialize a FunctionCall.
 
-        Args:
-            name: The name of the function being called.
-            call_id: The unique identifier for this function call.
-            arguments: The arguments for the function call as a dictionary.
-            arg_str: The arguments for the function call as a JSON string.
+        :param name: The name of the function being called.
+        :param fcall_id: The unique identifier for this function call.
+        :param arguments: The arguments for the function call as a dictionary.
+        :param arg_str: The arguments for the function call as a JSON string.
         """
         self.name = name
         self.fcall_id = fcall_id
@@ -188,9 +187,25 @@ class AskItem(ABC):
     type: str
     """Discriminator for the item kind."""
 
+@dataclass
+class ImageURL(AskItem):
+    """
+    Represents a URL to an image.
+
+    If the image is inline, custom providers and users should instead
+    expect a direct PIL.Image.Image object.
+    """
+
+    type: Literal["image_url"] = field(init=False, default="image_url")
+
+    image_url: str
+    mime_type: Optional[str] = None
+
 @dataclass(slots=True)
 class FunctionCallRequest(AskItem):
-    """Represents the LLM requesting function/tool call(s)"""
+    """Represents the LLM requesting function/tool call(s).
+    
+    This is the LLMDocument version of the corresponding LLMResponse"""
 
     type: Literal["function_call"] = field(init=False, default="function_call")
 
