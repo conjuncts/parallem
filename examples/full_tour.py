@@ -85,7 +85,7 @@ if __name__ == "__main__":
         dashboard=True,
         llm="gemini-2.5-flash",
         tweaks={"error_mode": "emit"},
-        save_input=True,
+        store_input=True,
     ) as orch:
         with orch.agent() as agt:
             print("1. " + power_of_3_agent(agt))

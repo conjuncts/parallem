@@ -106,8 +106,8 @@ class AskParameters(TypedDict):
     """Parameters for ask_llm()."""
 
     hash_by: List[HashByOption]
-    save_input: bool
     llm: Union["LLMIdentity", str]
+    salt: Optional[str]
 
 
 BatchStatus = Literal["ready", "error"]

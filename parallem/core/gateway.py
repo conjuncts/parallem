@@ -46,9 +46,9 @@ def resume_directory(
     tweaks: Optional[MinorTweaks] = None,
     dashboard: bool = False,
     client: Optional[Any] = None,
-    hash_by: List[HashByOption] = None,
-    save_input: Union[bool, None, InputStorageConfig] = None,
+    store_input: Union[bool, None, InputStorageConfig] = None,
     llm: Union[LLMIdentity, str, None] = None,
+    ask_params: Optional[AskParameters] = None,
 ) -> AgentOrchestrator:
     """
     Resume an AgentOrchestrator from a previously saved directory.
@@ -68,12 +68,10 @@ def resume_directory(
     :param dashboard: If True, pretty prints sent requests in real time
     :param client: Optional pre-initialized client instance (ie. OpenAI, Google, Anthropic, etc.)
 
-    :param hash_by: By default, responses with identical content but different configs
-        are considered equivalent. Specify additional parameters (like "llm")
-        to differentiate.
-    :param save_input: By default, input documents are not saved. 
+    :param store_input: By default, input documents are not saved. 
         Set to True to save them or provide an InputStorageConfig instance for more control.
     :param llm: By default, LLM identity to use for API calls.
+    :param ask_params: Optional global parameters for ask_llm() calls. Overrides defaults.
 
     :return: Configured AgentOrchestrator instance
     :raises ValueError: If strategy is not supported
@@ -106,8 +104,8 @@ def resume_directory(
 
     # 3. Setup components
     fm = FileManager(directory)
-    input_storage_config = save_input if isinstance(save_input, InputStorageConfig) else None
-    input_storage = InputStorage(fm, config=input_storage_config) if save_input else None
+    input_storage_config = store_input if isinstance(store_input, InputStorageConfig) else None
+    input_storage = InputStorage(fm, config=input_storage_config) if store_input else None
 
     logger.debug("Creating backend")
     if datastore == "sqlite":
@@ -155,13 +153,11 @@ def resume_directory(
 
     logger.debug("Creating AgentOrchestrator")
 
-    ask_params: AskParameters = {}
-    if hash_by is not None:
-        ask_params["hash_by"] = hash_by
-    if save_input is not None:
-        ask_params["save_input"] = save_input
+    global_ask_params: AskParameters = ask_params or {}
+    if store_input is not None:
+        global_ask_params["save_input"] = True
     if llm is not None:
-        ask_params["llm"] = llm
+        global_ask_params["llm"] = llm
     bm = AgentOrchestrator(
         file_manager=fm,
         input_storage=input_storage,
@@ -171,7 +167,7 @@ def resume_directory(
         dashlog=dashlog,
         ignore_cache=ignore_cache,
         strategy=strategy,
-        ask_params=ask_params,
+        ask_params=global_ask_params,
         error_mode=tweaks_dict["error_mode"],
     )
 

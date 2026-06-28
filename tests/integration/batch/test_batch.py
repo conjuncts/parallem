@@ -174,7 +174,7 @@ def test_full_batch_openai(temp_integration_dir, sample_tools, sample_image):
         strategy="batch",
         tweaks={"batch_user_confirmation": False},
         client=False,  # Don't use real client
-        save_input=True,
+        store_input=True,
     ) as orch:
         # Mock the provider to prevent actual submission
         mock_submit = Mock(return_value=f"msgbatch_uuid_{provider}")
@@ -217,7 +217,7 @@ def test_full_batch_openai_chat(temp_integration_dir, sample_tools, sample_image
         strategy="batch",
         tweaks={"batch_user_confirmation": False},
         client=False,  # Don't use real client
-        save_input=False,
+        store_input=False,
     ) as orch:
         mock_submit = Mock(return_value=f"msgbatch_uuid_{provider}")
         orch._provider.submit_batch_to_provider = mock_submit
@@ -241,7 +241,7 @@ def test_full_batch_google(temp_integration_dir, sample_tools, sample_image):
         strategy="batch",
         tweaks={"batch_user_confirmation": False},
         client=False,  # Don't use real client
-        save_input=False,
+        store_input=False,
     ) as orch:
         # Mock the provider to prevent actual submission
         mock_submit = Mock(return_value=f"mock_batch_uuid_{provider}")
@@ -275,7 +275,7 @@ def test_full_batch_anthropic(monkeypatch, temp_integration_dir, sample_tools, s
         strategy="batch",
         tweaks={"batch_user_confirmation": False},
         client=False,  # Don't use real client
-        save_input=False,
+        store_input=False,
     ) as orch:
         mock_submit = Mock(return_value=f"mock_batch_uuid_{provider}")
         orch._provider.submit_batch_to_provider = mock_submit

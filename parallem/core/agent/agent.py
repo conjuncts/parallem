@@ -43,11 +43,9 @@ if TYPE_CHECKING:
 
 
 class AgentContext(Askable):
-    """Context manager for one "agent", which in parallem is one single autonomous process.
+    """Context manager for one "agent", which in ParaLLeM is one single autonomous process.
 
-    parallem does things a bit differently.
-    While typically an agent is associated with a single LLM,
-    parallem identifies an agent with a process, program, or algorithm
+    ParaLLeM identifies an agent with a process, program, or algorithm
     which itself can ask LLMs questions, but also functions, MCP servers, and humans.
     It just so happens that the agent uses LLM(s) to automate much of its decision making."""
 
