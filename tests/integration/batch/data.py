@@ -6,13 +6,17 @@ data_gpt_batch_tool_2 = r"""{"custom_id": "-0-1-0", "method": "POST", "url": "/v
 
 
 data_batch_full_google = r"""
-{"key": "-0-0-0", "request": {"contents": [{"role": "user", "parts": [{"text": "Please name a power of 3."}]}], "systemInstruction": "No explanations needed."}}
+{"key": "-0-0-0", "request": {"contents": [{"role": "user", "parts": [{"text": "Please name a power of 3."}]}], "systemInstruction": {"parts": [{"text": "No explanations needed."}]}}}
 {"key": "-0-1-1", "request": {"contents": [{"role": "user", "parts": [{"text": "In 1 sentence, what is AAPL's current price?"}]}], "tools": [{"googleSearch": {}}]}}
 {"key": "-0-2-2", "request": {"contents": [{"role": "user", "parts": [{"text": "How many files are in ~/examples? Give the final answer in words."}]}], "tools": [{"functionDeclarations": [{"name": "count_files", "description": "Count the number of files in a directory.", "parameters": {"type": "OBJECT", "properties": {"directory": {"type": "STRING", "description": "The path to the directory to count files in."}}, "required": ["directory"]}}]}]}}
 {"key": "-0-3-3", "request": {"contents": [{"role": "user", "parts": [{"text": "What is the capital of France?"}]}], "generationConfig": {"responseJsonSchema": {"properties": {"final_answer": {"title": "Final Answer", "type": "string"}}, "required": ["final_answer"], "title": "MyModel", "type": "object"}, "responseMimeType": "application/json"}}}
 {"key": "-0-4-4", "request": {"contents": [{"role": "user", "parts": [{"text": "What animal is this?"}]}, {"role": "user", "parts": [{"inlineData": {"mimeType": "image/jpeg", "data": "<img-data>"}}]}]}}
 {"key": "-0-5-5", "request": {"contents": [{"role": "user", "parts": [{"text": "How many files are in ~/examples? Give the final answer in words."}]}, {"role": "model", "parts": [{"functionCall": {"name": "count_files", "args": {"directory": "~/examples"}, "id": "call_123"}}]}, {"role": "user", "parts": [{"functionResponse": {"name": "count_files", "response": {"output": 4}}}]}]}}
 """.replace("<img-data>", _img_data)
+
+_more_batch_tests = r"""
+{"key": "-0-6-6", "request": {"contents": [{"role": "user", "parts": [{"text": "What does this file say?"}]}, {"role": "user", "parts": [{"inlineData": {"mimeType": "text/plain", "data": "SGVsbG8gZnJvbSBBbXN0ZXJkYW0u"}}]}]}}
+"""
 
 data_batch_full_openai = r"""
 {"custom_id": "-0-0-0", "method": "POST", "url": "/v1/responses", "body": {"model": "gpt-5-nano", "instructions": "No explanations needed.", "input": [{"role": "user", "content": "Please name a power of 3."}], "tools": []}}

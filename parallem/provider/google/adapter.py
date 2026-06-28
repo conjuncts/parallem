@@ -460,6 +460,7 @@ class GoogleAdapter(BaseAdapter):
         """Prepare full request payload."""
         model_name, fixed_documents, config = self.prepare_sdk_request(params, **kwargs)
 
+        # Specification: https://ai.google.dev/api/batch-api#GenerateContentRequest
         # some differences between python SDK and JSON.
 
         # In essence, The python SDK expects GenerateContentConfigDict
@@ -485,6 +486,12 @@ class GoogleAdapter(BaseAdapter):
         ]:
             if k in config:
                 big_config[maybe_snake_to_camel(k)] = _camel_case_items(config.pop(k))
+
+        # unlike the SDK, systemInstruction must be provided as a Content, not a str
+        if "systemInstruction" in big_config and isinstance(big_config["systemInstruction"], str):
+            big_config["systemInstruction"] = {
+                "parts": [{"text": big_config["systemInstruction"]}],
+            }
 
         # this way, if the user provides config in kwargs under
         # generation_config, it gets observed too

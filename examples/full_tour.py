@@ -18,7 +18,7 @@ def power_of_3_agent(agt: pllm.AgentContext):
     # 1. Basic LLM call
     resp = agt.ask_llm(
         "Please name a power of 3.",
-        instructions="No explanation needed.",
+        instructions="No explanations needed.",
     )
     return resp.final_answer.replace("\n", " ")
 
@@ -84,21 +84,18 @@ if __name__ == "__main__":
         strategy="batch",
         dashboard=True,
         llm="gemini-2.5-flash",
-        # tweaks={"error_mode": "emit"},
+        tweaks={"error_mode": "emit"},
         store_input=True,
-        ask_params={
-            "salt": 3,
-        }
     ) as orch:
         with orch.agent() as agt:
             print("1. " + power_of_3_agent(agt))
-        # with orch.agent() as agt:
-        #     print("2. " + web_search_agent(agt))
-        # with orch.agent() as agt:
-        #     print("3. " + structured_output_agent(agt))
-        # with orch.agent() as agt:
-        #     print("4. " + image_input_agent(agt))
-        # with orch.agent() as agt:
-        #     print("5. " + function_calling_agent(agt))
-        # with orch.agent() as agt:
-        #     print("7. " + file_input_agent(agt))
+        with orch.agent() as agt:
+            print("2. " + web_search_agent(agt))
+        with orch.agent() as agt:
+            print("3. " + structured_output_agent(agt))
+        with orch.agent() as agt:
+            print("4. " + image_input_agent(agt))
+        with orch.agent() as agt:
+            print("5. " + function_calling_agent(agt))
+        with orch.agent() as agt:
+            print("7. " + file_input_agent(agt))
