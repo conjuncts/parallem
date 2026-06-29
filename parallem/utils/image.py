@@ -3,7 +3,7 @@ from io import BytesIO
 from typing import TypeGuard, Union
 from PIL import Image
 
-from parallem.types import ImageURL
+from parallem.types import ImageURLDocument
 
 
 
@@ -46,13 +46,13 @@ def get_type_and_b64(obj: Image.Image, *, allowed=None):
     return image_type, _image_to_b64(obj, image_type.removeprefix("image/"))
 
 
-def is_image_url(obj: ImageURL) -> TypeGuard[ImageURL]:
-    return isinstance(obj, ImageURL)
+def is_image_url(obj: ImageURLDocument) -> TypeGuard[ImageURLDocument]:
+    return isinstance(obj, ImageURLDocument)
 
 
-def to_image_url_str(obj: Union[Image.Image, str, "ImageURL"], *, allowed_mimetypes=None) -> str:
+def to_image_url_str(obj: Union[Image.Image, str, "ImageURLDocument"], *, allowed_mimetypes=None) -> str:
     """Convert an object to an image_url string"""
-    if isinstance(obj, ImageURL):
+    if isinstance(obj, ImageURLDocument):
         return obj.image_url
     elif isinstance(obj, str):
         return obj

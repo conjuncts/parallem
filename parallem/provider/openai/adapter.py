@@ -1,10 +1,6 @@
 import base64
 from typing import TYPE_CHECKING, List, Union
 
-from openai.types.responses.response_function_tool_call_output_item import (
-    ResponseFunctionToolCallOutputItem,
-)
-
 from parallem.provider.base import BaseAdapter
 from parallem.provider.openai.common import map_server_tools
 from parallem.provider.openai.openai_tools import to_strict_json_schema
@@ -16,6 +12,7 @@ from parallem.types import (
     FunctionCallRequest,
     LLMDocument,
     MCPOutput,
+    MultipartDocument,
     ParsedResponse,
     ServerTool,
 )
@@ -34,10 +31,43 @@ if TYPE_CHECKING:
         ResponseFunctionToolCallOutputItem,
     )
     from openai.types.responses.response_input_file import ResponseInputFile
+    from openai.types.responses.response_input_content_param import ResponseInputContentParam
     from pydantic import BaseModel
 
     from mcp.types import ContentBlock
 
+
+def _fix_part_for_openai(
+    doc: LLMDocument,
+) -> "ResponseInputContentParam":
+    if isinstance(doc, FileInput):
+        if doc.file_url:
+            input_file: "ResponseInputFile" = {
+                "type": "input_file",
+                "file_url": doc.file_url,
+                **doc.kwargs
+            }
+        elif doc.file_content:
+            b64 = base64.b64encode(doc.file_content).decode("utf-8")
+            input_file: "ResponseInputFile" = {
+                "type": "input_file",
+                "filename": doc.filename,
+                "file_data": f"data:{doc.mime_type};base64,{b64}",
+                **doc.kwargs
+            }
+        else:
+            raise ValueError("FileInput must have either file_url or file_content.")
+        return input_file
+    elif is_image(doc) or is_image_url(doc):
+
+        as_image_url = to_image_url_str(
+            doc, allowed_mimetypes=["image/jpeg", "image/png", "image/gif", "image/webp"]
+        )
+        return {
+            "type": "input_image",
+            "image_url": as_image_url
+        }
+    return None
 
 def _fix_docs_for_openai(
     documents: List[LLMDocument],
@@ -92,41 +122,25 @@ def _fix_docs_for_openai(
                 "content": content,
             }
             formatted_docs.append(msg)
-        elif isinstance(doc, FileInput):
-            if doc.file_url:
-                input_file: "ResponseInputFile" = {
-                    "type": "input_file",
-                    "file_url": doc.file_url,
-                    **doc.kwargs
-                }
-            elif doc.file_content:
-                b64 = base64.b64encode(doc.file_content).decode("utf-8")
-                input_file: "ResponseInputFile" = {
-                    "type": "input_file",
-                    "filename": doc.filename,
-                    "file_data": f"data:{doc.mime_type};base64,{b64}",
-                    **doc.kwargs
-                }
-            formatted_docs.append({
+        elif (
+            isinstance(doc, FileInput)
+            or is_image(doc)
+            or is_image_url(doc)
+        ):
+            part = _fix_part_for_openai(doc)
+            msg: "EasyInputMessageParam" = {
                 "role": "user",
-                "content": [input_file],
-            })
-        elif is_image(doc) or is_image_url(doc):
-
-            as_image_url = to_image_url_str(
-                doc, allowed_mimetypes=["image/jpeg", "image/png", "image/gif", "image/webp"]
-            )
-            formatted_docs.append(
-                {
-                    "role": "user",
-                    "content": [
-                        {
-                            "type": "input_image",
-                            "image_url": as_image_url
-                        },
-                    ],
-                }
-            )
+                "content": [part],
+            }
+            formatted_docs.append(msg)
+        elif isinstance(doc, MultipartDocument):
+            
+            return {
+                "role": doc.role,
+                "content": [
+                    _fix_part_for_openai(part) for part in doc.parts
+                ]
+            }
         else:
             raise ValueError(f"Unsupported document type: {type(doc)}")
     return formatted_docs

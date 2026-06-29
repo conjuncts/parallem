@@ -102,7 +102,7 @@ HashByOption: TypeAlias = Literal[
 ]
 
 
-class AskParameters(TypedDict):
+class AskParameters(TypedDict, total=False):
     """Parameters for ask_llm()."""
 
     hash_by: List[HashByOption]
@@ -188,7 +188,7 @@ class AskItem(ABC):
     """Discriminator for the item kind."""
 
 @dataclass
-class ImageURL(AskItem):
+class ImageURLDocument(AskItem):
     """
     Represents a URL to an image.
 
