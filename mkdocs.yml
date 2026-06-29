@@ -53,6 +53,7 @@ nav:
   - Quickstart: quickstart.md
   - Concepts:
     - Ask: concepts/ask.md
+    - Valid Inputs: concepts/valid_inputs.md
     - MessageState: concepts/msg_state.md
     - Persistence: concepts/persistence.md
     - Strategies: concepts/strategies.md

@@ -25,7 +25,7 @@ def long_conversation_agent(agt: pllm.AgentContext):
     print(resp4)
 ```
 
-This can be cumbersome for long conversations. To address this, we introduce `MessageState`. Instead of asking on `agt`, you can ask directly on `MessageState`, and documents/responses will automatically be tracked and appended to the conversation.
+This can be cumbersome for long conversations. To address this, the developer can call `MessageState.ask_llm`, and documents/responses will automatically be tracked and appended to the conversation.
 
 ```python
 def long_conversation_agent(agt: pllm.AgentContext):
@@ -44,16 +44,7 @@ conv.append("What year was that person born?")
 conv.pop(0)
 ```
 
-MessageState supports any of the following types:
-
-- LLMDocument, which is defined as one of:
-    - `str`
-    - `PIL.Image.Image`
-    - `Tuple[Literal["user", "assistant", "system", "developer"], str]`
-    - `FunctionCallRequest`
-    - `FunctionCallOutput`
-    - `MCPOutput`
-- LLMResponse
+MessageState accepts any [supported input type](valid_inputs.md).
 
 ## With tool use
 

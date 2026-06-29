@@ -1,18 +1,12 @@
 # Agents
 
-Conventional wisdom holds that *"one agent = one LLM"*. But we believe that an agent is a *program*. This program happens to use LLMs to automate much of its decision making, but the program can also [ask functions](concepts/ask.md) and the [user](concepts/ask.md).
+Conventional wisdom holds that "one agent = one LLM". But in ParaLLeM, an agent is a *program*. This program probably uses LLMs to automate much of its decision making, but the agent can also [ask functions](concepts/ask.md) and the [user](concepts/ask.md).
 
-As a result, agents in ParaLLeM are more powerful.
-
-## An agent is just a python function
-
-The most idiomatic way to declare an agent is with a **vanilla Python function** that takes a `pllm.AgentContext`. For example:
+An agent is simply a **vanilla Python function** that takes a `pllm.AgentContext`. For example:
 
 ```python
 --8<-- "examples/simplest_agent.py"
 ```
-
-It is just a python function, nothing special!
 
 ## An agent is more than an LLM
 

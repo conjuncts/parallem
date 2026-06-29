@@ -11,16 +11,8 @@ resp = agt.ask_llm("What is the capital of France?")
 print(resp.final_answer)
 ```
 
-`ask_llm` takes a list of documents. It supports the following types:
+`ask_llm` takes a list of [supported documents](valid_inputs.md)
 
-- LLMDocument
-    - `str`
-    - `Tuple[Literal["user", "assistant", "system", "developer"], str]`
-    - `PIL.Image.Image`
-    - `pllm.FunctionCallRequest`
-    - `pllm.FunctionCallOutput`
-    - `pllm.MCPOutput`
-- LLMResponse
 
 `ask_llm` has these keyword arguments:
 

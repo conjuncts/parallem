@@ -1,7 +1,7 @@
 
 # Quickstart
 
-This guide gives a tour of `parallem`. We support many agentic features including function calling, image input, structured output, web search, and more -- all with the Batch API.
+A demonstration of supported features, including function calling, image input, structured output, and web search.
 
 ```python title="examples/full_tour.py"
 --8<-- "examples/full_tour.py"
@@ -19,11 +19,11 @@ FunctionCall(name=count_files, call_id=call_Xau, args={'directory': '~/examples'
 [<span class="log-tag">DASH</span>] <span class="log-hash">↘ 2b55f032 ↘ f7824348 ↘ c9f2fcc4 ↘ f13b65b2 ↘ bc7f1641 ↘ 2883bea6</span>
 </code></pre></div>
 
-If you run the program again, the results are cached and available instantly.
+If the program is rerun, the results are cached and available immediately.
 
 ### Batch mode
 
-The entire workflow can be done in batch mode simply by changing one line of code:
+Use the Batch API in just one line of code:
 
 ```python
 with pllm.resume_directory(
@@ -41,7 +41,7 @@ Sent batch: batch_69b4a26290008190a08e246922784ed8
 [<span class="log-tag">DASH</span>] <span class="log-hash">⇈ 69b4a262</span>
 </code></pre></div>
 
-After waiting a while, run the program again. The batch will automatically be downloaded and handled for you.
+After a while, rerun the program. The batch will automatically be downloaded and handled.
 <div class="highlight session-log-html"><pre><code>[<span class="log-tag">INFO</span>] Resuming with session_id=1
 Batch batch_69b4a26290008190a08e246922784ed8 completed and stored.
 1. 243 (which is 3^5).
@@ -63,8 +63,8 @@ FunctionCall(name=count_files, call_id=call_Xau, args={'directory': '~/examples'
 ## Advanced Usage
 
 - See the docs for:
-    - The [**MessageState** guide](concepts/msg_state.md): simply a **list** that automatically stores documents and responses as they get added. Helps track long conversations, reducing boilerplate.
-    - The [**Ask** guide](concepts/ask.md): `ask_llm`, `ask_functions` (invoking user functions).
+    - The [**MessageState** guide](concepts/msg_state.md): a simple list that automatically appends documents and responses. Tracks long conversations and reduces boilerplate.
+    - The [**Ask** guide](concepts/ask.md): `ask_llm`, `ask_functions`.
     - The [**memoize** guide](concepts/memoize.md): for caching expensive or non-deterministic blocks of code.
 
 ## Further examples
