@@ -15,7 +15,6 @@ from parallem.core.convert.fix_docs import cast_documents, reduce_to_list
 from parallem.core.exception import NotAvailable, PendingNotAvailable
 from parallem.core.hash import compute_hash, compute_salted_hash
 from parallem.core.convert.populate import populate_msg_state
-from parallem.core.memoize.memoize_context import MemoizeContext
 from parallem.core.state.msg_state import MessageState
 from parallem.core.response import (
     ReadyLLMResponse,
@@ -360,22 +359,6 @@ class AgentContext(Askable):
             msg_state = populate_msg_state(msg_state, self._orch._backend)
             self._msg_state = msg_state
         return self._msg_state
-
-    def memoize(self, salt=None) -> MemoizeContext:
-        """
-        Context manager for memoizing.
-        When entered, it enables memoization for a **block of logic** the duration of the context.
-        This is helpful for expensive or non-deterministic operations:
-        this context block will only execute once, and on subsequent runs,
-        the results will be replayed from the first execution.
-        But note: ONLY changes to MessageState and NonMessageState will be recorded.
-        You will not be able to access local variables in this block the 2nd time around.
-
-
-        :param salt: Optional salt value to differentiate memoization contexts.
-            Different salt values will create separate memoization caches.
-        """
-        return MemoizeContext(self, salt=salt)
 
     def resolve_all(self, responses: List[LLMResponse]) -> List[str]:
         """

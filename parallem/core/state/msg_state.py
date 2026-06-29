@@ -12,18 +12,6 @@ from typing import (
 from parallem.core.ask import Askable, _raise_exception
 from parallem.core.convert.fix_docs import reduce_to_list
 from parallem.core.hash import compute_hash
-from parallem.core.memoize.operations import (
-    AppendOp,
-    ClearOp,
-    ExtendOp,
-    InsertOp,
-    OperationLog,
-    PopOp,
-    RemoveOp,
-    ReverseOp,
-    SetItemOp,
-    SortOp,
-)
 from parallem.types import (
     AskParameters,
     FunctionCallOutput,
@@ -37,7 +25,6 @@ from parallem.types import (
 
 if TYPE_CHECKING:
     from parallem.core.agent.agent import AgentContext
-    from parallem.core.memoize.operations import OperationLog
     from pydantic import BaseModel
 
 
@@ -66,11 +53,6 @@ class MessageState(UserList[Union[LLMDocument, LLMResponse]], Askable):
         self.ask_params = ask_params or {}
         if self.ask_params:
             self.ask_llm = self._bind_ask_llm(self.ask_params)
-        self._memoize_enabled = False
-        self._tracking_operations = False
-        self._operation_log: Optional["OperationLog"] = None
-        self._continued_operation_log: Optional["OperationLog"] = None
-        self._continued_mode = False
 
     def copy(self) -> "MessageState":
         """Create a copy of this MessageState."""
@@ -110,14 +92,6 @@ class MessageState(UserList[Union[LLMDocument, LLMResponse]], Askable):
             docs = docs
         return compute_hash(None, docs, salt=salt)
 
-    def _track_operation(self, operation):
-        """Track an operation if operation tracking is enabled.
-
-        :param operation: The operation to track.
-        """
-        if self._tracking_operations and self._operation_log is not None:
-            self._operation_log.record(operation)
-
     def _update_seq_counters(self, other: Union[LLMDocument, LLMResponse]):
         """Update sequence counters based on the other message."""
         if isinstance(other, LLMResponse):
@@ -128,7 +102,6 @@ class MessageState(UserList[Union[LLMDocument, LLMResponse]], Askable):
 
     def __setitem__(self, i, item):
         self._update_seq_counters(item)
-        self._track_operation(SetItemOp(i, item))
         super().__setitem__(i, item)
 
     def __add__(self, other):
@@ -174,12 +147,10 @@ class MessageState(UserList[Union[LLMDocument, LLMResponse]], Askable):
     def append(self, item: Union[LLMDocument, LLMResponse], /):
         """Append another MessageState to this one and return a new MessageState."""
         self._update_seq_counters(item)
-        self._track_operation(AppendOp(item))
         self.data.append(item)
 
     def insert(self, i, item):
         self._update_seq_counters(item)
-        self._track_operation(InsertOp(i, item))
         self.data.insert(i, item)
 
     def extend(self, others: Iterable[Union[LLMDocument, LLMResponse]], /):
@@ -187,37 +158,7 @@ class MessageState(UserList[Union[LLMDocument, LLMResponse]], Askable):
         others_list = list(others)
         for item in others_list:
             self._update_seq_counters(item)
-        self._track_operation(ExtendOp(others_list))
         self.data.extend(others_list)
-
-    def pop(self, i: int = -1):
-        """Remove and return item at index (default last)."""
-        self._track_operation(PopOp(i))
-        return self.data.pop(i)
-
-    def remove(self, item: Union[LLMDocument, LLMResponse]):
-        """Remove first occurrence of item."""
-        self._track_operation(RemoveOp(item))
-        self.data.remove(item)
-
-    def clear(self):
-        """Remove all items from list."""
-        self._track_operation(ClearOp())
-        self.data.clear()
-
-    def reverse(self):
-        """Reverse list in place."""
-        self._track_operation(ReverseOp())
-        self.data.reverse()
-
-    def sort(self, *, key=None, reverse=False):
-        """Sort list in place."""
-        if key is not None:
-            raise ValueError(
-                "MessageState.sort(key=...) is not supported because key functions are not serializable safely"
-            )
-        self._track_operation(SortOp(reverse))
-        self.data.sort(key=key, reverse=reverse)
 
     def ask_llm(
         self,
@@ -287,47 +228,6 @@ class MessageState(UserList[Union[LLMDocument, LLMResponse]], Askable):
         state = self.__dict__.copy()
         del state["_true_agent"]
         return state
-
-    def save(self):
-        """Persist the current message state to the agent's storage."""
-        if self._true_agent is None:
-            return
-
-        datastore = self._true_agent._orch._backend._get_datastore()
-        snapshot_log = OperationLog()
-        snapshot_log.record(ClearOp())
-        snapshot_log.record(ExtendOp(list(self.data)))
-        datastore.store_memoize(
-            self._true_agent.agent_name,
-            self._CONTINUED_STATE_HASH,
-            snapshot_log,
-        )
-
-    def load(self) -> "MessageState":
-        """Enable continued mode for this MessageState.
-
-        Continued mode automatically replays previously recorded operations,
-        and starts recording new operations.
-
-        Saving is explicit: call ``persist()`` when you want to store
-        accumulated operations.
-
-        :returns: The same MessageState instance in continued mode.
-        """
-
-        if self._true_agent is not None:
-            # Can proceed with loading state
-            self.clear()
-
-            datastore = self._true_agent._orch._backend._get_datastore()
-            oplog = datastore.retrieve_memoize(
-                self._true_agent.agent_name,
-                self._CONTINUED_STATE_HASH,
-            )
-            if oplog is not None:
-                oplog.replay(self)
-
-        return self
 
     def ask_functions(
         self,

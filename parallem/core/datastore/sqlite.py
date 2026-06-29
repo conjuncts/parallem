@@ -1,4 +1,3 @@
-from itertools import groupby
 import sqlite3
 import json
 import threading
@@ -6,7 +5,6 @@ import gzip
 import polars as pl
 from typing import Optional
 
-from parallem.core.convert.doc_to_bytes import cast_bytes_to_document, cast_document_to_bytes
 from parallem.core.convert.tools_to_json import dump_function_calls, load_function_calls
 
 from parallem.core.datastore.base import BaseDatastore
@@ -17,7 +15,7 @@ from parallem.core.datastore.sql_migrate import (
     get_schema_version,
     table_exists,
 )
-from parallem.core.datastore.sqlite_tables import BatchPendingTable, ErrorsTable, MemoizeOpsTable, MemoizeTable, MetadataTable, ResponsesTable
+from parallem.core.datastore.sqlite_tables import BatchPendingTable, ErrorsTable, MetadataTable, ResponsesTable
 from parallem.core.convert.sqlite_to_parquet import sqlite_to_df
 from parallem.core.compress.pack_metadata import compress_metadata_to_zip
 from parallem.core.compress.batch_pending_to_parquet import (
@@ -25,19 +23,6 @@ from parallem.core.compress.batch_pending_to_parquet import (
 )
 from parallem.core.compress.to_parquet import ParquetWriter
 from parallem.core.file_manager import FileManager
-from parallem.core.memoize.operations import (
-    AppendOp,
-    ClearOp,
-    ExtendOp,
-    InsertOp,
-    OperationLog,
-    PopOp,
-    RemoveOp,
-    ReverseOp,
-    SetNonMsgItemOp,
-    SetItemOp,
-    SortOp,
-)
 from parallem.types import (
     BatchIdentifier,
     BatchResult,
@@ -80,25 +65,7 @@ class SQLiteDatastore(BaseDatastore):
         self.metadata_table = MetadataTable()
         self.batch_pending_table = BatchPendingTable()
         self.errors_table = ErrorsTable()
-        self.memoize_table = MemoizeTable()
-        self.memoize_ops_table = MemoizeOpsTable()
         self._check_and_migrate()
-
-    def _ensure_memoize_ops_schema(self, conn: sqlite3.Connection) -> None:
-        """Ensure memoize_ops contains split item columns.
-
-        :param conn: SQLite connection.
-        :return: None.
-        """
-        cols = {row["name"] for row in conn.execute("PRAGMA table_info(memoize_ops)").fetchall()}
-        if "item_value" not in cols:
-            conn.execute("ALTER TABLE memoize_ops ADD COLUMN item_value BLOB")
-        if "item_type" not in cols:
-            conn.execute("ALTER TABLE memoize_ops ADD COLUMN item_type TEXT")
-        if "item_extra" not in cols:
-            conn.execute("ALTER TABLE memoize_ops ADD COLUMN item_extra TEXT")
-        if "target" not in cols:
-            conn.execute("ALTER TABLE memoize_ops ADD COLUMN target TEXT NOT NULL DEFAULT '.msg'")
 
     def _ensure_responses_schema(self, conn: sqlite3.Connection) -> None:
         """Ensure responses contains origin_type column.
@@ -241,8 +208,6 @@ class SQLiteDatastore(BaseDatastore):
                 "metadata",
                 "batch_pending",
                 "errors",
-                "memoize",
-                "memoize_ops",
             ]
         )
         if current_version >= 1 and has_core_tables:
@@ -259,12 +224,6 @@ class SQLiteDatastore(BaseDatastore):
         self.metadata_table.create(conn)
         self.batch_pending_table.create(conn)
         self.errors_table.create(conn)
-        self.memoize_table.create(conn)
-        self.memoize_ops_table.create(conn)
-
-        self._ensure_memoize_ops_schema(conn)
-        self.memoize_table.create_indexes(conn)
-        self.memoize_ops_table.create_indexes(conn)
 
         # Migrate existing schema if needed
         _migrate_sql_schema(conn, None)
@@ -996,222 +955,6 @@ class SQLiteDatastore(BaseDatastore):
             conn.commit()
         except sqlite3.Error as e:
             raise RuntimeError(f"SQLite error during import: {e}")
-
-    def store_memoize(
-        self,
-        agent_name: str,
-        state_hash: str,
-        operation_log: "OperationLog",
-    ) -> None:
-        """
-        Store memoized operation log for a given state hash.
-
-        Each operation is stored as one or more rows in ``memoize_ops``; no pickle
-        is used.
-
-        :param agent_name: The name of the agent owning the memoized state.
-        :param state_hash: The hash of the initial MessageState.
-        :param operation_log: The :class:`~parallem.core.memoize.operations.OperationLog`
-            to persist.
-        """
-
-        conn = self._get_connection(None)
-        self._is_dirty = True
-
-        # Upsert the sentinel row in `memoize` so state_hash is indexed
-        conn.execute(
-            """
-            INSERT OR REPLACE INTO memoize (agent_name, state_hash, timestamp)
-            VALUES (?, ?, CURRENT_TIMESTAMP)
-            """,
-            (agent_name, state_hash),
-        )
-
-        # Remove any previously stored ops for this hash
-        conn.execute(
-            "DELETE FROM memoize_ops WHERE agent_name = ? AND state_hash = ?",
-            (agent_name, state_hash),
-        )
-
-        rows: list[tuple] = []
-        supported_op_types = {
-            "append",
-            "remove",
-            "clear",
-            "reverse",
-            "extend",
-            "insert",
-            "setitem",
-            "setnonmsgitem",
-            "pop",
-            "sort",
-        }
-        for op_seq, op in enumerate(operation_log.operations):
-            if op.op_type not in supported_op_types:
-                raise ValueError(f"Unsupported memoize op_type: {op.op_type}")
-
-            target = ".nmsg" if op.op_type == "setnonmsgitem" else ".msg"
-
-            if op.op_type == "setnonmsgitem":
-                serialized_items = [cast_document_to_bytes(op.value)]
-            elif op.op_type == "extend":
-                serialized_items = [cast_document_to_bytes(item) for item in op.items]
-            elif op.item is not None:
-                serialized_items = [cast_document_to_bytes(op.item)]
-            else:
-                serialized_items = [(None, None, None)]
-
-            if op.op_type == "sort":
-                list_index = 1 if op.reverse else 0
-            elif op.op_type in {"insert", "setitem", "pop"}:
-                list_index = op.index
-            else:
-                list_index = None
-
-            for item_seq, (item_value, item_type, item_extra) in enumerate(serialized_items):
-                extra_payload = item_extra
-                if op.op_type == "setnonmsgitem":
-                    extra_payload = json.dumps(
-                        {
-                            "key": op.key,
-                            "item_extra": item_extra,
-                        },
-                        separators=(",", ":"),
-                    )
-
-                rows.append(
-                    (
-                        agent_name,
-                        state_hash,
-                        op_seq,
-                        item_seq,
-                        op.op_type,
-                        item_value,
-                        item_type,
-                        extra_payload,
-                        target,
-                        list_index,
-                    )
-                )
-
-        conn.executemany(
-            """
-            INSERT INTO memoize_ops
-                (agent_name, state_hash, op_seq, item_seq, op_type, item_value, item_type, item_extra, target, list_index)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-            """,
-            rows,
-        )
-
-    def retrieve_memoize(
-        self,
-        agent_name: str,
-        state_hash: str,
-    ) -> "Optional[OperationLog]":
-        """
-        Retrieve memoized operation log for a given state hash.
-
-        :param agent_name: The name of the agent owning the memoized state.
-        :param state_hash: The hash of the initial MessageState.
-        :return: The reconstructed :class:`~parallem.core.memoize.operations.OperationLog`,
-            or ``None`` if not found.
-        """
-
-        conn = self._get_connection(None)
-
-        # Check whether any ops exist for this hash
-        cursor = conn.execute(
-            "SELECT COUNT(*) FROM memoize_ops WHERE agent_name = ? AND state_hash = ?",
-            (agent_name, state_hash),
-        )
-        # count = cursor.fetchone()[0]
-
-        # Also verify the sentinel row exists
-        sentinel = conn.execute(
-            "SELECT id FROM memoize WHERE agent_name = ? AND state_hash = ?",
-            (agent_name, state_hash),
-        ).fetchone()
-        if sentinel is None:
-            return None
-
-        cursor = conn.execute(
-            """
-            SELECT op_seq, item_seq, op_type, item_value, item_type, item_extra, list_index
-            FROM memoize_ops
-            WHERE agent_name = ? AND state_hash = ?
-            ORDER BY op_seq, item_seq
-            """,
-            (agent_name, state_hash),
-        )
-        rows_fetched = cursor.fetchall()
-
-        # Group rows by op_seq
-        log = OperationLog()
-        for op_seq, group in groupby(rows_fetched, key=lambda r: r["op_seq"]):
-            group = list(group)
-            op_type = group[0]["op_type"]
-
-            if op_type == "setnonmsgitem":
-                extra = json.loads(group[0]["item_extra"]) if group[0]["item_extra"] else {}
-                key = extra.get("key")
-                value = cast_bytes_to_document(
-                    group[0]["item_value"],
-                    group[0]["item_type"],
-                    extra.get("item_extra"),
-                    datastore=self,
-                )
-                log.record(SetNonMsgItemOp(key=key, value=value))
-                continue
-
-            items = []
-            # Hydrate if needed
-            for r in group:
-                if r["item_value"] is not None:
-                    item = cast_bytes_to_document(
-                        r["item_value"],
-                        r["item_type"],
-                        r["item_extra"],
-                        datastore=self,
-                    )
-                    items.append(item)
-                else:
-                    items.append(None)
-            if op_type == "extend":
-                log.record(ExtendOp(items))
-                continue
-
-            # The other op-types are always one row/op.
-            group_0_item = items[0]
-            group_0_index = group[0]["list_index"]
-
-            if op_type == "append":
-                log.record(AppendOp(group_0_item))
-            elif op_type == "insert":
-                log.record(
-                    InsertOp(
-                        index=group_0_index,
-                        item=group_0_item,
-                    )
-                )
-            elif op_type == "setitem":
-                log.record(
-                    SetItemOp(
-                        index=group_0_index,
-                        item=group_0_item,
-                    )
-                )
-            elif op_type == "pop":
-                log.record(PopOp(index=group_0_index))
-            elif op_type == "remove":
-                log.record(RemoveOp(item=group_0_item))
-            elif op_type == "clear":
-                log.record(ClearOp())
-            elif op_type == "reverse":
-                log.record(ReverseOp())
-            elif op_type == "sort":
-                log.record(SortOp(reverse=bool(group_0_index)))
-
-        return log
 
     def _vacuum(self):
         """Performs vacuum on the SQLite database."""

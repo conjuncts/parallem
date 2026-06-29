@@ -81,7 +81,7 @@ if __name__ == "__main__":
     with pllm.resume_directory(
         ".pllm/example/batch",
         provider="google",
-        strategy="batch",
+        strategy="sync",
         dashboard=True,
         llm="gemini-2.5-flash",
         tweaks={"error_mode": "emit"},

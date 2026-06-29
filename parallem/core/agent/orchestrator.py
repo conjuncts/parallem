@@ -12,7 +12,6 @@ from parallem.core.batch_namespace import BatchNamespace
 from parallem.core.datastore.input_storage import InputStorage
 from parallem.core.exception import NotAvailable, ParallemSignal, PendingNotAvailable
 from parallem.core.export_namespace import ExportNamespace
-from parallem.core.state.non_msg_state import NonMessageState
 from parallem.core.seq_id_store import InMemorySeqIdStore, SeqIdStore
 from parallem.provider.base import BaseProvider
 from parallem.core.file_manager import FileManager
@@ -60,7 +59,6 @@ class AgentOrchestrator:
         self._logger = logger
         self._batch = BatchNamespace(self)
         self._export_ns = ExportNamespace(self)
-        self._userdata = NonMessageState(self._backend)
 
         # dashlog's display is disabled by default
         self._dashlog: DashboardLogger = dashlog
@@ -288,10 +286,6 @@ class AgentOrchestrator:
             ignore_cache=self.ignore_cache,
             error_mode=self._error_mode,
         )
-
-    @property
-    def userdata(self):
-        return self._userdata
 
     def finalize_tasks(self):
         """

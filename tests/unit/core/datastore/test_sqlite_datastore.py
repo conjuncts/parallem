@@ -11,12 +11,6 @@ from unittest.mock import patch
 
 from parallem.core.datastore.sqlite import SQLiteDatastore
 from parallem.core.file_manager import FileManager
-from parallem.core.memoize.operations import (
-    AppendOp,
-    ExtendOp,
-    OperationLog,
-    SetNonMsgItemOp,
-)
 from parallem.types import (
     CallIdentifier,
     ParsedResponse,
@@ -364,59 +358,6 @@ class TestSQLite:
         assert temp_datastore.retrieve(generic_call_id).text == "updated"
         # the other row was not touched
         assert temp_datastore.retrieve(other_call_id).text == "untouched"
-
-    def test_store_memoize_sets_target_by_state_type(self, temp_datastore):
-        """Memoize rows store .msg for MessageState ops and .nmsg for NonMessageState ops."""
-        operation_log = OperationLog()
-        operation_log.record(AppendOp("hello"))
-        operation_log.record(SetNonMsgItemOp("k", {"nested": True}))
-
-        agent_name = "agent-target-test"
-        state_hash = "hash_target_test"
-        temp_datastore.store_memoize(agent_name, state_hash, operation_log)
-
-        conn = temp_datastore._get_connection(None)
-        rows = conn.execute(
-            """
-            SELECT op_type, target
-            FROM memoize_ops
-            WHERE agent_name = ? AND state_hash = ?
-            ORDER BY op_seq, item_seq
-            """,
-            (agent_name, state_hash),
-        ).fetchall()
-
-        assert len(rows) == 2
-        assert rows[0]["op_type"] == "append"
-        assert rows[0]["target"] == ".msg"
-        assert rows[1]["op_type"] == "setnonmsgitem"
-        assert rows[1]["target"] == ".nmsg"
-
-    def test_memoize_isolated_by_agent_name(self, temp_datastore):
-        operation_log = OperationLog()
-        operation_log.record(AppendOp("hello"))
-
-        state_hash = "hash_shared"
-        temp_datastore.store_memoize("agent-a", state_hash, operation_log)
-
-        retrieved_same_agent = temp_datastore.retrieve_memoize("agent-a", state_hash)
-        retrieved_other_agent = temp_datastore.retrieve_memoize("agent-b", state_hash)
-
-        assert retrieved_same_agent is not None
-        assert len(retrieved_same_agent.operations) == 1
-        assert retrieved_other_agent is None
-
-    def test_retrieve_memoize_extend_items_round_trip(self, temp_datastore):
-        operation_log = OperationLog()
-        operation_log.record(ExtendOp(["a", {"k": 1}]))
-
-        temp_datastore.store_memoize("agent-extend", "hash-extend", operation_log)
-        retrieved = temp_datastore.retrieve_memoize("agent-extend", "hash-extend")
-
-        assert retrieved is not None
-        extend_op = retrieved.operations[0]
-        assert extend_op.op_type == "extend"
-        assert extend_op.items == ["a", {"k": 1}]
 
 
 # @pytest.mark.skip("Takes extra time")

@@ -65,7 +65,6 @@ FunctionCall(name=count_files, call_id=call_Xau, args={'directory': '~/examples'
 - See the docs for:
     - The [**MessageState** guide](concepts/msg_state.md): a simple list that automatically appends documents and responses. Tracks long conversations and reduces boilerplate.
     - The [**Ask** guide](concepts/ask.md): `ask_llm`, `ask_functions`.
-    - The [**memoize** guide](concepts/memoize.md): for caching expensive or non-deterministic blocks of code.
 
 ## Further examples
 

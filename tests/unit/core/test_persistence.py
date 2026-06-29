@@ -15,10 +15,7 @@ import queue
 from pathlib import Path
 from uuid import uuid4
 from parallem.core.file_manager import FileManager
-from parallem.core.response import ReadyLLMResponse, PendingLLMResponse
-from parallem.types import (
-    ParsedResponse,
-)
+from parallem.core.response import ReadyLLMResponse
 
 
 @pytest.fixture
@@ -221,98 +218,6 @@ class TestDatastoreAllocation:
 
 class TestAgentOrchestratorIntegration:
     """Test integration with AgentOrchestrator"""
-
-    def test_msg_state_persist_snapshot_replay_overwrites_local_changes(
-        self, persistence_sync_orch, test_agent_name
-    ):
-        """Test non-continued persist stores a snapshot log that can be replayed safely."""
-        with persistence_sync_orch.agent(test_agent_name) as agent:
-            msg_state = agent.get_msg_state()
-            msg_state.append("saved")
-            msg_state.save()
-            msg_state.append("unsaved")
-
-            loaded = msg_state.load()
-            assert list(loaded) == ["saved"]
-
-    def test_msg_state_load_requires_manual_persist(self, persistence_sync_orch, test_agent_name):
-        """Test load mode state persists only when MessageState.persist() is called."""
-        with persistence_sync_orch.agent(test_agent_name) as agent:
-            msg_state = agent.get_msg_state().load()
-            msg_state.append("hello")
-            msg_state.save()
-
-        with persistence_sync_orch.agent(test_agent_name) as agent:
-            loaded = agent.get_msg_state().load()
-            assert list(loaded) == ["hello"]
-
-    def test_msg_state_continued_replay_accumulates(self, persistence_sync_orch, test_agent_name):
-        """Test continued mode replays recorded operations each separate run."""
-        lengths = []
-
-        with persistence_sync_orch.agent(test_agent_name) as agent:
-            msg_state = agent.get_msg_state().load()
-            msg_state.append("x")
-            lengths.append(len(msg_state))
-            msg_state.save()
-
-        with persistence_sync_orch.agent(test_agent_name) as agent:
-            msg_state = agent.get_msg_state().load()
-            msg_state.append("x")
-            lengths.append(len(msg_state))
-            msg_state.save()
-
-        with persistence_sync_orch.agent(test_agent_name) as agent:
-            msg_state = agent.get_msg_state().load()
-            msg_state.append("x")
-            lengths.append(len(msg_state))
-            msg_state.save()
-
-        assert lengths == [1, 2, 3]
-
-    def test_orchestrator_userdata_operations(
-        self, persistence_mock_backend_orch, test_userdata_key
-    ):
-        """Test userdata operations through AgentOrchestrator"""
-        test_data = {"key": "value", "number": 42}
-        persistence_mock_backend_orch.userdata[test_userdata_key] = test_data
-
-        loaded_data = persistence_mock_backend_orch.userdata[test_userdata_key]
-        assert loaded_data == test_data
-
-    def test_userdata_llm_responses(
-        self,
-        generic_call_id,
-        persistence_mock_backend_orch,
-        test_userdata_key,
-    ):
-        """Test that orchestrator injects backend into LLMResponses"""
-        backend = persistence_mock_backend_orch._backend
-
-        pr = ParsedResponse(
-            text="backend_test_value",
-            response_id="resp_123",
-            metadata=None,
-        )
-        backend.store(generic_call_id, pr)
-
-        pending_response = PendingLLMResponse(call_id=generic_call_id, backer=backend)
-        ready_response = ReadyLLMResponse(call_id=generic_call_id, value="test_value")
-
-        pending_key = f"{test_userdata_key}-pending"
-        ready_key = f"{test_userdata_key}-ready"
-        persistence_mock_backend_orch.userdata[pending_key] = pending_response
-        persistence_mock_backend_orch.userdata[ready_key] = ready_response
-
-        loaded_pending = persistence_mock_backend_orch.userdata[pending_key]
-        loaded_ready = persistence_mock_backend_orch.userdata[ready_key]
-
-        assert isinstance(loaded_pending, PendingLLMResponse)
-        assert loaded_pending._backer == backend
-        assert loaded_pending.final_answer == "backend_test_value"
-
-        assert isinstance(loaded_ready, ReadyLLMResponse)
-        assert loaded_ready.final_answer == "test_value"
 
     def test_orchestrator_ignore_cache_parameter(
         self, generic_call_id, persistence_ignore_cache_orch, test_agent_name

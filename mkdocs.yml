@@ -57,7 +57,6 @@ nav:
     - MessageState: concepts/msg_state.md
     - Persistence: concepts/persistence.md
     - Strategies: concepts/strategies.md
-    - Memoize: concepts/memoize.md
     - Idioms: concepts/idioms.md
   - Use cases:
     - Documents: use-cases/document_processing.md

@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import TYPE_CHECKING, Optional
+from typing import Optional
 
 from parallem.types import (
     BatchIdentifier,
@@ -11,10 +11,6 @@ from parallem.types import (
 )
 
 import polars as pl
-
-if TYPE_CHECKING:
-    from parallem.core.memoize.operations import OperationLog
-
 
 class BaseDatastore(BaseRetriever, ABC):
     """
@@ -203,37 +199,4 @@ class BaseDatastore(BaseRetriever, ABC):
 
         :param tables: A dict mapping table names to Polars DataFrames.
         :param update: If True (default), upsert rows instead of overwriting the table.
-        """
-
-    # === begin memoize methods ===
-
-    @abstractmethod
-    def store_memoize(
-        self,
-        agent_name: str,
-        state_hash: str,
-        operation_log: "OperationLog",
-    ) -> None:
-        """
-        Store memoized operation log for a given state hash.
-
-        :param agent_name: The name of the agent owning the memoized state.
-        :param state_hash: The hash of the initial MessageState.
-        :param operation_log: The :class:`~parallem.core.memoize.operations.OperationLog`
-            to persist.
-        """
-
-    @abstractmethod
-    def retrieve_memoize(
-        self,
-        agent_name: str,
-        state_hash: str,
-    ) -> "Optional[OperationLog]":
-        """
-        Retrieve memoized operation log for a given state hash.
-
-        :param agent_name: The name of the agent owning the memoized state.
-        :param state_hash: The hash of the initial MessageState.
-        :return: The :class:`~parallem.core.memoize.operations.OperationLog`, or
-            ``None`` if not found.
         """

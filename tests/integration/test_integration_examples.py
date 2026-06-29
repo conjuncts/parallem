@@ -72,10 +72,6 @@ def test_strategy_switching_persistence(temp_integration_dir):
             resp = agent.ask_llm("Test question")
             assert resp.final_answer == "Sync response"
 
-            with agent.memoize() as mem:
-                mem.begin()
-                orch_sync.userdata["sync_result"] = resp.final_answer
-
     assert len(mock_client_sync.calls) == 1
 
     # Run 2: Switch to async strategy, load same data
@@ -91,34 +87,8 @@ def test_strategy_switching_persistence(temp_integration_dir):
             new_resp = agent.ask_llm("Test question")  # Should hit cache
             assert new_resp.final_answer == "Sync response"  # Cached from sync run
 
-            with agent.memoize() as mem:
-                mem.begin()  # load value
-            assert (
-                orch_async.userdata["sync_result"] == "Sync response"
-            )  # Still there after loading in async
-
         # Verify no new API calls (cache hit)
-        assert len(mock_client_async.calls) == 0
-
-
-def test_complex_userdata_workflow(shared_sync_orch, test_agent_name):
-    """Test complex userdata operations across multiple agents"""
-    responses = [
-        "Database schema v2.1",
-        "Final implementation plan ready",
-    ]
-
-    mock_client = shared_sync_orch._mock_client
-    mock_client.clear()
-    mock_client.set_responses(responses)
-
-    with shared_sync_orch.agent(f"{test_agent_name}-writer") as agent2:
-        schema = agent2.ask_llm("Design database schema")
-        shared_sync_orch.userdata["technical/database_schema"] = schema.final_answer
-
-    with shared_sync_orch.agent(f"{test_agent_name}-reader") as agent3:  # noqa: F841
-        db_schema = shared_sync_orch.userdata["technical/database_schema"]
-        assert db_schema == "Database schema v2.1"
+        assert len(mock_client_async.calls) == 0 
 
 
 if __name__ == "__main__":

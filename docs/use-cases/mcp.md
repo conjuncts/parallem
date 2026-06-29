@@ -14,7 +14,7 @@ With ParaLLeM, you can use local MCP servers with the Batch API. Use the `pllm.M
 Just run `examples/mcp/example_local_mcp.py`.
 
 !!! warning
-    If MCP outputs are non-deterministic (ie. file system change), then there could be a cache miss, leading to disruption to batched multi-step workflows. Use the `MessageState.save`, `MessageState.load`, and [memoize](../concepts/memoize.md) for non-deterministic blocks.
+    If MCP outputs are non-deterministic (ie. file system change), then there could be a cache miss, leading to disruption to batched multi-step workflows. To solve this, future versions will offer a function cache (currently unimplemented).
 
 ## Server-side MCP
 

@@ -64,24 +64,3 @@ Using `hash_by=["tool_names"]` ensures that different tool sets produce separate
 agt.ask_llm("Name a prime.")
 agt.ask_llm("Name a prime.", salt=1)  # Will not collide
 ```
-
-## MessageState `save` and `load`
-
-Another tool for persistent conversations: `MessageState` can be saved to disk and restored on subsequent runs.
-
-```python
-def chatbot(agt: pllm.AgentContext):
-    msgs = agt.get_msg_state().load()
-
-    agt.print("Current messages:", msgs)
-    out = input("Send a message: ")
-    while out:
-        msgs.append(out)
-        msgs.ask_llm()
-        agt.print("Response:", msgs[-1].resolve())
-        out = input("Send a message: ")
-
-    msgs.save()
-```
-
-See also: [memoize](memoize.md) for non-deterministic blocks.

@@ -3,10 +3,9 @@ from parallem.testing.simple_mock import mock_openai_client
 
 
 def test_basic(temp_integration_dir):
-    """Test that operations are memoized and replayed on second run"""
-    test_dir = temp_integration_dir / "basic_memoize"
+    """Test that agents receive a new message state when recreated"""
+    test_dir = temp_integration_dir / "basic_cross_context"
 
-    # First run: Execute computation and memoize
     mock_client1 = mock_openai_client(
         responses=["The number 42 is the answer to life, the universe, and everything."]
     )
