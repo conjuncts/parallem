@@ -9,7 +9,6 @@ from typing import TYPE_CHECKING, Callable, Dict, List, Optional, Union
 from PIL import Image
 import polars as pl
 
-from parallem.core.convert.doc_to_bytes import cast_document_to_bytes
 from parallem.core.compress.to_parquet import ParquetWriter, write_to_parquet
 from parallem.core.file_manager import FileManager
 from parallem.types import (
@@ -74,7 +73,6 @@ class InputStorage:
             "function_call_request": set(),
             "function_call_output": set(),
             "llm_response": set(),
-            "binary": set(),
             "image_inline": set(),
             "file_input": set(),
             "multipart_document": set(),
@@ -138,16 +136,6 @@ class InputStorage:
             },
         )
 
-        self._binary_table = ParquetWriter(
-            self.path_inputs_binary_table(),
-            schema={
-                "item_hash": pl.Utf8,
-                "doc_type": pl.Utf8,
-                "doc_extra": pl.Utf8,
-                "doc_value": pl.Binary,
-            },
-        )
-
         self._image_inline_table = ParquetWriter(
             self.path_inputs_image_inline_table(),
             schema={
@@ -197,7 +185,6 @@ class InputStorage:
             "function_call_request": self._function_call_request_table,
             "function_call_output": self._function_call_output_table,
             "llm_response": self._llm_response_table,
-            "binary": self._binary_table,
             "image_inline": self._image_inline_table,
             "file_input": self._file_input_table,
             "multipart_document": self._multipart_document_table,
@@ -235,9 +222,6 @@ class InputStorage:
 
     def path_inputs_llm_response_table(self) -> Path:
         return self.path_inputs_multimedia() / "llm_response.parquet"
-
-    def path_inputs_binary_table(self) -> Path:
-        return self.path_inputs_multimedia() / "binary.parquet"
 
     def path_inputs_image_inline_table(self) -> Path:
         return self.path_inputs_multimedia() / "images_inline.parquet"
@@ -444,14 +428,7 @@ class InputStorage:
             })
             return item_hash, "file_input"
 
-        content, msg_type, msg_extra = cast_document_to_bytes(part)
-        item_hash = _hash_bytes(content)
-        self._maybe_write("binary", item_hash, {
-            "doc_type": msg_type,
-            "doc_extra": msg_extra,
-            "doc_value": content,
-        })
-        return item_hash, "binary"
+        raise NotImplementedError(f"Unknown document part type: {type(part)}")
 
     def _store_input_doc(
         self,
@@ -655,7 +632,7 @@ class InputStorage:
 
 
     def _retrieve_part_by_hash(self, item_hash: str, item_type: str) -> Optional[LLMDocument]:
-        if item_type not in {"text", "json", "image_inline", "file_input", "binary"}:
+        if item_type not in {"text", "json", "image_inline", "file_input"}:
             return None
         rows = self.item_tables[item_type].get({"item_hash": item_hash})
         if rows.is_empty():
@@ -690,12 +667,6 @@ class InputStorage:
                 file_url=record["file_url"],
                 file_content=record["file_content"],
             )
-        elif item_type == "binary":
-            return cast_document_to_bytes(
-                record["doc_value"],
-                record["doc_type"],
-                record["doc_extra"],
-            )[0]
         return None
 
 
