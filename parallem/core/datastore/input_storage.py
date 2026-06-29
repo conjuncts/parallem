@@ -75,7 +75,7 @@ class InputStorage:
             "function_call_output": set(),
             "llm_response": set(),
             "binary": set(),
-            "image_index": set(),
+            "image_inline": set(),
             "file_input": set(),
             "multipart_document": set(),
         }
@@ -148,12 +148,13 @@ class InputStorage:
             },
         )
 
-        self._image_index_table = ParquetWriter(
-            self.path_inputs_image_index_table(),
+        self._image_inline_table = ParquetWriter(
+            self.path_inputs_image_inline_table(),
             schema={
                 "item_hash": pl.Utf8,
                 "image_path": pl.Utf8,
                 "image_format": pl.Utf8,
+                "image_bytes": pl.Binary,
             },
         )
 
@@ -197,7 +198,7 @@ class InputStorage:
             "function_call_output": self._function_call_output_table,
             "llm_response": self._llm_response_table,
             "binary": self._binary_table,
-            "image_index": self._image_index_table,
+            "image_inline": self._image_inline_table,
             "file_input": self._file_input_table,
             "multipart_document": self._multipart_document_table,
             # "msg_state_len": self._msg_state_len_table,
@@ -238,8 +239,8 @@ class InputStorage:
     def path_inputs_binary_table(self) -> Path:
         return self.path_inputs_multimedia() / "binary.parquet"
 
-    def path_inputs_image_index_table(self) -> Path:
-        return self.path_inputs_multimedia() / "images.parquet"
+    def path_inputs_image_inline_table(self) -> Path:
+        return self.path_inputs_multimedia() / "images_inline.parquet"
 
     def path_inputs_multipart_document_table(self) -> Path:
         return self.path_inputs_multimedia() / "multipart_document.parquet"
@@ -277,20 +278,6 @@ class InputStorage:
         if fmt == "jpeg":
             return "jpg"
         return fmt
-
-    def _store_image(self, img) -> tuple[str, str]:
-        img_dir = self.path_inputs_image_dir()
-        ext = self._image_extension(img)
-        buffered = BytesIO()
-        img.save(buffered, format=img.format or "PNG")
-        img_bytes = buffered.getvalue()
-        img_hash = _hash_bytes(img_bytes)
-        img_path = img_dir / f"{img_hash}.{ext}"
-
-        if not img_path.exists():
-            img_path.write_bytes(img_bytes)
-        rel_path = img_path.relative_to(self.path_inputs()).as_posix()
-        return rel_path, ext, img_hash
 
     def _log_request_config(
         self,
@@ -400,20 +387,36 @@ class InputStorage:
             return item_hash, "text"
 
         if is_image(part):
-            if self.input_cfg.save_images:
-                rel_path, img_format, item_hash = self._store_image(part)
-            else:
-                # Still need a stable hash; derive it without saving the file.
-                buffered = BytesIO()
-                part.save(buffered, format=part.format or "PNG")
-                item_hash = _hash_bytes(buffered.getvalue())
-                rel_path, img_format = None, None
 
-            self._maybe_write("image_index", item_hash, {
+            # Still need a stable hash; derive it without saving the file.
+            buffered = BytesIO()
+            part.save(buffered, format=part.format or "PNG")
+            img_bytes = buffered.getvalue()
+            item_hash = _hash_bytes(img_bytes)
+            img_ext = self._image_extension(part)
+
+            if self.input_cfg.save_images_as == "bytes":
+                rel_path = None
+            elif self.input_cfg.save_images_as == "file":
+                img_path = (
+                    self.path_inputs_image_dir()
+                    / f"{item_hash}.{img_ext}"
+                )
+
+                if not img_path.exists():
+                    img_path.write_bytes(img_bytes)
+                rel_path = img_path.relative_to(self.path_inputs()).as_posix()
+                img_bytes = None
+            else:
+                rel_path = None
+                img_bytes = None
+
+            self._maybe_write("image_inline", item_hash, {
                 "image_path": rel_path,
-                "image_format": img_format,
+                "image_format": img_ext,
+                "image_bytes": img_bytes,
             })
-            return item_hash, "image_index"
+            return item_hash, "image_inline"
 
         if part is None or isinstance(part, (int, float, bool, dict, list)):
             json_text = None
@@ -652,7 +655,7 @@ class InputStorage:
 
 
     def _retrieve_part_by_hash(self, item_hash: str, item_type: str) -> Optional[LLMDocument]:
-        if item_type not in {"text", "json", "image_index", "file_input", "binary"}:
+        if item_type not in {"text", "json", "image_inline", "file_input", "binary"}:
             return None
         rows = self.item_tables[item_type].get({"item_hash": item_hash})
         if rows.is_empty():
@@ -668,7 +671,7 @@ class InputStorage:
             json_text = record["json_text"]
             if json_text is not None:
                 return json.loads(json_text)
-        elif item_type == "image_index":
+        elif item_type == "image_inline":
             image_path = record["image_path"]
             if image_path is not None:
                 full_path = self.path_inputs() / image_path
@@ -676,6 +679,10 @@ class InputStorage:
                     with Image.open(str(full_path)) as img:
                         img.load()
                         return img
+            img_bytes = record["image_bytes"]
+            if img_bytes is not None:
+                buffered = BytesIO(img_bytes)
+                return Image.open(buffered)
         elif item_type == "file_input":
             return FileInput(
                 filename=record["filename"],

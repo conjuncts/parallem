@@ -197,8 +197,8 @@ def test_full_batch_openai(temp_integration_dir, sample_tools, sample_image):
     text_table_path = multimedia_dir / "text.parquet"
     assert text_table_path.exists(), "text.parquet not created"
 
-    images_table_path = multimedia_dir / "images.parquet"
-    assert images_table_path.exists(), "images.parquet not created"
+    images_table_path = multimedia_dir / "images_inline.parquet"
+    assert images_table_path.exists(), "images_inline.parquet not created"
 
     config_dir = inputs_dir / "config"
     assert config_dir.exists(), "Config inputs directory not created"

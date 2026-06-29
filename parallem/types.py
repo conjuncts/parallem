@@ -632,7 +632,13 @@ class BaseRetriever(ABC):
 class InputStorageConfig:
     """Configuration for InputStorage."""
 
-    save_images: bool = True
+    save_images_as: Literal["bytes", "file", None] = "bytes"
+    """
+    How to save images (since they can be large).
+    "bytes" saves the image as bytes in the parquet table,
+    "file" saves the image to a file and stores the path in the table,
+    None means don't save images."""
+
     save_json: bool = True
     save_function_call_outputs: bool = True
     save_file_contents: bool = False

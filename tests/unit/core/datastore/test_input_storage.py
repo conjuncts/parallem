@@ -95,13 +95,10 @@ def test_store_input_image():
         _store_input(storage, call_id, [img])
         storage.persist()
 
-        image_index = storage.path_inputs_image_index_table()
-        df_images = pl.read_parquet(image_index)
-        assert df_images.height == 1
-        row = df_images.row(0, named=True)
-        img_path = fm.path_inputs() / row["image_path"]
-        assert img_path.exists()
-        assert img_path.stat().st_size > 0
+        retrieved = storage.retrieve_input(call_id["doc_hash"], 0)
+        assert isinstance(retrieved, Image.Image)
+        assert retrieved.size == (5, 5)
+
 
 
 def test_store_input_function_calls():
