@@ -37,7 +37,7 @@ class TestHashByToolNames:
             hash_by=["tool_names"],
         )
 
-        assert hash_result == "23cdd9802923d8b6ec7a27aee3f4e49231ea1b7e5d202a78d82cb40678a60457"
+        assert hash_result == "fa048e52c99a9b1f6f22cadee8f23ac21dd94a13c62dd0031f47ad53ff5f4874"
         assert len(terms) == 1
         assert terms[0] == '["tool1", "tool2"]'
 
@@ -49,7 +49,7 @@ class TestHashByToolNames:
             hash_by=["tool_names"],
         )
 
-        assert hash_result == "4c61214b1872355498ce8424867b2bf2faa0956843423a36f0fe99063e7abff6"
+        assert hash_result == "7e3b297b33494a811374ff1995a46c73c0162c46bdd6124942040aa4771aa856"
         assert len(terms) == 0
 
     def test_hash_by_tool_names_different_order(self, params):
@@ -62,7 +62,7 @@ class TestHashByToolNames:
             hash_by=["tool_names"],
         )
 
-        assert hash_result == "33787a33a4029e1ee5edd1ff3ae0f962408b3ffc2ebeb3b4d35dae68848a27ba"
+        assert hash_result == "d45297c10a22d72f1c6655a314453cdb08824b242563d64e8740cf0c3f306965"
         assert len(terms) == 1
         assert terms[0] == '["tool2", "tool1"]'
 
@@ -73,7 +73,7 @@ class TestHashByToolNames:
             salt=None,
             hash_by=["tool_names"],
         )
-        assert hash4 == "0d8c15ee81c4303b97fc1ae90691700484cc50f7c0e041e776cb801ac4774f29"
+        assert hash4 == "4afebf6b120d383d30f2c220b7d82bdd3558258cb46f72fbb1bebf7ea786b20c"
         assert len(terms) == 1
         assert terms[0] == '["web_search"]'
 
@@ -96,7 +96,7 @@ class TestHashByStructuredOutput:
             hash_by=["structured_output"],
         )
 
-        assert hash_result == "96aa46e695fb9591eaf12f0f94edf3ae0de2f907961bb02fb0ec696791390e94"
+        assert hash_result == "5e485e94d2b2304440fa99c83d94030bd45cf116733022b43c12ba1227b589d4"
         assert len(terms) == 1
         assert "properties" in terms[0]
         assert "OutputSchema" in terms[0]
@@ -115,7 +115,7 @@ class TestHashByStructuredOutput:
             hash_by=["structured_output"],
         )
 
-        assert hash_result == "528f5bc76a79b04f3bd97f28ffa73a6c43a2a6c7556b4a751451920f468c72af"
+        assert hash_result == "6e19a66dcc7a8d1891a2b6f2174234a61b5d6fa65f9709d5fb4b74bcdea979d4"
         assert len(terms) == 1
         assert "OutputSchema" in terms[0]
 
@@ -127,7 +127,7 @@ class TestHashByStructuredOutput:
             hash_by=["structured_output"],
         )
 
-        assert hash_result == "4c61214b1872355498ce8424867b2bf2faa0956843423a36f0fe99063e7abff6"
+        assert hash_result == "7e3b297b33494a811374ff1995a46c73c0162c46bdd6124942040aa4771aa856"
         assert len(terms) == 0
 
 
@@ -143,7 +143,7 @@ class TestHashByKwargs:
             kwargs={"temperature": 0.7, "max_tokens": 100},
         )
 
-        assert hash_result == "35d9cb31900d28473a63f8e8cf35966bf88d8e389f6784d74ebba05c9ce96f55"
+        assert hash_result == "dd35040cdb0bfba029e12f5c7462d45deeeb2925e323a4a2bcdec78feb47353b"
         assert len(terms) == 1
         assert "temperature" in terms[0]
         assert "0.7" in terms[0]
@@ -157,7 +157,7 @@ class TestHashByKwargs:
             kwargs=None,
         )
 
-        assert hash_result == "4c61214b1872355498ce8424867b2bf2faa0956843423a36f0fe99063e7abff6"
+        assert hash_result == "7e3b297b33494a811374ff1995a46c73c0162c46bdd6124942040aa4771aa856"
         assert len(terms) == 0
 
     def test_hash_by_kwargs_different_values(self, params):
@@ -169,7 +169,7 @@ class TestHashByKwargs:
             kwargs={"temperature": 0.5, "max_tokens": 200},
         )
 
-        assert hash_result == "2df861d75a75e495012803f7d52b077104bcd25a5bd5a8f2c0f7981896b7f9c1"
+        assert hash_result == "0d346aaf5678838deb29d24e8a82f431d6e5488f468ddfc70157eed8519966e7"
         assert len(terms) == 1
         assert "temperature" in terms[0]
         assert "0.5" in terms[0]
@@ -194,7 +194,7 @@ class TestHashByAll:
             kwargs={"temperature": 0.7},
         )
 
-        assert hash_result == "6867f8b487427fb8307bc7f7ca895ec785ddf6b3ef3360a1d063724c087a315a"
+        assert hash_result == "9c1b7d41a22467fff36a8e8caed1b3476e3d25b24c4d05ee1da05b81a7e846cd"
 
 
 class TestHashByCombinations:

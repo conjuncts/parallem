@@ -22,9 +22,13 @@ from parallem.utils.image import get_type_and_b64
 __all__ = ["build_hash_salt_terms", "compute_hash", "serialize_tools_for_hash"]
 
 
-def _hash_if_present(hasher, val: Optional[str]):
-    if val is not None:
-        hasher.update(val.encode("utf-8"))
+
+def _hash_bytes(data: bytes) -> str:
+    return hashlib.sha256(data).hexdigest()
+
+
+def _hash_str(text: str) -> str:
+    return _hash_bytes(text.encode("utf-8", errors="replace"))
 
 
 def _normalize_for_hash(value: Any):
@@ -143,61 +147,51 @@ def build_hash_salt_terms(
 
 
 def compute_document_hash(
-    hasher: "hashlib._Hash",
     doc: LLMDocument,
 ):
     # TODO: major risk of hash collisions because
     # update(a), update(b) is the same as update(a + b).
     if isinstance(doc, str):
-        hasher.update(doc.encode("utf-8"))
+        return _hash_str(f"text\x00\x00{doc}")
     elif isinstance(doc, Image.Image):
         img_type, img_b64 = get_type_and_b64(doc)
-        hasher.update(img_type.encode("utf-8"))
-        hasher.update(img_b64.encode("utf-8"))
+        return _hash_str(f"image\x00{img_type}\x00{img_b64}")
     elif isinstance(doc, FunctionCallRequest):
-        hasher.update(b"function_call")
-        _hash_if_present(hasher, doc.text_content)
+        builder = f"function_call\x00{doc.text_content}"
+
         for call in doc.calls:
-            _hash_if_present(hasher, call.name)
-            _hash_if_present(hasher, call.arg_str)
-            _hash_if_present(hasher, call.fcall_id)
+            builder += "\x00" + _hash_str(f"{call.name}\x00{call.arg_str}\x00{call.fcall_id}")
+        return _hash_str(builder)
     elif isinstance(doc, FunctionCallOutput):
-        hasher.update(b"function_call_output")
-        _hash_if_present(hasher, doc.name)
-        _hash_if_present(hasher, str(doc.content))
-        _hash_if_present(hasher, doc.fcall_id)
+        return _hash_str(f"function_call_output\x00{doc.name}\x00{str(doc.content or '')}\x00{doc.fcall_id}")
     elif isinstance(doc, MCPOutput):
-        hasher.update(b"mcp_output")
-        _hash_if_present(hasher, doc.name)
-        _hash_if_present(hasher, str(doc.content))
-        _hash_if_present(hasher, doc.fcall_id)
+        return _hash_str(f"mcp_output\x00{doc.name}\x00{str(doc.content or '')}\x00{doc.fcall_id}")
     elif isinstance(doc, FileInput):
-        hasher.update(b"input_file")
-        _hash_if_present(hasher, doc.filename)
-        _hash_if_present(hasher, doc.mime_type)
-        _hash_if_present(hasher, doc.file_url)
-        if doc.file_content is not None:
-            hasher.update(doc.file_content)
+        return _hash_str(f"input_file\x00{doc.filename or ''}\x00{doc.file_url or ''}\x00{doc.file_content or ''}")
     elif isinstance(doc, MultipartDocument):
-        hasher.update(b"multipart_document")
+        if len(doc.parts) == 1:
+            # if there's only one part, then
+            # make sure that MultipartDocument has identical hash to
+            # that single part
+            if doc.role == "user":
+                return compute_document_hash(doc.parts[0])
+            else:
+                return compute_document_hash((doc.role, doc.parts[0]))
+        builder = "multipart"
         for part in doc.parts:
-            compute_document_hash(hasher, part)
+            builder += "\x00" + compute_document_hash(part)
+        return _hash_str(builder)
     elif isinstance(doc, tuple) and len(doc) == 2:
         # Handle Tuple[Literal["user", "assistant", "system", "developer"], str]
         role, content = doc
-        hasher.update(role.encode("utf-8"))
-        if isinstance(content, str):
-            hasher.update(content.encode("utf-8"))
-        else:
-            for item in content:
-                hasher.update(str(item).encode("utf-8"))
+        return _hash_str(f"text\x00{role}\x00{content}")
     elif isinstance(doc, dict):
         # best effort deterministic dict hash
         dict_str = json.dumps(_normalize_for_hash(doc), sort_keys=True, separators=(",", ":"))
-        hasher.update(dict_str.encode("utf-8"))
+        return _hash_str(f"json\x00{dict_str}")
     else:
         raise ValueError(f"Unsupported document type: {type(doc)}")
-    
+
 
 def compute_hash(
     instructions: Optional[str],
@@ -214,13 +208,15 @@ def compute_hash(
         base hash, so it cannot collide with document content.
     :returns: A SHA-256 hash representing the combined content, in hexadecimal format.
     """
-    hasher = hashlib.sha256()
-    if instructions:
-        hasher.update(instructions.encode("utf-8"))
-    for doc in documents:
-        compute_document_hash(hasher, doc)
+    total_hash = ""
 
-    base_hash = hasher.hexdigest()
+    if not instructions:
+        instructions = ""
+    total_hash += _hash_str(f"system\x00{instructions}")
+    for doc in documents:
+        total_hash += compute_document_hash(doc)
+
+    base_hash = _hash_str(total_hash)
     if salt is not None:
         # Combine with salt and re-hash to produce final hash
         salted_hasher = hashlib.sha256()

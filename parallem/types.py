@@ -325,6 +325,7 @@ LLMDocument = Union[
     FunctionCallOutput,
     MCPOutput,
     FileInput,
+    ImageURLDocument,
     "MultipartDocument",
 ]
 """
@@ -333,7 +334,7 @@ Type alias for documents that can be either text or images.
 
 DocumentType = Literal["text", "function_call", "function_call_output", "llm_response"]
 """
-Enum for valid document types. Closely matches OpenAI's document types.
+Enum for valid document types.
 LLMResponse: Any response from the LLM.
 """
 

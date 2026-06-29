@@ -34,50 +34,50 @@ class TestHashRegressions:
     def test_hash_golden_text_only(self):
         """Regression: Text-only hashing must remain stable"""
         result = compute_hash("Instructions", ["Document 1", "Document 2"])
-        expected = "f7649a6338429d417aad789788bfa2c268153ba554a88a6e87516d224f5f0bb3"
+        expected = "ffcfcf48884dd651ab7dab48ed4c1ff11552a56c9281c2ff9b5ac7b287155fb9"
         assert result == expected
 
     def test_hash_golden_order_2(self):
         """Regression: Order-dependent hashing must remain stable"""
         result = compute_hash("Instructions", ["Document 2", "Document 1"])
-        expected = "633470c100183a72eace5eca51e253f0d4d14277a38b548290a92c864dbecdcf"
+        expected = "623974c1f8e5655218e44a90c6960d084e13236d5daa10ed19ea757971a6571c"
         assert result == expected
 
     def test_hash_golden_with_image(self):
         """Regression: Image hashing must remain stable"""
         img = Image.new("RGB", (5, 5), color="blue")
         result = compute_hash("Process images", ["text", img])
-        expected = "4f32d8597753e7add4272135b7a5b94bffd634384bce587f1252df9d498e2437"
+        expected = "49da99dea95d779f5138468f2e9ccd628e6b2677bfe8a57149bdaa5353a68915"
         assert result == expected
 
     def test_hash_golden_no_instructions(self):
         """Regression: Hashing without instructions must remain stable"""
         result = compute_hash(None, ["Document 1", "Document 2"])
-        expected = "207b3643bcb25e27637ad23d18973777d0054bbe30893f8fb218eba5ab7ea19d"
+        expected = "aee70174b9a105f5c346a95fa43e35473093e0c03f9092282e5fe27be8aac26f"
         assert result == expected
 
     def test_hash_golden_empty_documents(self):
         """Regression: Instructions-only hashing must remain stable"""
         result = compute_hash("Just instructions", [])
-        expected = "0c20f4a03fe4dcf22b2c17499f3ac135bdfebd281461e7247707b7dfdc3084ee"
+        expected = "a91d5e04d008d88a8575b150ed7807f94cef78a14cd00586625320aecb3ca52d"
         assert result == expected
 
     def test_hash_golden_salt_v1(self):
         """Regression: Salted hashing with v1 salt must remain stable"""
         result = compute_hash("Just instructions", [], salt="v1")
-        expected = "c09177c7f726faef755e378af71e9250a4ec7a6b57bf9adab340d64641e57bab"
+        expected = "77754bbf1ee12308063ef91df896fbb308b4ee8b0c9f76a01a3f3d6200a7f013"
         assert result == expected
 
     def test_hash_golden_salt_v2(self):
         """Regression: Salted hashing with v2 salt must remain stable"""
         result = compute_hash("Just instructions", [], salt="v2")
-        expected = "9f83cb76edd76d97ec990abfac5cd428e61ebf690149eb989ff0f7bad3af2329"
+        expected = "325ae1cf8f6be0e38e8ed49bd5fd14a32b6607587d1d78399f63ea4eabe22992"
         assert result == expected
 
     def test_hash_golden_empty_string_document(self):
         """Regression: Hashing empty string document must remain stable"""
         result = compute_hash("Test", [""])
-        expected = "532eaabd9574880dbf76b9b8cc00832c20a6ec113d682299550d7a6e0f345e25"
+        expected = "dd30af31ec866a1a57aad4ca7349641fdb6a6034c18f879038867f31dfb0703d"
         assert result == expected
 
     def test_hash_golden_no_salt_vs_salt_collision(self):
@@ -90,8 +90,8 @@ class TestHashRegressions:
         hash_no_salt = compute_hash(None, ["ab", "cd"])
         hash_with_salt = compute_hash(None, ["ab"], salt="cd")
 
-        expected1 = "88d4266fd4e6338d13b845fcf289579d209c897823b9217da3e161936f031589"
-        expected2 = "cf8595cff0931756518f438b369a9cf51f676cc948f46df00fb978a7000056ef"
+        expected1 = "bbe739600221e7d5346bd201049d90ad242fab90e1160621558bc69e1f5920ef"
+        expected2 = "61d5c167ed9224e1a6fa959994dea6f481a295ce77c5c5fbc733a984e77afaf6"
         assert hash_no_salt == expected1
         assert hash_with_salt == expected2
         assert hash_no_salt != hash_with_salt

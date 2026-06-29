@@ -392,7 +392,7 @@ class InputStorage:
             buffered = BytesIO()
             part.save(buffered, format=part.format or "PNG")
             img_bytes = buffered.getvalue()
-            item_hash = _hash_bytes(img_bytes)
+            item_hash = _hash_bytes(b"image\x00" + img_bytes)
             img_ext = self._image_extension(part)
 
             if self.input_cfg.save_images_as == "bytes":
