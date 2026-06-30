@@ -301,16 +301,18 @@ class AgentOrchestrator:
         if isinstance(self._backend, BatchBackend) and self.strategy == "batch":
             with self.dashboard():
                 # Must print this one
-                self._backend.execute_batch(self._provider, dl=self._dashlog)
+                self._backend.submit_all_batches(self._provider, dl=self._dashlog)
                 self._dashlog._update_console()
                 self._dashlog.finalize_line()
         elif self._dashlog.display:
             self._dashlog._update_console()
             self._dashlog.finalize_line()
 
-    def finalize_and_persist(self):
+    def submit_and_close(self):
         """
         Ensure that everything is properly finalized, saved, and resources cleaned up.
+
+        Crucially, submits all pending batches.
         """
         self.finalize_tasks()
         self._backend.persist()

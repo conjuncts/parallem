@@ -42,7 +42,7 @@ for (word,) in tqdm(df.iter_rows(), total=df.height):
 
 # Time submission
 start_time = time.time()
-orch.finalize_and_persist()
+orch.submit_and_close()
 end_time = time.time()
 print(f"Took {end_time - start_time:.2f} seconds to submit/retrieve batch.")
 

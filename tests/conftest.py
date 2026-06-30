@@ -100,7 +100,7 @@ def async_sync_orch(session_orch_root):
         strategy="sync",
     )
     yield orch
-    orch.finalize_and_persist()
+    orch.submit_and_close()
 
 
 @pytest.fixture(scope="session")
@@ -115,7 +115,7 @@ def async_async_orch(session_orch_root):
         strategy="async",
     )
     yield orch
-    orch.finalize_and_persist()
+    orch.submit_and_close()
 
 
 @pytest.fixture(scope="session")
@@ -130,7 +130,7 @@ def async_batch_orch(session_orch_root):
         strategy="batch",
     )
     yield orch
-    orch.finalize_and_persist()
+    orch.submit_and_close()
 
 
 @pytest.fixture(scope="session")
@@ -145,7 +145,7 @@ def persistence_sync_orch(session_orch_root):
         dashlog=PrimitiveDashboardLogger(),
     )
     yield orch
-    orch.finalize_and_persist()
+    orch.submit_and_close()
 
 
 @pytest.fixture(scope="session")
@@ -160,7 +160,7 @@ def persistence_mock_backend_orch(session_orch_root):
         dashlog=PrimitiveDashboardLogger(),
     )
     yield orch
-    orch.finalize_and_persist()
+    orch.submit_and_close()
 
 
 @pytest.fixture(scope="session")
@@ -177,7 +177,7 @@ def persistence_ignore_cache_orch(session_orch_root):
         ignore_cache=True,
     )
     yield orch
-    orch.finalize_and_persist()
+    orch.submit_and_close()
 
 
 @pytest.fixture(scope="session")
@@ -192,7 +192,7 @@ def shared_sync_orch(session_orch_root):
     )
     orch._mock_client = mock_client
     yield orch
-    orch.finalize_and_persist()
+    orch.submit_and_close()
 
 
 @pytest.fixture(scope="session")
@@ -207,4 +207,4 @@ def shared_async_orch(session_orch_root):
     )
     orch._mock_client = mock_client
     yield orch
-    orch.finalize_and_persist()
+    orch.submit_and_close()

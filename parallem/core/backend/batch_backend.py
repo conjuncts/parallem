@@ -180,7 +180,7 @@ class BatchBackend(BaseBackend):
         self._private_increment += 1
         return custom_id
 
-    def execute_batch(
+    def submit_all_batches(
         self,
         provider: "BatchProvider",
         dl: DashboardLogger,
@@ -188,7 +188,7 @@ class BatchBackend(BaseBackend):
         max_batch_size: Optional[int] = None,
         partition_by_model_name=True,
     ) -> CohortIdentifier:
-        """Execute the batch of calls"""
+        """Submit all pending batches"""
 
         if max_batch_size is None:
             max_batch_size = self._max_batch_size

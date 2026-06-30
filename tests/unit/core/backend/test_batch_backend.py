@@ -1,5 +1,5 @@
 """
-Unit tests for BatchBackend.execute_batch
+Unit tests for BatchBackend.submit_all_batches
 
 Tests the batch grouping functionality:
 - Groups by LLMIdentity when partition_by_model_name=True
@@ -62,7 +62,7 @@ def mock_provider():
 
 
 @pytest.fixture
-def batch_backend(file_manager, mock_datastore):
+def batch_backend(file_manager, mock_datastore) -> BatchBackend:
     """Create a BatchBackend with mocked datastore"""
     backend = BatchBackend(
         fm=file_manager,
@@ -87,7 +87,7 @@ def create_call_id(agent_name: str, seq_id: int) -> CallIdentifier:
 
 
 class TestBatchBackendExecuteBatch:
-    """Test BatchBackend.execute_batch grouping functionality"""
+    """Test BatchBackend.submit_all_batches grouping functionality"""
 
     def test_groups_by_llm_identity(self, batch_backend, mock_provider):
         """Test that calls are grouped by LLMIdentity"""
@@ -102,7 +102,7 @@ class TestBatchBackendExecuteBatch:
             batch_backend.bookkeep_call(call_id, llm, {"data": f"call_{i}"})
 
         # Execute batch with partition_by_model_name=True
-        cohort = batch_backend.execute_batch(
+        cohort = batch_backend.submit_all_batches(
             mock_provider,
             PrimitiveDashboardLogger(),
             max_batch_size=10,
@@ -135,7 +135,7 @@ class TestBatchBackendExecuteBatch:
             batch_backend.bookkeep_call(call_id, llm, {"data": f"call_{i}"})
 
         # Execute batch with max_batch_size=3
-        cohort = batch_backend.execute_batch(
+        cohort = batch_backend.submit_all_batches(
             mock_provider,
             PrimitiveDashboardLogger(),
             max_batch_size=3,
@@ -156,7 +156,7 @@ class TestBatchBackendExecuteBatch:
     def test_uses_configured_default_max_batch_size(
         self, file_manager, mock_datastore, mock_provider
     ):
-        """Test execute_batch uses backend-configured max_batch_size when omitted"""
+        """Test submit_all_batches uses backend-configured max_batch_size when omitted"""
         backend = BatchBackend(
             fm=file_manager,
             dashlog=PrimitiveDashboardLogger(),
@@ -172,7 +172,7 @@ class TestBatchBackendExecuteBatch:
             call_id = create_call_id("agent1", i)
             backend.bookkeep_call(call_id, llm, {"data": f"call_{i}"})
 
-        cohort = backend.execute_batch(
+        cohort = backend.submit_all_batches(
             mock_provider,
             PrimitiveDashboardLogger(),
             partition_by_model_name=True,
@@ -205,7 +205,7 @@ class TestBatchBackendExecuteBatch:
             batch_backend.bookkeep_call(call_id, llm3, {"data": f"llm3_call_{i}"})
 
         # Execute batch with max_batch_size=3
-        cohort = batch_backend.execute_batch(
+        cohort = batch_backend.submit_all_batches(
             mock_provider,
             PrimitiveDashboardLogger(),
             max_batch_size=3,
@@ -239,7 +239,7 @@ class TestBatchBackendExecuteBatch:
             batch_backend.bookkeep_call(call_id, llm, {"data": f"call_{i}"})
 
         # Execute batch with partition_by_model_name=False and max_batch_size=3
-        cohort = batch_backend.execute_batch(
+        cohort = batch_backend.submit_all_batches(
             mock_provider,
             PrimitiveDashboardLogger(),
             max_batch_size=3,
@@ -283,7 +283,7 @@ class TestBatchBackendExecuteBatch:
             payload,
         )
 
-        cohort = backend.execute_batch(
+        cohort = backend.submit_all_batches(
             mock_provider,
             PrimitiveDashboardLogger(),
             partition_by_model_name=True,
@@ -303,8 +303,8 @@ class TestBatchBackendExecuteBatch:
         assert items == [payload]
 
     def test_empty_buffer(self, batch_backend, mock_provider):
-        """Test execute_batch with empty buffer"""
-        cohort = batch_backend.execute_batch(
+        """Test submit_all_batches with empty buffer"""
+        cohort = batch_backend.submit_all_batches(
             mock_provider,
             PrimitiveDashboardLogger(),
             max_batch_size=3,
@@ -330,7 +330,7 @@ class TestBatchBackendExecuteBatch:
             batch_backend.bookkeep_call(call_id, llm, {"data": "test"})
 
         # Execute batch to store them as pending
-        batch_backend.execute_batch(mock_provider, PrimitiveDashboardLogger(), max_batch_size=10)
+        batch_backend.submit_all_batches(mock_provider, PrimitiveDashboardLogger(), max_batch_size=10)
 
         # Mock datastore to return True for pending checks
         batch_backend._ds.is_call_in_pending_batch.return_value = True
@@ -368,7 +368,7 @@ class TestBatchBackendExecuteBatch:
             batch_backend.bookkeep_call(call_id, llm, {"data": f"call_{i}"})
 
         # Execute batch
-        cohort = batch_backend.execute_batch(
+        cohort = batch_backend.submit_all_batches(
             mock_provider,
             PrimitiveDashboardLogger(),
             max_batch_size=3,

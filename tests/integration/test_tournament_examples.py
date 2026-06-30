@@ -184,7 +184,7 @@ Team D
         game1 = game1_resp.final_answer
         game2 = game2_resp.final_answer
 
-    pllm1.finalize_and_persist()
+    pllm1.submit_and_close()
 
     # Verify API calls were made
     assert len(mock_client1.calls) == 3
@@ -208,7 +208,7 @@ Team D
         game1_2 = game1_resp2.final_answer
         game2_2 = game2_resp2.final_answer
 
-    pllm2.finalize_and_persist()
+    pllm2.submit_and_close()
 
     # Verify no new API calls were made (cache hit)
     assert len(mock_client2.calls) == 0
