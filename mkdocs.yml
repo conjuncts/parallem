@@ -57,13 +57,12 @@ nav:
     - MessageState: concepts/msg_state.md
     - Persistence: concepts/persistence.md
     - Strategies: concepts/strategies.md
-    - Idioms: concepts/idioms.md
+    - Parallelize: concepts/idioms.md
   - Use cases:
     - Documents: use-cases/document_processing.md
     - 1M requests: use-cases/stress_1m.md
     - Subagents: use-cases/subagents.md
     - MCP: use-cases/mcp.md
-    - Chatbot: use-cases/chatbot.md
     - RAG: use-cases/rag.md
 
 

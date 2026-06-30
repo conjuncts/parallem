@@ -25,8 +25,6 @@ msg_state.ask_functions()
 
 - test error handling. One way to do this is with bad function call schema. You would get: anthropic.BadRequestError: Error code: 400 - {'type': 'error', 'error': {'type': 'invalid_request_error', 'message': "output_config.format.schema: For 'object' type, 'additionalProperties' must be explicitly set to false"}, 'request_id': 'req_011CZBRRKaFknecBYwUwc3vZ'}
 
-- true async (create_agent and run_agents)
-
 - test that kwargs are indeed passed. Indeed, one way to do that
     resp = agt.ask_llm(
         f"What is the lemma of the word '{word}'? One word only.",

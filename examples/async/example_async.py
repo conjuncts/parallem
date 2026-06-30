@@ -1,10 +1,15 @@
+import asyncio
+import random
+
 import parallem as pllm
-from dotenv import load_dotenv
 
 
 async def haiku_writer_agent(agt: pllm.AgentContext):
     # Declare the agent.
     conv = agt.get_msg_state()
+    
+    rand_time = random.uniform(1, 4)
+    await asyncio.sleep(rand_time)  # Simulate some processing time
     await conv.ask_llm("Please name an animal in 1 word.")
     await conv.ask_llm(f"Write a haiku about {conv[-1].final_answer}(s).")
     out = conv[-1].final_answer
@@ -12,18 +17,23 @@ async def haiku_writer_agent(agt: pllm.AgentContext):
     return out
 
 
-if __name__ == "__main__":
-    load_dotenv()
-
+async def main():
     with pllm.resume_directory(
         ".pllm/simplest",
         provider="openai",
-        strategy="async",
+        strategy="batch",
         dashboard=True,
+        load_dotenv=True,
+        ask_params={
+            "salt": 7,
+        }
     ) as orch:
-        # Instantiate the agent.
-        a1 = orch.create_agent(haiku_writer_agent, agent_name="Writer-1")
-        a2 = orch.create_agent(haiku_writer_agent, agent_name="Writer-2")
+        coros = []
+        for i in range(10):
+            with orch.agent(f"Writer-{i}") as a:
+                coros.append(haiku_writer_agent(a))
 
-        # Run agents. Similar to async.gather or async.TaskGroup
-        out = orch.run_agents(a1, a2)
+        await orch.gather(*coros)
+
+if __name__ == "__main__":
+    asyncio.run(main())

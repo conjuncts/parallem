@@ -77,25 +77,6 @@ fc_outs: list[FunctionCallOutput] = conv.ask_functions(...)
 msgs.extend(fc_outs)
 ```
 
-## Persistence — `save` and `load`
-
-`MessageState` can be checkpointed to the session directory and restored on subsequent runs.
-
-```python
-def chatbot(agt: pllm.AgentContext):
-    msgs = agt.get_msg_state().load()
-
-    print("Current messages:", msgs)
-    out = input("Send a message: ")
-    while out:
-        msgs.append(out)
-        msgs.ask_llm()
-        print("Response:", msgs[-1].final_answer)
-        out = input("Send a message: ")
-
-    msgs.save()
-```
-
 ## Key methods
 
 | Method | Description |

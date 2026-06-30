@@ -7,14 +7,14 @@ class ParallemSignal(BaseException):
     the BatchManager inside a 'with' block.
     """
 
-    _from_run_agents = False
-    "Flag for whether it was emitted by AgentOrchestrator.run_agents"
-
 
 class NotAvailable(ParallemSignal):
 
-    def __str__(self):
-        return f"NotAvailable({super().__str__()})"
+    def __init__(
+        self,
+        message="NotAvailable: this response will be available once its batch is processed."
+    ):
+        super().__init__(message)
 
 
 

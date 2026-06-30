@@ -39,8 +39,7 @@ def test_parallem_signal_still_finalizes(orchestrator):
     """Expected parallem signals should still trigger finalization."""
     orchestrator.finalize_tasks = Mock()
 
-    with pytest.raises(NotAvailable):
-        with orchestrator:
-            raise NotAvailable("pending")
+    with orchestrator:
+        raise NotAvailable("pending")
 
     orchestrator.finalize_tasks.assert_called_once()

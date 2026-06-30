@@ -1,10 +1,7 @@
-from contextlib import nullcontext
-from logging import Logger
 import asyncio
-from concurrent.futures import Future
-import inspect
+from logging import Logger
 import polars as pl
-from typing import Any, Callable, Coroutine, List, Literal, Optional, Union
+from typing import Literal, Optional
 from parallem.core.agent.agent import AgentContext
 from parallem.core.backend import BaseBackend
 from parallem.core.backend.batch_backend import BatchBackend
@@ -17,7 +14,6 @@ from parallem.provider.base import BaseProvider
 from parallem.core.file_manager import FileManager
 from parallem.logging.dash_logger import DashboardLogger
 from parallem.types import AskParameters
-from parallem.utils.manip import reduce_to_list
 
 
 class AgentOrchestrator:
@@ -66,178 +62,8 @@ class AgentOrchestrator:
         self.ask_params = ask_params or {}
         self.ignore_cache = ignore_cache
         self.strategy = strategy
-        self._pending_agent_coroutines: list[tuple[Coroutine[Any, Any, Any], Future[Any]]] = []
         self._seq_id_store = seq_id_store or InMemorySeqIdStore()
         self._error_mode = error_mode
-
-    def create_agent(
-        self,
-        fn: Callable[..., Any],
-        *fn_args,
-        agent_name: str = "",
-        ask_params: Optional[AskParameters] = None,
-        **fn_kwargs,
-    ) -> Future[Any]:
-        """
-        Create a future-like handle for an agent function.
-
-        - sync/batch: executes coroutine agents immediately.
-        - async: queues coroutine agents to run together.
-        """
-        promise: Future[Any] = Future()
-
-        agt = self.agent(agent_name, ask_params=ask_params)
-        agent_coro: Optional[Coroutine[Any, Any, Any]] = None
-
-        is_coro = inspect.iscoroutinefunction(fn)
-
-        # whether to patch stdout
-        cm = self._dashlog if self._dashlog.display else nullcontext()
-        if not is_coro:
-            # Then it's a regular function
-            if self.strategy in ["sync", "batch"]:
-                # If sync mode = execute immediately and set result on promise
-                try:
-                    with cm:
-                        result = fn(agt, *fn_args, **fn_kwargs)
-                except NotAvailable as exc:
-                    promise.set_exception(exc)
-                    return promise
-                except Exception as exc:
-                    promise.set_exception(exc)
-                    return promise
-                promise.set_result(result)
-                return promise
-            else:
-                # If concurrent mode, turn regular function into coroutine and queue
-                async def _coro_wrapper():
-                    with cm:
-                        return fn(agt, *fn_args, **fn_kwargs)
-
-                agent_coro = _coro_wrapper()
-        else:
-            # Then it's an async function
-            if self.strategy in ["sync", "batch"]:
-                # If sync mode = execute immediately and set result on promise
-                try:
-                    with cm:
-                        agent_coro = fn(agt, *fn_args, **fn_kwargs)
-                        resolved = asyncio.run(agent_coro)
-                except NotAvailable as exc:
-                    promise.set_exception(exc)
-                    return promise
-                except Exception as exc:
-                    promise.set_exception(exc)
-                    return promise
-                promise.set_result(resolved)
-                return promise
-
-            async def _coro_wrapper():
-                with cm:
-                    return await fn(agt, *fn_args, **fn_kwargs)
-
-            agent_coro = _coro_wrapper()
-
-        if self.strategy != "async" or agent_coro is None:
-            promise.set_exception(
-                ValueError(
-                    f"Invalid strategy for create_agent: {self.strategy}. "
-                    "Expected one of 'sync', 'batch', or 'async'."
-                )
-            )
-            return promise
-
-        try:
-            loop = asyncio.get_running_loop()
-        except RuntimeError:
-            self._pending_agent_coroutines.append((agent_coro, promise))
-            return promise
-
-        task = loop.create_task(agent_coro)
-
-        def _done_callback(done_task):
-            if promise.done():
-                return
-            if done_task.cancelled():
-                promise.cancel()
-                return
-            exc = done_task.exception()
-            if exc is not None:
-                promise.set_exception(exc)
-                return
-            promise.set_result(done_task.result())
-
-        task.add_done_callback(_done_callback)
-        return promise
-
-    def run_agents(
-        self,
-        handle: Union[Future, List[Future]],
-        *handles: Future[Any],
-        return_exceptions: bool = None,
-    ):
-        """
-        Resolve multiple created agent handles.
-        Similar to asyncio.gather, but this correctly handles batch-related signals.
-
-        Similar to gather semantics:
-        - Executes all queued async coroutines first.
-        - Collects all outcomes.
-        - If ``return_exceptions`` is False, raises once at the end if any handle failed,
-          prioritizing ParallemSignal subclasses (e.g., NotAvailable).
-        - If ``return_exceptions`` is True, returns a list of outcomes and exceptions.
-          (Matches behavior of asyncio.gather with return_exceptions=True)
-        """
-        if self.strategy == "async" and self._pending_agent_coroutines:
-            self._run_pending_agents()
-
-        outcomes: list[Any] = []
-        first_signal: Optional[BaseException] = None
-        first_other: Optional[BaseException] = None
-
-        handles = reduce_to_list(handle, list(handles))
-        for handle in handles:
-            try:
-                outcome = handle.result()
-            except BaseException as exc:
-                outcomes.append(exc)
-                if isinstance(exc, ParallemSignal):
-                    if first_signal is None:
-                        first_signal = exc
-                elif first_other is None:
-                    first_other = exc
-                continue
-            outcomes.append(outcome)
-
-        if return_exceptions is True:
-            return outcomes
-
-        if first_signal is not None:
-            first_signal._from_run_agents = True
-            raise first_signal
-        if first_other is not None:
-            raise first_other
-        return outcomes
-
-    def _run_pending_agents(self):
-        if not self._pending_agent_coroutines:
-            return
-
-        pending = list(self._pending_agent_coroutines)
-        self._pending_agent_coroutines.clear()
-
-        async def _runner():
-            coros = [coro for coro, _ in pending]
-            return await asyncio.gather(*coros, return_exceptions=True)
-
-        results = asyncio.run(_runner())
-        for (_, handle), outcome in zip(pending, results):
-            if handle.done():
-                continue
-            if isinstance(outcome, Exception):
-                handle.set_exception(outcome)
-            else:
-                handle.set_result(outcome)
 
     def __enter__(self):
         """Enter the context manager, returning self."""
@@ -252,13 +78,12 @@ class AgentOrchestrator:
             self._input_storage.persist()
         self._fm.persist()
         if isinstance(exc_value, ParallemSignal):
-            # If the signal was emitted by run_agents, we suppress it to allow graceful exits.
-            if exc_value._from_run_agents:
-                if exc_type is NotAvailable:
-                    self._logger.info("Exited due to unavailable values.")
-                elif exc_type is PendingNotAvailable:
-                    self._logger.info("Exited due to values still in a pending batch.")
-                return True
+            # We suppress it to allow graceful exits.
+            if exc_type is NotAvailable:
+                self._logger.debug("Exited due to unavailable values (no action needed).")
+            elif exc_type is PendingNotAvailable:
+                self._logger.debug("Exited due to values still in a pending batch (no action needed).")
+            return True
         return False
 
     def agent(
@@ -294,9 +119,6 @@ class AgentOrchestrator:
             - In batch mode, executes the entire batch.
             - In sync mode, does nothing since agents are executed immediately.
         """
-
-        if self.strategy == "async":
-            self._run_pending_agents()
 
         if isinstance(self._backend, BatchBackend) and self.strategy == "batch":
             with self.dashboard():
@@ -374,3 +196,28 @@ class AgentOrchestrator:
         """
         session_id = self.get_session_counter()
         return self._seq_id_store.next_seq_id(session_id, agent_name)
+
+    async def gather(self, *coros_or_futures, return_exceptions: bool = False):
+        """
+        Gather a list of coroutines.
+
+        Main distinction between this and asyncio.gather() is that
+            this will catch NotAvailable and PendingNotAvailable exceptions.
+
+        If asyncio.gather() must be used, it should be wrapped 
+
+        :param coros: List of coroutines to gather.
+        :return: Results of the gathered coroutines.
+        """
+        # Wrap coroutines such that NotAvailable and PendingNotAvailable exceptions are caught.
+        async def safe_coro(coro):
+            try:
+                return await coro
+            except (NotAvailable, PendingNotAvailable):
+                return None
+
+        results = await asyncio.gather(
+            *(safe_coro(c) for c in coros_or_futures),
+            return_exceptions=return_exceptions
+        )
+        return results
