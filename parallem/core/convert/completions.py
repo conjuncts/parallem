@@ -229,5 +229,9 @@ def from_chat_completion(
             fcall_id=msg["tool_call_id"],
             name="",
         )
+    elif role == "system":
+        return (
+            "system", msg.get("content") or ""
+        )
 
     raise ProviderCompatibilityError(f"Unsupported chat completion role: {role}")

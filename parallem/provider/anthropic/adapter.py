@@ -1,3 +1,4 @@
+import base64
 import copy
 from typing import TYPE_CHECKING, List, Union
 from anthropic.types.document_block_param import DocumentBlockParam
@@ -15,12 +16,17 @@ from parallem.types import (
     FunctionCallRequest,
     FunctionCallOutput,
     FunctionCall,
+    FileInput,
+    ImageURLDocument,
     LLMDocument,
+    MultipartDocument,
     ServerTool,
 )
 from parallem.utils.image import (
     get_type_and_b64,
     is_image,
+    is_image_url,
+    to_image_url_str,
 )
 
 if TYPE_CHECKING:
@@ -62,6 +68,55 @@ def _ensure_betas(config: dict, betas_to_add: Union[str, List[str]] | None) -> N
     for b in required:
         if b not in config["betas"]:
             config["betas"].append(b)
+
+
+def _fix_part_for_anthropic(
+    part: LLMDocument,
+) -> Union[TextBlockParam, ImageBlockParam, DocumentBlockParam]:
+    """Convert a single LLMDocument part to an Anthropic content block."""
+    if isinstance(part, str):
+        return TextBlockParam(type="text", text=part)
+    elif is_image(part):
+        img_type, img_b64 = get_type_and_b64(
+            part, allowed=["image/jpeg", "image/png", "image/gif", "image/webp"]
+        )
+        return ImageBlockParam(
+            type="image",
+            source={
+                "type": "base64",
+                "media_type": img_type,
+                "data": img_b64,
+            },
+        )
+    elif is_image_url(part):
+        url = to_image_url_str(part)
+        return ImageBlockParam(
+            type="image",
+            source={
+                "type": "url",
+                "url": url,
+            },
+        )
+    elif isinstance(part, FileInput):
+        if part.file_url:
+            return DocumentBlockParam(
+                type="document",
+                source={
+                    "type": "url",
+                    "url": part.file_url,
+                },
+            )
+        elif part.file_content:
+            b64 = base64.b64encode(part.file_content).decode("utf-8")
+            return DocumentBlockParam(
+                type="document",
+                source={
+                    "type": "base64",
+                    "media_type": part.mime_type,
+                    "data": b64,
+                },
+            )
+    raise ValueError(f"Unsupported part type in MultipartDocument: {type(part)}")
 
 
 def _fix_docs_for_anthropic(
@@ -157,6 +212,21 @@ def _fix_docs_for_anthropic(
                             },
                         },
                     ],
+                }
+            )
+            continue
+        elif isinstance(doc, MultipartDocument):
+            content_parts = []
+            for part in doc.parts:
+                content_parts.append(_fix_part_for_anthropic(part))
+            role = doc.role
+            # Anthropic only supports "user" and "assistant" roles
+            if role in {"system", "developer"}:
+                role = "user"
+            formatted_docs.append(
+                {
+                    "role": role,
+                    "content": content_parts,
                 }
             )
             continue

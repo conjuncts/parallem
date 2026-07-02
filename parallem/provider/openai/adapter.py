@@ -40,6 +40,11 @@ if TYPE_CHECKING:
 def _fix_part_for_openai(
     doc: LLMDocument,
 ) -> "ResponseInputContentParam":
+    if isinstance(doc, str):
+        return {
+            "type": "input_text",
+            "text": doc,
+        }
     if isinstance(doc, FileInput):
         if doc.file_url:
             input_file: "ResponseInputFile" = {
@@ -67,6 +72,7 @@ def _fix_part_for_openai(
             "type": "input_image",
             "image_url": as_image_url
         }
+    print("Warning: received unsupported document type for OpenAI API. Returning None.")
     return None
 
 def _fix_docs_for_openai(
@@ -135,12 +141,12 @@ def _fix_docs_for_openai(
             formatted_docs.append(msg)
         elif isinstance(doc, MultipartDocument):
             
-            return {
+            formatted_docs.append({
                 "role": doc.role,
                 "content": [
                     _fix_part_for_openai(part) for part in doc.parts
                 ]
-            }
+            })
         else:
             raise ValueError(f"Unsupported document type: {type(doc)}")
     return formatted_docs
