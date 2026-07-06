@@ -339,13 +339,13 @@ LLMResponse: Any response from the LLM.
 """
 
 
-BuiltinProviderType = Literal["openai", "anthropic", "google", "bedrock"]
+BuiltinProviderType = Literal["openai", "anthropic", "google", "bedrock", "mistral"]
 """Built-in provider names."""
 
 ProviderType = BuiltinProviderType
 """
-Provider type string.  Built-in values are ``"openai"``, ``"anthropic"``, and
-``"google"``.
+Provider type string.  Built-in values are ``"openai"``, ``"anthropic"``, ``"google"``,
+``"bedrock"``, and ``"mistral"``.
 """
 
 

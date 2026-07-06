@@ -17,7 +17,6 @@ from parallem.types import (
     FunctionCallOutput,
     FunctionCall,
     FileInput,
-    ImageURLDocument,
     LLMDocument,
     MultipartDocument,
     ServerTool,

@@ -133,6 +133,33 @@ def dynamic_select_provider(
             provider = BatchBedrockProvider(client=client)
         else:
             provider = SyncBedrockProvider(client=client)
+    elif provider_type == "mistral":
+        from parallem.provider.mistral.sdk import (
+            AsyncMistralProvider,
+            BatchMistralProvider,
+            SyncMistralProvider,
+        )
+
+        if strategy == "batch":
+            provider = BatchMistralProvider()
+        elif strategy == "async":
+            if client is None:
+                from openai import AsyncOpenAI
+
+                client = AsyncOpenAI(
+                    base_url="https://api.mistral.ai/v1",
+                    api_key=os.environ.get("MISTRAL_API_KEY"),
+                )
+            provider = AsyncMistralProvider(client=client)
+        else:
+            if client is None:
+                from openai import OpenAI
+
+                client = OpenAI(
+                    base_url="https://api.mistral.ai/v1",
+                    api_key=os.environ.get("MISTRAL_API_KEY"),
+                )
+            provider = SyncMistralProvider(client=client)
     elif multi_allowed and provider_type == "multi":
         from parallem.provider.multi.multiplexer import (
             SyncMultiProvider,

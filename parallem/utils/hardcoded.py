@@ -42,6 +42,12 @@ def guess_provider_and_name(identity: str) -> tuple[Optional[str], str]:
     if any(identity.startswith(prefix) for prefix in _google_prefixes):
         return "google", identity
 
+    # Mistral AI models:
+    # https://docs.mistral.ai/getting-started/models/
+    _mistral_prefixes = ["mistral-", "open-mistral-", "codestral-", "pixtral-", "ministral-"]
+    if any(identity.startswith(prefix) for prefix in _mistral_prefixes):
+        return "mistral", identity
+
     return None, identity
 
 
