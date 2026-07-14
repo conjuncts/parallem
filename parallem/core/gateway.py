@@ -49,6 +49,7 @@ def resume_directory(
     store_input: Union[bool, None, InputStorageConfig] = None,
     llm: Union[LLMIdentity, str, None] = None,
     ask_params: Optional[AskParameters] = None,
+    _enable_old_hash_migration: bool = False,
 ) -> AgentOrchestrator:
     """
     Resume an AgentOrchestrator from a previously saved directory.
@@ -72,6 +73,9 @@ def resume_directory(
         Set to True to save them or provide an InputStorageConfig instance for more control.
     :param llm: By default, LLM identity to use for API calls.
     :param ask_params: Optional global parameters for ask_llm() calls. Overrides defaults.
+    :param _enable_old_hash_migration: When True, the datastore will also compute
+        the legacy hash format during cache lookups, allowing databases created
+        before the hash algorithm change to be migrated incrementally.
 
     :return: Configured AgentOrchestrator instance
     :raises ValueError: If strategy is not supported
@@ -169,6 +173,7 @@ def resume_directory(
         strategy=strategy,
         ask_params=global_ask_params,
         error_mode=tweaks_dict["error_mode"],
+        _enable_old_hash_migration=_enable_old_hash_migration
     )
 
     logger.info(f"Resuming with session_id={bm.get_session_counter()}")

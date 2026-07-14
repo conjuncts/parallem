@@ -169,10 +169,6 @@ class FunctionCall:
         return self.__repr__()
 
 
-def _hash_if_present(hasher, val: Optional[str]):
-    if val is not None:
-        hasher.update(val.encode("utf-8"))
-
 class AskItem(ABC):
     """An item (a document, LLMResponse, etc.) which can be passed to ask_llm().
     

@@ -14,6 +14,7 @@ from parallem.core.convert._asking import convert_options, convert_tools
 from parallem.core.convert.fix_docs import cast_documents, reduce_to_list
 from parallem.core.exception import NotAvailable, PendingNotAvailable
 from parallem.core.hash import compute_hash, compute_salted_hash
+from parallem.core.migrate._old_hash_migration import old_compute_salted_hash
 from parallem.core.convert.populate import populate_msg_state
 from parallem.core.state.msg_state import MessageState
 from parallem.core.response import (
@@ -139,6 +140,7 @@ class AgentContext(Askable):
         salt: Optional[str] = None,
         hash_by: List[HashByOption] = ["llm"],
         tag: Optional[str] = None,
+        _enable_old_hash_migration: bool = False,
         **kwargs,
     ) -> LLMResponse:
         # 1. assign sequential ID, input checks
@@ -191,6 +193,28 @@ class AgentContext(Askable):
         if cached is not None:
             self._orch._dashlog.update_call(call_id, HashStatus.CACHED)
             return cached
+
+        # 3b. Legacy hash migration
+        # Check for the "old" hash
+        if _enable_old_hash_migration:
+            old_hashed, _ = old_compute_salted_hash(
+                params,
+                salt=salt,
+                hash_by=hash_by,
+                kwargs=kwargs,
+            )
+            old_call_id = {
+                **call_id,
+                "doc_hash": old_hashed,
+            }
+            old_cached = self._get_cached_response(old_call_id)
+            if old_cached is not None:
+                # Then store the old cached value under the new hash, so that future calls will use the new hash
+                self._orch._backend._get_datastore().store(
+                    call_id,
+                    old_cached._pr,
+                )
+                return old_cached
 
         # 4. save inputs if needed (pass `params` mapping)
         if save_input:

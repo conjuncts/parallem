@@ -33,6 +33,7 @@ class AgentOrchestrator:
         strategy: Optional[Literal["sync", "async", "batch"]] = None,
         seq_id_store: Optional[SeqIdStore] = None,
         error_mode: Optional[str] = None,
+        _enable_old_hash_migration: bool = False,
     ):
         """
         Initialize the AgentOrchestrator.
@@ -64,6 +65,9 @@ class AgentOrchestrator:
         self.strategy = strategy
         self._seq_id_store = seq_id_store or InMemorySeqIdStore()
         self._error_mode = error_mode
+
+        # legacy params
+        self._enable_old_hash_migration = _enable_old_hash_migration
 
     def __enter__(self):
         """Enter the context manager, returning self."""
@@ -103,6 +107,9 @@ class AgentOrchestrator:
             ask_params = self.ask_params
         else:
             ask_params = {**self.ask_params, **ask_params}
+
+        if self._enable_old_hash_migration:
+            ask_params["_enable_old_hash_migration"] = True
 
         return AgentContext(
             str(name),
