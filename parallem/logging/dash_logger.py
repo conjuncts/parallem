@@ -158,7 +158,7 @@ class DashboardLogger:
             self._context_prev_display = self.display
             self._context_keep_when_done = keep_when_done
             self.set_display(True, clear_console=False)
-            self._stdout_holder = DashboardStdout(self, sys.__stdout__)
+            self._stdout_holder = DashboardStdout(self, sys.stdout)
             self._stdout_cm = contextlib.redirect_stdout(self._stdout_holder)
             self._stdout_cm.__enter__()
         else:
@@ -342,8 +342,8 @@ class DashboardLogger:
         :param valid_responses: Optional set of valid responses (e.g., {'y', 'n'})
         :return: What the user responded
         """
-        print(end="")
-        response = input(prompt).strip().lower()
+        print(prompt, end="")
+        response = input().strip().lower()
         while valid_responses is not None and response not in valid_responses:
             print(f"Invalid response. Please enter one of: {', '.join(valid_responses)}")
             response = input().strip().lower()
