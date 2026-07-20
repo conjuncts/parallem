@@ -6,7 +6,7 @@ from parallem.provider.anthropic import _version_checks
 from parallem.provider.anthropic.sdk import (
     AnthropicProvider,
 )
-from parallem.provider.anthropic.adapter import AnthropicAdapter
+from parallem.provider.anthropic.sdk import AnthropicAdapter
 from parallem.types import LLMIdentity
 from parallem.utils._quick_structured import _anthropic_transform_schema
 
@@ -30,7 +30,7 @@ def _prepare_anthropic_config(params, **kwargs):
 
 
 def test_prepare_anthropic_config_with_pydantic_structured_output(monkeypatch):
-    from parallem.provider.anthropic import adapter as anthropic_adapter
+    from parallem.provider.anthropic import sdk as anthropic_adapter
 
     monkeypatch.setattr(
         anthropic_adapter,
@@ -48,7 +48,7 @@ def test_prepare_anthropic_config_with_pydantic_structured_output(monkeypatch):
 
 
 def test_prepare_anthropic_config_with_json_schema_dict(monkeypatch):
-    from parallem.provider.anthropic import adapter as anthropic_adapter
+    from parallem.provider.anthropic import sdk as anthropic_adapter
 
     monkeypatch.setattr(
         anthropic_adapter,

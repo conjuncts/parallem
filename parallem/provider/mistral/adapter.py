@@ -1,7 +1,7 @@
 from typing import TYPE_CHECKING, List, Optional, Union
 
 from parallem.provider.base import BaseAdapter
-from parallem.provider.openai_chat.adapter import (
+from parallem.provider.openai_chat.sdk import (
     _fix_docs_for_openai_chat,
     _fix_tools_for_openai_chat,
     _prepare_response_format,

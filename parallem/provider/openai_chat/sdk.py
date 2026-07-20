@@ -1,25 +1,294 @@
-from typing import TYPE_CHECKING, Optional, Union
+from typing import TYPE_CHECKING, List, Optional, Union
 
-from parallem.provider.openai.common import OpenAIBatchMixin
+from parallem.provider.openai.common import OpenAIBatchMixin, map_server_tools
+from parallem.provider.openai.openai_tools import to_strict_json_schema
 
 from parallem.core.exception import ProviderCompatibilityError
 from parallem.provider.base import (
+    BaseAdapter,
     BaseProvider,
     BatchProvider,
     AsyncProvider,
     SyncProvider,
 )
-from parallem.provider.openai_chat.adapter import OpenAIChatAdapter
 from parallem.types import (
     CommonQueryParameters,
+    FunctionCall,
+    FunctionCallOutput,
+    FunctionCallRequest,
+    LLMDocument,
     LLMIdentity,
     ParsedResponse,
     ServerTool,
 )
+from parallem.utils._quick_pydantic import is_pydantic_model
+from parallem.utils.image import is_image, is_image_url, to_image_url_str
 
 if TYPE_CHECKING:
     from openai import AsyncOpenAI, OpenAI
+    from openai.types.chat.chat_completion import ChatCompletion
+    from openai.types.chat.chat_completion_message_param import (
+        ChatCompletionMessageParam,
+    )
     from pydantic import BaseModel
+
+
+def _fix_docs_for_openai_chat(
+    documents: List[LLMDocument],
+    instructions: Optional[str],
+) -> "List[ChatCompletionMessageParam]":
+    """Ensure documents are in the correct format for OpenAI chat completions."""
+    formatted_docs: list[dict] = []
+    if instructions:
+        formatted_docs.append(
+            {
+                "role": "system",
+                "content": instructions,
+            }
+        )
+
+    for doc in documents:
+        if isinstance(doc, str):
+            msg: "ChatCompletionMessageParam" = {
+                "role": "user",
+                "content": doc,
+            }
+            formatted_docs.append(msg)
+        elif isinstance(doc, FunctionCallRequest):
+            msg: dict = {
+                "role": "assistant",
+                "content": doc.text_content if doc.text_content else None,
+                "tool_calls": [
+                    {
+                        "id": call.fcall_id,
+                        "type": "function",
+                        "function": {
+                            "name": call.name,
+                            "arguments": call.arg_str,
+                        },
+                    }
+                    for call in doc.calls
+                ],
+            }
+            formatted_docs.append(msg)
+        elif isinstance(doc, FunctionCallOutput):
+            msg = {
+                "role": "tool",
+                "tool_call_id": doc.fcall_id,
+                "content": doc.content,
+            }
+            formatted_docs.append(msg)
+        elif isinstance(doc, tuple) and len(doc) == 2:
+            role, content = doc
+            if role == "developer":
+                role = "system"
+            msg = {
+                "role": role,
+                "content": content,
+            }
+            formatted_docs.append(msg)
+        elif is_image(doc) or is_image_url(doc):
+            as_image_url = to_image_url_str(
+                doc, allowed_mimetypes=["image/jpeg", "image/png", "image/gif", "image/webp"]
+            )
+            formatted_docs.append(
+                {
+                    "role": "user",
+                    "content": [
+                        {
+                            "type": "image_url",
+                            "image_url": {
+                                "url": as_image_url
+                            },
+                        }
+                    ],
+                }
+            )
+        else:
+            raise ValueError(f"Unsupported document type: {type(doc)}")
+    return formatted_docs
+
+
+def _fix_tools_for_openai_chat(
+    tools: Optional[list[Union[dict, ServerTool]]],
+) -> list[dict]:
+    """Translate ServerTool into OpenAI chat completions format."""
+    openai_tools = map_server_tools(tools, web_search_supported=False)
+    chat_tools = []
+    for tool in openai_tools:
+        if isinstance(tool, dict):
+            # ChatCompletions expects {"type": "function", "function": {...}}
+            # whereas Responses expects {"type": "function", "name": ..., "parameters": ...}
+            if tool.get("type") == "function" and "function" in tool:
+                chat_tools.append(tool)
+            elif "name" in tool and "parameters" in tool:
+                remainder = {k: v for k, v in tool.items() if k not in {"type"}}
+                chat_tools.append(
+                    {
+                        "type": "function",
+                        "function": {
+                            **remainder,
+                        },
+                    }
+                )
+            else:
+                chat_tools.append(tool)
+        else:
+            chat_tools.append(tool)
+    return chat_tools
+
+
+def _prepare_response_format(structured_output: object) -> dict:
+    """Prepare chat completion response_format from structured_output input."""
+    if isinstance(structured_output, dict):
+        output_type = structured_output.get("type")
+        if output_type in {"json_schema", "json_object"}:
+            if output_type == "json_schema" and "json_schema" not in structured_output:
+                schema_obj = structured_output.get("schema", structured_output)
+                return {
+                    "type": "json_schema",
+                    "json_schema": {
+                        "name": structured_output.get("name", "UnknownSchema"),
+                        "schema": schema_obj,
+                        "strict": structured_output.get("strict", True),
+                    },
+                }
+            return structured_output
+        if "response_format" in structured_output:
+            return structured_output["response_format"]
+        return {
+            "type": "json_schema",
+            "json_schema": {
+                "name": structured_output.get("title", "UnknownSchema"),
+                "schema": structured_output,
+                "strict": True,
+            },
+        }
+
+    model_json_schema = getattr(structured_output, "model_json_schema", None)
+    if callable(model_json_schema):
+        schema = to_strict_json_schema(structured_output)
+        return {
+            "type": "json_schema",
+            "json_schema": {
+                "name": schema.get("title", "UnknownSchema"),
+                "schema": schema,
+                "strict": True,
+            },
+        }
+
+    raise ValueError("structured_output must be a dict or a pydantic model for chat completions")
+
+
+class OpenAIChatAdapter(BaseAdapter):
+    def prepare_sdk_request(
+        self,
+        params: CommonQueryParameters,
+        **kwargs,
+    ):
+        raise NotImplementedError
+
+    def prepare_docs(
+        self,
+        documents: List[LLMDocument],
+        instructions: Optional[str] = None,
+    ) -> "List[ChatCompletionMessageParam]":
+        return _fix_docs_for_openai_chat(documents, instructions)
+
+    def prepare_tools(
+        self,
+        tools: List[Union[dict, ServerTool]],
+    ):
+        """Make tools ready for API calls."""
+        return _fix_tools_for_openai_chat(tools)
+
+    def fix_structured_output(
+        self,
+        structured_output: object,
+    ) -> dict:
+        return _prepare_response_format(structured_output)
+
+    def convert_response(self, raw_response: Union["BaseModel", dict]) -> ParsedResponse:
+        """Parse OpenAI chat completions response into common format."""
+        if isinstance(raw_response, dict):
+            choices = raw_response.get("choices") or []
+            texts = []
+            function_calls = []
+            for choice in choices:
+                message = choice.get("message") or {}
+                content = message.get("content")
+                if content:
+                    texts.append(content)
+                for tool_call in message.get("tool_calls") or []:
+                    if tool_call.get("type") == "function":
+                        fn = tool_call.get("function") or {}
+                        function_calls.append(
+                            FunctionCall(
+                                name=fn.get("name"),
+                                arguments=fn.get("arguments"),
+                                fcall_id=tool_call.get("id"),
+                            )
+                        )
+            text = "".join(texts)
+            resp_id = raw_response.get("id")
+            parsed_metadata = raw_response
+        elif is_pydantic_model(raw_response):
+            response: "ChatCompletion" = raw_response
+            obj = response.model_dump(mode="json")
+            resp_id = obj.get("id")
+            choices = obj.get("choices") or []
+            texts = []
+            function_calls = []
+            for choice in choices:
+                message = choice.get("message") or {}
+                content = message.get("content")
+                if content:
+                    texts.append(content)
+                for tool_call in message.get("tool_calls") or []:
+                    if tool_call.get("type") == "function":
+                        fn = tool_call.get("function") or {}
+                        function_calls.append(
+                            FunctionCall(
+                                name=fn.get("name"),
+                                arguments=fn.get("arguments"),
+                                fcall_id=tool_call.get("id"),
+                            )
+                        )
+            text = "".join(texts)
+            parsed_metadata = obj
+        else:
+            raise ValueError(f"Unsupported response type: {type(raw_response)}")
+        return ParsedResponse(
+            text=text,
+            response_id=resp_id,
+            metadata=parsed_metadata,
+            function_calls=function_calls,
+        )
+
+    def prepare_batch_request(
+        self,
+        params: CommonQueryParameters,
+        **kwargs,
+    ) -> dict:
+        """Prepare full request payload for OpenAI chat completions batch."""
+        instructions = params["instructions"]
+        fixed_documents = self.prepare_docs(params["strict_documents"], instructions)
+        llm = params["llm"]
+        structured_output = params.get("structured_output")
+        tools = self.prepare_tools(params.get("tools"))
+
+        if structured_output is not None:
+            if "response_format" in kwargs:
+                raise AssertionError("Cannot supply both structured_output and response_format")
+            kwargs["response_format"] = self.fix_structured_output(structured_output)
+
+        body = {
+            "model": llm.model_name,
+            "messages": fixed_documents,
+            "tools": tools,
+            **kwargs,
+        }
+        return body
 
 
 class OpenAIChatProvider(BaseProvider):

@@ -1,4 +1,4 @@
-from parallem.provider.anthropic.adapter import AnthropicAdapter
+from parallem.provider.anthropic.sdk import AnthropicAdapter
 
 
 class BedrockAnthropicAdapter(AnthropicAdapter):

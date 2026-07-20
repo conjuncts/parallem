@@ -60,7 +60,7 @@ class BedrockAdapter(BaseAdapter):
 
                 self._adapters[_key] = BedrockNovaAdapter()
             elif _key == "openai-chat":
-                from parallem.provider.openai_chat.adapter import OpenAIChatAdapter
+                from parallem.provider.openai_chat.sdk import OpenAIChatAdapter
 
                 self._adapters[_key] = OpenAIChatAdapter()
             elif _key == "anthropic":
