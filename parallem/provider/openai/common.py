@@ -7,7 +7,7 @@ from parallem.types import BatchResult, LLMIdentity, ParsedError, ParsedResponse
 from parallem.utils._batch_helper import _split_batch_response
 
 if TYPE_CHECKING:
-    pass
+    from openai import OpenAI
 
 
 def map_server_tools(
@@ -56,6 +56,7 @@ class OpenAIBatchMixin:
     """Handles OpenAI Batch API for both Responses and ChatCompletions APIs."""
 
     batch_endpoint: str
+    client: "OpenAI"
 
     def _decode_openai_batch_result(self, result: dict) -> ParsedResponse:
         """Decode a single result from OpenAI batch response.
@@ -221,6 +222,9 @@ class OpenAIBatchMixin:
                     parsed_responses=None,
                 )
             ]
+
+        _created_at = batch.created_at
+        _completed_at = batch.completed_at
 
         if out_file_id is None and err_file_id is None:
             return []

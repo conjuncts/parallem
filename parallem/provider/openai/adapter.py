@@ -147,6 +147,9 @@ def _fix_docs_for_openai(
                     _fix_part_for_openai(part) for part in doc.parts
                 ]
             })
+        elif isinstance(doc, dict):
+            # Assume it's already in the correct format for OpenAI API
+            formatted_docs.append(doc)
         else:
             raise ValueError(f"Unsupported document type: {type(doc)}")
     return formatted_docs
