@@ -3,6 +3,8 @@ import json
 from typing import TYPE_CHECKING, Literal, Optional
 import polars as pl
 
+from parallem.core.compress._json_normalize import pl_json_normalize
+
 if TYPE_CHECKING:
     from parallem.core.agent.orchestrator import AgentOrchestrator
 
@@ -70,5 +72,7 @@ class ExportNamespace:
                     }
                 )
 
-        df = pl.json_normalize(collector)
+        df = pl_json_normalize(collector, infer_schema_length=None, schema_overrides={
+            "instructions": pl.Utf8
+        })
         return df
