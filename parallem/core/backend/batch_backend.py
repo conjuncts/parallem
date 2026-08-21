@@ -26,6 +26,18 @@ from parallem.types import (
 )
 
 
+def _format_pending(res: BatchResult) -> str:
+    """Format a human-readable status line for a pending BatchResult."""
+    parts = []
+    if res.provider_status:
+        parts.append(f"status={res.provider_status}")
+    if res.total_count:
+        parts.append(f"{res.completed_count or 0}/{res.total_count} completed")
+    if parts:
+        return f"is still pending ({', '.join(parts)})."
+    return "is still pending."
+
+
 @dataclass
 class BatchGroup:
     """Private dataclass for organizing batch data"""
@@ -426,8 +438,14 @@ class BatchBackend(BaseBackend):
                     # Clean up the pending batch record even for errors
                     self._ds.clear_batch_pending(batch_uuid)
                     statuses["error"] += 1
+                elif batch_result.status == "pending":
+                    dl.update_hash(batch_uuid, HashStatus.SENT_BATCH)
+                    print(f"Batch {batch_uuid} {_format_pending(batch_result)}")
+                    statuses["pending"] += 1
 
             if not batch_results:
+                # Defensive fallback: a provider returned no BatchResult at all
+                # instead of a "pending" one.
                 dl.update_hash(batch_uuid, HashStatus.SENT_BATCH)
                 print(f"Batch {batch_uuid} is still pending.")
                 statuses["pending"] += 1

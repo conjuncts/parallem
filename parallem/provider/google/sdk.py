@@ -754,7 +754,14 @@ class BatchGoogleProvider(BatchProvider, GoogleProvider):
         }
 
         if batch_job.state.name not in completed_states:
-            return []  # Still pending
+            return [
+                BatchResult(
+                    status="pending",
+                    raw_output=None,
+                    parsed_responses=None,
+                    provider_status=batch_job.state.name,
+                )
+            ]
 
         results = []
 

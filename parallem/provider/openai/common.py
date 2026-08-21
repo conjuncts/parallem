@@ -227,7 +227,17 @@ class OpenAIBatchMixin:
         _completed_at = batch.completed_at
 
         if out_file_id is None and err_file_id is None:
-            return []
+            counts = batch.request_counts
+            return [
+                BatchResult(
+                    status="pending",
+                    raw_output=None,
+                    parsed_responses=None,
+                    provider_status=batch.status,
+                    completed_count=counts.completed if counts is not None else None,
+                    total_count=counts.total if counts is not None else None,
+                )
+            ]
 
         results = []
 

@@ -734,7 +734,25 @@ class BatchAnthropicProvider(BatchProvider, AnthropicProvider):
 
         batch = self.client.messages.batches.retrieve(batch_uuid)
         if batch.processing_status != "ended":
-            return []
+            counts = batch.request_counts
+            total = None
+            completed = None
+            if counts is not None:
+                total = (
+                    counts.processing + counts.succeeded + counts.errored
+                    + counts.canceled + counts.expired
+                )
+                completed = total - counts.processing
+            return [
+                BatchResult(
+                    status="pending",
+                    raw_output=None,
+                    parsed_responses=None,
+                    provider_status=batch.processing_status,
+                    completed_count=completed,
+                    total_count=total,
+                )
+            ]
 
         lines = []
         for item in self.client.messages.batches.results(batch_uuid):

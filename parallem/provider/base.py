@@ -146,9 +146,11 @@ class BatchProvider(BaseProvider):
     def download_batch(self, batch_uuid: str, provider_type: str) -> List[BatchResult]:
         """Download the results of a batch from the provider.
 
-        The list can contain both ready and error results.
-        Empty list = still pending.
-        - batch_status is one of "pending", "ready", or "error".
+        The list can contain ready, error, and/or pending results.
+        While the batch is still in progress, implementations should return a single
+        ``BatchResult(status="pending", ...)`` with ``provider_status``/``completed_count``/
+        ``total_count`` populated where the provider makes that information available,
+        rather than an empty list.
 
         :param provider_type: Double check to make sure that batch_uuid is for the same provider.
         :param batch_uuid: The unique identifier for the batch to download

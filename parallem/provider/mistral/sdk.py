@@ -349,12 +349,31 @@ class BatchMistralProvider(BatchProvider, MistralProvider):
             ]
 
         if status != "SUCCESS":
-            return []  # Still pending (QUEUED, RUNNING, CANCELLATION_REQUESTED)
+            # Still pending (QUEUED, RUNNING, CANCELLATION_REQUESTED)
+            return [
+                BatchResult(
+                    status="pending",
+                    raw_output=None,
+                    parsed_responses=None,
+                    provider_status=status,
+                    completed_count=job.get("completed_requests"),
+                    total_count=job.get("total_requests"),
+                )
+            ]
 
         # Download output file
         output_file_id = job.get("output_file")
         if not output_file_id:
-            return []
+            return [
+                BatchResult(
+                    status="pending",
+                    raw_output=None,
+                    parsed_responses=None,
+                    provider_status=status,
+                    completed_count=job.get("completed_requests"),
+                    total_count=job.get("total_requests"),
+                )
+            ]
 
         content = self._download_file_content(output_file_id)
         if not content:

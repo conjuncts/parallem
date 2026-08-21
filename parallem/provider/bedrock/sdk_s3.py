@@ -109,7 +109,14 @@ class BatchBedrockProvider(BatchProvider, BedrockProvider):
 
         # Bedrock statuses: Submitted, InProgress, Completed, Failed, Stopping, Stopped, Expired, PartiallyCompleted
         if status in ("Submitted", "InProgress", "Stopping"):
-            return []  # Still pending
+            return [
+                BatchResult(
+                    status="pending",
+                    raw_output=None,
+                    parsed_responses=None,
+                    provider_status=status,
+                )
+            ]
 
         if status in ("Failed", "Stopped", "Expired"):
             # The whole job failed before producing any output — surface one error BatchResult.

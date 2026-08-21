@@ -110,7 +110,7 @@ class AskParameters(TypedDict, total=False):
     salt: Optional[str]
 
 
-BatchStatus = Literal["ready", "error"]
+BatchStatus = Literal["ready", "error", "pending"]
 
 
 @dataclass(slots=True)
@@ -125,6 +125,18 @@ class BatchResult:
 
     location: Path = None
     """Where the batch output is stored."""
+
+    provider_status: Optional[str] = None
+    """Raw status string from the provider (e.g. "validating", "in_progress", "QUEUED").
+    Only populated when status == "pending"."""
+
+    completed_count: Optional[int] = None
+    """Number of requests completed so far, if the provider reports it.
+    Only populated when status == "pending"."""
+
+    total_count: Optional[int] = None
+    """Total number of requests in the batch, if the provider reports it.
+    Only populated when status == "pending"."""
 
 
 class FunctionCall:
