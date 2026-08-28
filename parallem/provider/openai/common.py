@@ -81,14 +81,14 @@ class OpenAIBatchMixin:
         """
         custom_id = result.pop("custom_id", None)
 
-        err_obj = result.get("error", {})
-        resp_obj = result.get("response", {})
+        err_obj = result.get("error") or {}
+        resp_obj = result.get("response") or {}
         resp_id = (resp_obj.get("body") or {}).get("id", None)
         error_code = resp_obj.get("status_code")
         if error_code is not None:
             error_code = str(error_code)
 
-        if err_obj is not None:
+        if err_obj:
             return ParsedResponse(
                 text=error_code or "",
                 response_id=resp_id,
@@ -96,8 +96,8 @@ class OpenAIBatchMixin:
                 metadata=err_obj,
             )
 
-        body = resp_obj.get("body", {})
-        body_error = body.get("error", {})
+        body = resp_obj.get("body") or {}
+        body_error = body.get("error") or {}
         return ParsedResponse(
             text=error_code or "",
             response_id=resp_id,
