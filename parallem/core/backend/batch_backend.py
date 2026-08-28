@@ -71,6 +71,7 @@ class BatchBackend(BaseBackend):
         session_id: int,
         confirm_batch_submission: bool = False,
         max_batch_size: int = 1000,
+        auto_submit_threshold: Optional[int] = None,
         compress_inputs: bool = False,
         rewrite_cache: bool = False,
     ):
@@ -84,6 +85,9 @@ class BatchBackend(BaseBackend):
         if max_batch_size < 1:
             raise ValueError("max_batch_size must be >= 1")
         self._max_batch_size = max_batch_size
+        if auto_submit_threshold is not None and auto_submit_threshold < 1:
+            raise ValueError("auto_submit_threshold must be >= 1")
+        self._auto_submit_threshold = auto_submit_threshold
         self._compress_inputs = compress_inputs
         self._rewrite_cache = rewrite_cache
 
@@ -134,6 +138,13 @@ class BatchBackend(BaseBackend):
             params["llm"],
             stuff=stuff,
         )
+
+        # Automatically flush accumulated requests once the threshold is reached
+        if (
+            self._auto_submit_threshold is not None
+            and len(self._batch_buffer) >= self._auto_submit_threshold
+        ):
+            self.submit_all_batches(provider, dl=self.dashlog)
 
         return BatchLLMResponse(call_id)
 

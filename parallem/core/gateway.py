@@ -19,6 +19,7 @@ DEFAULT_MINOR_TWEAKS: MinorTweaks = {
     "batch_user_confirmation": True,
     "batch_wait_until_complete": False,
     "batch_max_size": 1000,
+    "batch_auto_submit_threshold": None,
     "batch_input_format": "zip",
     "batch_output_format": "zip",
     "error_mode": "raise",
@@ -146,6 +147,7 @@ def resume_directory(
             session_id=fm._get_session_counter(),
             confirm_batch_submission=tweaks_dict["batch_user_confirmation"],
             max_batch_size=tweaks_dict["batch_max_size"],
+            auto_submit_threshold=tweaks_dict["batch_auto_submit_threshold"],
             compress_inputs=tweaks_dict["batch_input_format"] == "zip",
             rewrite_cache=rewrite_cache,
         )

@@ -493,13 +493,16 @@ class MinorTweaks(TypedDict, total=False):
     "Maximum number of concurrent tasks in AsyncBackend."
 
     batch_user_confirmation: bool = True
-    "Whether to ask for user confirmation before submitting a batch."
+    "Whether to ask for user confirmation before submitting a batch. Default: True (asks for confirmation)."
 
     batch_wait_until_complete: bool = False
     "Whether to wait for all batches to complete before proceeding."
 
     batch_max_size: int = 1000
     "Maximum number of calls submitted per provider batch request."
+
+    batch_auto_submit_threshold: Optional[int] = None
+    "If set, automatically submit all pending batches once this many requests have accumulated."
 
     batch_input_format: Literal["jsonl", "zip"] = "zip"
     "Whether to compress batch inputs."
