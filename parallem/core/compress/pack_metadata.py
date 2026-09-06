@@ -1,6 +1,8 @@
 from pathlib import Path
 import gzip
 
+from filelock import FileLock
+
 from parallem.core.compress.to_parquet import ParquetWriter
 
 
@@ -52,10 +54,12 @@ def compress_metadata_to_zip(metadata_rows: list[str], folder: Path, master_inde
 
         folder.mkdir(parents=True, exist_ok=True)
         tsv_path = folder / f"{provider_type}-metadata.tsv.gz"
-        with gzip.open(tsv_path, "at", encoding="utf-8", newline="") as tsv_file:
-            for row_id, response_id, metadata_txt in meta_list:
-                if metadata_txt is None:
-                    continue
-                tsv_file.write(f"{response_id}\t{metadata_txt}\n")
-                stored_row_ids.append(row_id)
+        lock_path = tsv_path.with_suffix(tsv_path.suffix + ".lock")
+        with FileLock(lock_path):
+            with gzip.open(tsv_path, "at", encoding="utf-8", newline="") as tsv_file:
+                for row_id, response_id, metadata_txt in meta_list:
+                    if metadata_txt is None:
+                        continue
+                    tsv_file.write(f"{response_id}\t{metadata_txt}\n")
+                    stored_row_ids.append(row_id)
     return stored_row_ids

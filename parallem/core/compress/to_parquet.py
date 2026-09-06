@@ -2,6 +2,7 @@ from pathlib import Path
 from typing import Literal, Optional, Union
 
 import polars as pl
+from filelock import FileLock
 
 
 def write_to_parquet(
@@ -36,28 +37,30 @@ def write_to_parquet(
 
     receipt_value = None
     parquet_fpath.parent.mkdir(parents=True, exist_ok=True)
-    if parquet_fpath.exists():
-        existing = pl.read_parquet(parquet_fpath)
-        if mode in ["append", "unique"]:
-            if mode == "unique":
-                commit = commit.join(existing, on=on, how="anti")
+    lock_path = parquet_fpath.with_suffix(parquet_fpath.suffix + ".lock")
+    with FileLock(lock_path):
+        if parquet_fpath.exists():
+            existing = pl.read_parquet(parquet_fpath)
+            if mode in ["append", "unique"]:
+                if mode == "unique":
+                    commit = commit.join(existing, on=on, how="anti")
 
-            write_value = pl.concat([existing, commit], how="diagonal_relaxed")
-        elif mode == "update":
-            write_value = existing.update(commit, on=on, how="full")
-        elif mode == "replace":
-            write_value = commit
+                write_value = pl.concat([existing, commit], how="diagonal_relaxed")
+            elif mode == "update":
+                write_value = existing.update(commit, on=on, how="full")
+            elif mode == "replace":
+                write_value = commit
+            else:
+                raise ValueError(f"Unknown mode: {mode}")
         else:
-            raise ValueError(f"Unknown mode: {mode}")
-    else:
-        write_value = commit
+            write_value = commit
 
-    if receipt_col:
-        receipt_value = commit.select(receipt_col)
+        if receipt_col:
+            receipt_value = commit.select(receipt_col)
 
-    tmp_fpath = parquet_fpath.with_suffix(".tmp")
-    write_value.write_parquet(tmp_fpath)
-    tmp_fpath.replace(parquet_fpath)
+        tmp_fpath = parquet_fpath.with_suffix(".tmp")
+        write_value.write_parquet(tmp_fpath)
+        tmp_fpath.replace(parquet_fpath)
 
     return receipt_value
 
